@@ -39,8 +39,6 @@
         <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs">
             <Controls:MetroTabItem Header="welcome">
             </Controls:MetroTabItem>
-            <Controls:MetroTabItem Header="page 1">
-            </Controls:MetroTabItem>
         </TabControl>
 
     </Grid>

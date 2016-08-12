@@ -129,8 +129,6 @@ namespace SoundBoard
                 {
                     string name = node["name"].InnerText;
 
-                    ++pages;
-
                     MetroTabItem tab = new MetroTabItem();
                     tab.Header = name;
                     Tabs.Items.Add(tab);
@@ -154,15 +152,12 @@ namespace SoundBoard
             // didn't work? make new stuff!
             catch
             {
-                pages = Tabs.Items.Count; // should be 2 on startup, welcome and one sound page
                 items = Tabs.Items; // save it for later
 
                 // populate content for "welcome"
                 CreateHelpContent((MetroTabItem)Tabs.Items[0]);
-
-                // populate content for "page 1"
-                CreatePageContent((MetroTabItem)Tabs.Items[1]); // hard-code all the things
             }
+            pages = Tabs.Items.Count;
         }
 
         private void RoutedKeyDownHandler(object sender, RoutedEventArgs e)
@@ -339,7 +334,7 @@ namespace SoundBoard
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
             MetroTabItem tab = new MetroTabItem();
-            tab.Header = "page " + (++pages-1); // -1: account for "welcome" page
+            tab.Header = "page " + (pages++); // -1: account for "welcome" page
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -361,11 +356,11 @@ namespace SoundBoard
 
         private async void removePage_Click(object sender, RoutedEventArgs e)
         {
-            --pages;
-
             MessageDialogResult result = await this.ShowMessageAsync("Just checking...", "Are you sure you want to close this page?", MessageDialogStyle.AffirmativeAndNegative);
             if (result == MessageDialogResult.Affirmative)
                 Tabs.Items.Remove(Tabs.SelectedItem);
+
+            pages = Tabs.Items.Count;
 
             UpdateSoundList();
         }
@@ -376,13 +371,13 @@ namespace SoundBoard
 
             foreach (MetroTabItem tab in Tabs.Items)
             {
-                Grid grid = (Grid)tab.Content;
-                foreach (var child in grid.Children)
-                {
-                    if (child is SoundButton)
-                    {
-                        SoundButton button = (SoundButton)child;
-                        sounds[button.Content.ToString()] = button.GetFile();
+                if (tab.Content is Grid) {
+                    Grid grid = (Grid)tab.Content;
+                    foreach (var child in grid.Children) {
+                        if (child is SoundButton) {
+                            SoundButton button = (SoundButton)child;
+                            sounds[button.Content.ToString()] = button.GetFile();
+                        }
                     }
                 }
             }
@@ -500,7 +495,7 @@ namespace SoundBoard
             stackPanel.Children.Add(text);
 
             text = new TextBlock();
-            text.Text = "Sound Board is split into pages, so you can group your favorite sounds together. If this is your first time running the program, you'll see we've already got a page set up for you. Click \"page 1\" to get started!";
+            text.Text = "Sound Board is split into pages, so you can group your favorite sounds together. To get started, add your first sound page by clicking \"add page\" above!";
             text.Padding = new Thickness(5);
             text.FontSize = 15;
             text.TextWrapping = TextWrapping.Wrap;

@@ -84,7 +84,6 @@ namespace SoundBoard
 
 
         public static ItemCollection items;
-        private int pages;
         private string searchString = "";
         private static MainWindow This;
         private RoutedEventHandler keyDownHandler;
@@ -157,7 +156,6 @@ namespace SoundBoard
                 // populate content for "welcome"
                 CreateHelpContent((MetroTabItem)Tabs.Items[0]);
             }
-            pages = Tabs.Items.Count;
         }
 
         private void RoutedKeyDownHandler(object sender, RoutedEventArgs e)
@@ -334,7 +332,7 @@ namespace SoundBoard
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
             MetroTabItem tab = new MetroTabItem();
-            tab.Header = "page " + (pages++); // -1: account for "welcome" page
+            tab.Header = "new page"; // -1: account for "welcome" page
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -359,8 +357,6 @@ namespace SoundBoard
             MessageDialogResult result = await this.ShowMessageAsync("Just checking...", "Are you sure you want to close this page?", MessageDialogStyle.AffirmativeAndNegative);
             if (result == MessageDialogResult.Affirmative)
                 Tabs.Items.Remove(Tabs.SelectedItem);
-
-            pages = Tabs.Items.Count;
 
             UpdateSoundList();
         }

@@ -12,6 +12,11 @@ Features include...
 * instant searching
 * a clean, modern UI
 
+## Downloads
+
+* [Latest release: v1.0](https://github.com/micahmo/SoundBoard/releases/tag/v1.0)
+
+
 ## Screenshots
 
 ### Welcome Page

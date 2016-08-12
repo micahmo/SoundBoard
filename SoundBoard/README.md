@@ -12,6 +12,7 @@ Features include...
 * instant searching
 * a clean, modern UI
 
+
 ## License
 
 This code is licenced under the [MIT License](https://opensource.org/licenses/MIT).

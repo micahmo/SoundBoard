@@ -1,8 +1,9 @@
 ﻿using System;
-using WMPLib;
 using System.IO;
+using NAudio.Wave;
 using System.Windows;
 using System.Threading;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using MahApps.Metro.Controls.Dialogs;
@@ -68,9 +69,11 @@ namespace SoundBoard
         private string soundName;
         private string soundExtension;
 
-        WindowsMediaPlayer player = new WindowsMediaPlayer();
+        IWavePlayer player = new WaveOut();
+        AudioFileReader audioFileReader;
+        Stopwatch stopWatch;
 
-        private SoundProgressBar soundProgressBar;
+        private SoundProgressBar soundProgressBar = new SoundProgressBar();
 
         public SoundButton() : base()
         {
@@ -111,10 +114,7 @@ namespace SoundBoard
                 MainWindow.sounds[soundName] = soundPath;
             }
 
-
-            Click += new RoutedEventHandler(soundButton_Click);
-            
-            // add sound to universal list for later searching
+            Click += new RoutedEventHandler(soundButton_Click);            
         }
 
         public string GetFile()
@@ -128,12 +128,25 @@ namespace SoundBoard
             {
                 if (!File.Exists(soundPath)) throw new Exception("File " + soundPath + " doesn't seem to exist!");
 
-                player.URL = soundPath;
-                player.controls.play();
+                // stop any previous sounds
+                player.Stop();
+
+                // reinitialize
+                player = new WaveOut();
+                audioFileReader = new AudioFileReader(soundPath);
+                player.Init(audioFileReader);
+
+                // and play
+                player.Play();
+                
+                // handle stop
+                player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
+
+                stopWatch = Stopwatch.StartNew();
 
                 // begin updating progress
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
-                Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(10), tokenSource.Token);
+                Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(1), tokenSource.Token);
 
                 MainWindow.soundPlayers.Add(player);
             }
@@ -141,6 +154,10 @@ namespace SoundBoard
             {
                 await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.AffirmativeAndNegative);
             }
+        }
+
+        private void MediaFailedHandler(object sender, EventArgs e) {
+            MessageBox.Show("well there's your problem!");
         }
 
         async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
@@ -154,19 +171,22 @@ namespace SoundBoard
 
         private void UpdateProgressAction()
         {
-            double maxSeconds = player.controls.currentItem.duration;
-            double curSeconds = player.controls.currentPosition;
+            double maxSeconds = audioFileReader.TotalTime.TotalMilliseconds;
+            double curSeconds = stopWatch.Elapsed.TotalMilliseconds;
 
-            if (maxSeconds != curSeconds && curSeconds != 0)
-            {
-                soundProgressBar.Visibility = Visibility.Visible;
-                soundProgressBar.Maximum = maxSeconds;
-                soundProgressBar.Value = curSeconds;
-            }
-            else
-            {
+            soundProgressBar.Visibility = Visibility.Visible;
+            soundProgressBar.Maximum = maxSeconds;
+            soundProgressBar.Value = curSeconds;
+
+            // is the sound done or has it been stopped? hide the progress bar
+            if (curSeconds > maxSeconds || audioFileReader.Position == 0) {
                 soundProgressBar.Visibility = Visibility.Hidden;
             }
+        }
+
+        private void SoundStoppedHandler(object sender, EventArgs e) {
+            audioFileReader.Position = 0;
+            soundProgressBar.Visibility = Visibility.Hidden;
         }
     }
 }

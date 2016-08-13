@@ -1,10 +1,10 @@
-﻿using WMPLib;
-using System;
+﻿using System;
 using System.IO;
 using System.Xml;
 using System.Text;
-using System.Media;
+using NAudio.Wave;
 using System.Windows;
+using System.Reflection;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Collections.Generic;
@@ -82,7 +82,6 @@ namespace SoundBoard
 
         #endregion
 
-
         public static ItemCollection items;
         private string searchString = "";
         private static MainWindow This;
@@ -90,7 +89,7 @@ namespace SoundBoard
         private SoundButton focusedButton;
 
         public static Dictionary<string, string> sounds = new Dictionary<string, string>();
-        public static List<WindowsMediaPlayer> soundPlayers = new List<WindowsMediaPlayer>();
+        public static List<IWavePlayer> soundPlayers = new List<IWavePlayer>();
 
         public static MainWindow GetThis()
         {
@@ -175,11 +174,7 @@ namespace SoundBoard
         private void KeyDownHandler(object sender, KeyEventArgs e)
         {
             char c = GetCharFromKey(e.Key);
-            if (char.IsLetter(c))
-            {
-                searchString += c;
-            }
-            else if (char.IsPunctuation(c))
+            if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
             {
                 searchString += c;
             }
@@ -192,7 +187,16 @@ namespace SoundBoard
             }
             else if (e.Key == Key.Escape)
             {
-                Search.IsOpen = false;
+                // if the search bar is open, close it
+                if (Search.IsOpen) {
+                    Search.IsOpen = false;
+                }
+                // otherwise, stop any playing sounds
+                else {
+                    ButtonAutomationPeer peer = new ButtonAutomationPeer(Silence);
+                    IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                    invokeProv.Invoke();
+                }
                 return;
             }
             else if (e.Key == Key.Down)
@@ -275,7 +279,6 @@ namespace SoundBoard
                 }
             }
 
-
             // perform search
             if (searchString != "")
             {
@@ -309,9 +312,8 @@ namespace SoundBoard
 
         private void silence_Click(object sender, EventArgs e)
         {
-            foreach (WindowsMediaPlayer player in soundPlayers)
-            {
-                player.controls.stop();
+            foreach (IWavePlayer player in soundPlayers) {
+                player.Stop();
             }
         }
 
@@ -326,13 +328,16 @@ namespace SoundBoard
 
         private async void about_Click(object sender, RoutedEventArgs e)
         {
-            await this.ShowMessageAsync("About Sound Board", "Created by Micah Morrison\nv 1.0.0");
+            Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            string version = AssemblyName.GetAssemblyName(assembly.Location).Version.ToString();
+
+            await this.ShowMessageAsync("About Sound Board", "Created by Micah Morrison\nversion " + version);
         }
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
             MetroTabItem tab = new MetroTabItem();
-            tab.Header = "new page"; // -1: account for "welcome" page
+            tab.Header = "new page";
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -578,7 +583,6 @@ namespace SoundBoard
                 writer.WriteEndElement();
                 writer.WriteEndDocument();
             }
-
         }
     }
 }

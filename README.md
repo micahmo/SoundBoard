@@ -14,7 +14,8 @@ Features include...
 
 ## Downloads
 
-* [Latest release: v1.0](https://github.com/micahmo/SoundBoard/releases/tag/v1.0)
+* [Latest release: v1.1](https://github.com/micahmo/SoundBoard/releases/tag/v1.1)
+* [v1.0](https://github.com/micahmo/SoundBoard/releases/tag/v1.0)
 
 
 ## Screenshots

@@ -5,8 +5,10 @@ using System.Windows;
 using System.Threading;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Windows.Interop;
 using System.Windows.Controls;
 using MahApps.Metro.Controls.Dialogs;
+using System.Runtime.InteropServices;
 
 namespace SoundBoard
 {
@@ -65,6 +67,16 @@ namespace SoundBoard
 
     class SoundButton : Button
     {
+        #region volume_stuff
+
+        private const int APPCOMMAND_VOLUME_UP = 0xA0000;
+        private const int WM_APPCOMMAND = 0x319;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessageW(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+        #endregion
+
         private string soundPath;
         private string soundName;
         private string soundExtension;
@@ -136,9 +148,11 @@ namespace SoundBoard
                 audioFileReader = new AudioFileReader(soundPath);
                 player.Init(audioFileReader);
 
+                SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
+
                 // and play
                 player.Play();
-                
+
                 // handle stop
                 player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
 

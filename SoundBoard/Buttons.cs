@@ -70,6 +70,7 @@ namespace SoundBoard
         #region volume_stuff
 
         private const int APPCOMMAND_VOLUME_UP = 0xA0000;
+        private const int APPCOMMAND_VOLUME_DOWN = 0x90000;
         private const int WM_APPCOMMAND = 0x319;
 
         [DllImport("user32.dll")]
@@ -79,13 +80,15 @@ namespace SoundBoard
 
         private string soundPath;
         private string soundName;
-        private string soundExtension;
 
         IWavePlayer player = new WaveOut();
         AudioFileReader audioFileReader;
         Stopwatch stopWatch;
 
-        private SoundProgressBar soundProgressBar = new SoundProgressBar();
+        SoundProgressBar soundProgressBar = new SoundProgressBar();
+
+        ContextMenu contextMenu = new ContextMenu();
+        MenuItem renameMenuItem = new MenuItem();
 
         public SoundButton() : base()
         {
@@ -93,6 +96,50 @@ namespace SoundBoard
             Content = "<no sound>";
             Margin = new Thickness(10, 10, 10, 10);
             Style = (Style)FindResource("SquareButtonStyle");
+            AllowDrop = true;
+            Drop += new DragEventHandler(SoundFileDrop);
+            Click += new RoutedEventHandler(soundButton_Click);
+
+            // context menu stuff
+            renameMenuItem.Header = "Rename";
+            renameMenuItem.Click += RenameMenuItem_Click;
+            contextMenu.Items.Add(renameMenuItem);
+            ContextMenu = contextMenu;
+        }
+
+        private async void RenameMenuItem_Click(object sender, RoutedEventArgs e) {
+            // stop handling keypresses in the main window
+            MainWindow.GetThis().RemoveHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler);
+
+            string result = await MainWindow.GetThis().ShowInputAsync("Rename", "What do you want to change " + soundName + " to?");
+
+            if (result != null && result != "") {
+                soundName = result;
+                Content = soundName;
+                MainWindow.GetThis().UpdateSoundList();
+            }
+
+            // rehandle keypresses in main window
+            MainWindow.GetThis().AddHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler, true);
+        }
+
+        private async void SoundFileDrop(object sender, DragEventArgs e) {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+                // get the dropped file(s)
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                // only care about the first file
+                string file = files[0];
+
+                // can only have .mp3 and .wav
+                if (Path.GetExtension(file) != ".mp3" && Path.GetExtension(file) != ".wav") {
+                    await MainWindow.GetThis().ShowMessageAsync("Uh oh!", "Only .wav and .mp3 files supported.", MessageDialogStyle.Affirmative);
+                    return;
+                }
+
+                // set it
+                SetFile(file);
+            }
         }
 
         public void SetSoundProgressBar(SoundProgressBar _soundProgressBar)
@@ -100,7 +147,7 @@ namespace SoundBoard
             soundProgressBar = _soundProgressBar;
         }
 
-        public void SetFile(string _soundPath, bool newSound = true)
+        public void SetFile(string _soundPath, string _soundName = "", bool newSound = true)
         {
             if (_soundPath == "")
             {
@@ -109,15 +156,18 @@ namespace SoundBoard
             }
 
             // if there was a previous sound here, get rid of it
-            try
-            {
+            try {
                 MainWindow.sounds.Remove(soundName);
             } catch { }
 
             soundPath = _soundPath;
-            soundExtension = Path.GetExtension(_soundPath);
-            soundName = Path.GetFileNameWithoutExtension(_soundPath);
 
+            if (_soundName == "") {
+                // for some whacked out reason, I have to remove underscores to avoid crazy bug
+                soundName = Path.GetFileNameWithoutExtension(_soundPath).Replace("_", "");
+            } else {
+                soundName = _soundName.Replace("_", "");
+            }
             Content = soundName;
 
             // add new sound to list
@@ -125,8 +175,10 @@ namespace SoundBoard
             {
                 MainWindow.sounds[soundName] = soundPath;
             }
+        }
 
-            Click += new RoutedEventHandler(soundButton_Click);            
+        public string GetFileName() {
+            return soundName;
         }
 
         public string GetFile()
@@ -142,36 +194,36 @@ namespace SoundBoard
 
                 // stop any previous sounds
                 player.Stop();
+                player.Dispose();
+                //audioFileReader.Dispose()
 
                 // reinitialize
                 player = new WaveOut();
                 audioFileReader = new AudioFileReader(soundPath);
                 player.Init(audioFileReader);
 
+                // unmute volume by turning it up and back down again
                 SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
-
-                // and play
-                player.Play();
+                SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
 
                 // handle stop
                 player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
 
                 stopWatch = Stopwatch.StartNew();
 
+                MainWindow.soundPlayers.Add(player);
+
+                // aaaaand play
+                player.Play();
+
                 // begin updating progress
                 CancellationTokenSource tokenSource = new CancellationTokenSource();
-                Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(1), tokenSource.Token);
-
-                MainWindow.soundPlayers.Add(player);
+                Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
             }
             catch (Exception ex)
             {
-                await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.AffirmativeAndNegative);
+                await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.Affirmative);
             }
-        }
-
-        private void MediaFailedHandler(object sender, EventArgs e) {
-            MessageBox.Show("well there's your problem!");
         }
 
         async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
@@ -200,7 +252,6 @@ namespace SoundBoard
 
         private void SoundStoppedHandler(object sender, EventArgs e) {
             audioFileReader.Position = 0;
-            soundProgressBar.Visibility = Visibility.Hidden;
         }
     }
 }

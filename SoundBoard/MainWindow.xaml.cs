@@ -82,10 +82,9 @@ namespace SoundBoard
 
         #endregion
 
-        public static ItemCollection items;
         private string searchString = "";
         private static MainWindow This;
-        private RoutedEventHandler keyDownHandler;
+        public RoutedEventHandler keyDownHandler;
         private SoundButton focusedButton;
 
         public static Dictionary<string, string> sounds = new Dictionary<string, string>();
@@ -131,18 +130,12 @@ namespace SoundBoard
                     tab.Header = name;
                     Tabs.Items.Add(tab);
 
-                    string button0 = node["button0"].InnerText;
-                    string button1 = node["button1"].InnerText;
-                    string button2 = node["button2"].InnerText;
-                    string button3 = node["button3"].InnerText;
-                    string button4 = node["button4"].InnerText;
-                    string button5 = node["button5"].InnerText;
-                    string button6 = node["button6"].InnerText;
-                    string button7 = node["button7"].InnerText;
-                    string button8 = node["button8"].InnerText;
-                    string button9 = node["button9"].InnerText;
+                    List<Tuple<string, string>> buttons = new List<Tuple<string, string>>();
 
-                    List<string> buttons = new List<string>() { button0, button1, button2, button3, button4, button5, button6, button7, button8, button9, };
+                    // read the button data
+                    for (int i = 0; i < 10; ++i) {
+                        buttons.Add(new Tuple<string, string>(node["button" + i].Attributes["name"].Value, node["button" + i].Attributes["path"].Value));
+                    }
 
                     CreatePageContent(tab, buttons);
                 }
@@ -150,8 +143,6 @@ namespace SoundBoard
             // didn't work? make new stuff!
             catch
             {
-                items = Tabs.Items; // save it for later
-
                 // populate content for "welcome"
                 CreateHelpContent((MetroTabItem)Tabs.Items[0]);
             }
@@ -173,6 +164,8 @@ namespace SoundBoard
 
         private void KeyDownHandler(object sender, KeyEventArgs e)
         {
+            Mouse.Capture(null);
+
             char c = GetCharFromKey(e.Key);
             if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
             {
@@ -287,11 +280,9 @@ namespace SoundBoard
                     if (entry.Key.ToLower().Contains(searchString.ToLower()))
                     {
                         SoundButton button = new SoundButton();
-                        button.Content = entry.Key;
-                        button.SetFile(entry.Value, false);
+                        button.SetFile(entry.Value, entry.Key, false);
 
                         ResultsPanel.Children.Add(button);
-
                     }
                 }
 
@@ -366,7 +357,7 @@ namespace SoundBoard
             UpdateSoundList();
         }
 
-        private void UpdateSoundList()
+        public void UpdateSoundList()
         {
             sounds.Clear();
 
@@ -384,7 +375,7 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MetroTabItem tab, List<string> buttons = null)
+        private void CreatePageContent(MetroTabItem tab, List<Tuple<string, string>> buttons = null)
         {
             Grid parentGrid = new Grid();
 
@@ -413,7 +404,7 @@ namespace SoundBoard
 
                 if (buttons != null)
                 {
-                    soundButton.SetFile(buttons[i]);
+                    soundButton.SetFile(buttons[i].Item2, buttons[i].Item1);
                 }
 
                 // menu button
@@ -446,7 +437,7 @@ namespace SoundBoard
 
                 if (buttons != null)
                 {
-                    soundButton.SetFile(buttons[i+5]);
+                    soundButton.SetFile(buttons[i+5].Item2, buttons[i+5].Item1);
                 }
 
                 // menu button
@@ -567,7 +558,11 @@ namespace SoundBoard
                                 if (child is SoundButton)
                                 {
                                     SoundButton button = (SoundButton)child;
-                                    writer.WriteElementString("button" + j++, button.GetFile());
+                                    writer.WriteStartElement("button" + j++);
+                                    writer.WriteAttributeString("name", button.GetFileName());
+                                    writer.WriteAttributeString("path", button.GetFile());
+                                    //writer.WriteString("test");
+                                    writer.WriteEndElement();
                                 }
                             }
                         }

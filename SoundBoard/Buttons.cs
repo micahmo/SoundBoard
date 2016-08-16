@@ -4,6 +4,7 @@ using NAudio.Wave;
 using System.Windows;
 using System.Threading;
 using System.Diagnostics;
+using System.Windows.Media;
 using System.Threading.Tasks;
 using System.Windows.Interop;
 using System.Windows.Controls;
@@ -90,10 +91,13 @@ namespace SoundBoard
         ContextMenu contextMenu = new ContextMenu();
         MenuItem renameMenuItem = new MenuItem();
 
-        public SoundButton() : base()
+        public SoundButton(bool searchButton = false) : base()
         {
+            if (!searchButton)
+            {
+                SetDefaultText();
+            }
             FontSize = 20;
-            Content = "<no sound>";
             Margin = new Thickness(10, 10, 10, 10);
             Style = (Style)FindResource("SquareButtonStyle");
             AllowDrop = true;
@@ -147,11 +151,16 @@ namespace SoundBoard
             soundProgressBar = _soundProgressBar;
         }
 
+        private void SetDefaultText() {
+            Content = "Drag a sound here...";
+            Foreground = new SolidColorBrush(Colors.Gray);
+        }
+
         public void SetFile(string _soundPath, string _soundName = "", bool newSound = true)
         {
             if (_soundPath == "")
             {
-                Content = "<no sound>";
+                SetDefaultText();
                 return;
             }
 
@@ -169,6 +178,9 @@ namespace SoundBoard
                 soundName = _soundName.Replace("_", "");
             }
             Content = soundName;
+
+            if (newSound)
+                Foreground = new SolidColorBrush(Colors.Black);
 
             // add new sound to list
             if (newSound)
@@ -188,6 +200,8 @@ namespace SoundBoard
 
         private async void soundButton_Click(object sender, RoutedEventArgs e)
         {
+            if (soundPath == "" || soundPath == null) return;
+
             try
             {
                 if (!File.Exists(soundPath)) throw new Exception("File " + soundPath + " doesn't seem to exist!");

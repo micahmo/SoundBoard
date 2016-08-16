@@ -279,7 +279,7 @@ namespace SoundBoard
                 {
                     if (entry.Key.ToLower().Contains(searchString.ToLower()))
                     {
-                        SoundButton button = new SoundButton();
+                        SoundButton button = new SoundButton(true);
                         button.SetFile(entry.Value, entry.Key, false);
 
                         ResultsPanel.Children.Add(button);
@@ -350,7 +350,7 @@ namespace SoundBoard
 
         private async void removePage_Click(object sender, RoutedEventArgs e)
         {
-            MessageDialogResult result = await this.ShowMessageAsync("Just checking...", "Are you sure you want to close this page?", MessageDialogStyle.AffirmativeAndNegative);
+            MessageDialogResult result = await this.ShowMessageAsync("Just checking...", "Are you sure you want to delete this page?", MessageDialogStyle.AffirmativeAndNegative);
             if (result == MessageDialogResult.Affirmative)
                 Tabs.Items.Remove(Tabs.SelectedItem);
 
@@ -494,14 +494,14 @@ namespace SoundBoard
             stackPanel.Children.Add(text);
 
             text = new TextBlock();
-            text.Text = "To load a sound, click the three little dots next to the button where you'd like to place your sound and browse to the file. Then click the button with the sound name on it to play it!";
+            text.Text = "To load a sound, just drag an audio file onto a button or click the three little dots to browse. Then click the button with the sound name on it to play it!";
             text.Padding = new Thickness(5);
             text.FontSize = 15;
             text.TextWrapping = TextWrapping.Wrap;
             stackPanel.Children.Add(text);
 
             text = new TextBlock();
-            text.Text = "To find a sound in a hurry, just start typing its name and see what happens!";
+            text.Text = "To find a sound in a hurry, just start typing its name and an instant search bar will appear!";
             text.Padding = new Thickness(5);
             text.FontSize = 15;
             text.TextWrapping = TextWrapping.Wrap;

@@ -108,7 +108,10 @@ namespace SoundBoard
             renameMenuItem.Header = "Rename";
             renameMenuItem.Click += RenameMenuItem_Click;
             contextMenu.Items.Add(renameMenuItem);
+            
+            // hide the context menu until we hav an actual sound
             ContextMenu = contextMenu;
+            ContextMenu.Visibility = Visibility.Hidden;
         }
 
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e) {
@@ -179,13 +182,17 @@ namespace SoundBoard
             }
             Content = soundName;
 
-            if (newSound)
-                Foreground = new SolidColorBrush(Colors.Black);
-
-            // add new sound to list
+            // if this is a new sound on the main soundboard
             if (newSound)
             {
+                // set text color
+                Foreground = new SolidColorBrush(Colors.Black);
+
+                // IMPORTANT, add this sounhd to dictionary
                 MainWindow.sounds[soundName] = soundPath;
+
+                // show the context menu
+                ContextMenu.Visibility = Visibility.Visible;
             }
         }
 

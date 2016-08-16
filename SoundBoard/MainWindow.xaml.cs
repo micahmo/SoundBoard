@@ -146,6 +146,56 @@ namespace SoundBoard
                 // populate content for "welcome"
                 CreateHelpContent((MetroTabItem)Tabs.Items[0]);
             }
+
+            CreateTabContextMenus();
+        }
+
+        private void CreateTabContextMenus()
+        {
+            // add context menu to each tab
+            foreach (MetroTabItem tab in Tabs.Items)
+            {
+                ContextMenu contextMenu = new ContextMenu();
+                MenuItem renameMenuItem = new MenuItem();
+                MenuItem removeMenuItem = new MenuItem();
+
+                renameMenuItem.Header = "Rename";
+                renameMenuItem.Click += RenameMenuItem_Click;
+
+                removeMenuItem.Header = "Remove";
+                removeMenuItem.Click += RemoveMenuItem_Click;
+
+                contextMenu.Items.Add(renameMenuItem);
+                contextMenu.Items.Add(removeMenuItem);
+
+                tab.MouseRightButtonUp += new MouseButtonEventHandler(MetroTabItem_RightClick);
+
+                tab.ContextMenu = contextMenu;
+            }
+        }
+
+        private void MetroTabItem_RightClick(object sender, EventArgs e)
+        {
+            if (sender is MetroTabItem)
+            {
+                ((MetroTabItem)sender).Focus();
+            }
+        }
+
+        private async void RenameMenuItem_Click(object sender, EventArgs e)
+        {
+            // tab will be focused (because of right-click handler), so just invoke "rename" button
+            ButtonAutomationPeer peer = new ButtonAutomationPeer(Rename);
+            IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+            invokeProv.Invoke();
+        }
+
+        private void RemoveMenuItem_Click(object sender, EventArgs e)
+        {
+            // tab will be focused (because of right-click handler), so just invoke "remove" button
+            ButtonAutomationPeer peer = new ButtonAutomationPeer(Remove);
+            IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+            invokeProv.Invoke();
         }
 
         private void RoutedKeyDownHandler(object sender, RoutedEventArgs e)
@@ -332,6 +382,9 @@ namespace SoundBoard
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
+
+            // make sure the new tab has a context menu
+            CreateTabContextMenus();
         }
 
         private async void renamePage_Click(object sender, RoutedEventArgs e)

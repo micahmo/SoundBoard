@@ -232,6 +232,7 @@ namespace SoundBoard
             {
                 // if the search bar is open, close it
                 if (Search.IsOpen) {
+                    searchString = ""; // don'even wait for it to close to clear the query
                     Search.IsOpen = false;
                 }
                 // otherwise, stop any playing sounds

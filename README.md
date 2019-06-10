@@ -21,13 +21,13 @@ Features include...
 ## Screenshots
 
 ### Welcome Page
-![alt text](http://s15.postimg.org/n0v4oc0or/2016_09_25_13_39_46_Sound_Board.png "Welcome Page")
+![alt text](http://s15.postimg.cc/n0v4oc0or/2016_09_25_13_39_46_Sound_Board.png "Welcome Page")
 
 ### Blank Sound Page
-![alt text](http://s9.postimg.org/hkr1fw3tb/2016_09_25_13_40_32_Sound_Board.png "Blank Sound Page")
+![alt text](http://s9.postimg.cc/hkr1fw3tb/2016_09_25_13_40_32_Sound_Board.png "Blank Sound Page")
 
 ### Sound Playing
-![alt text](http://s11.postimg.org/r56am4b37/2016_09_25_13_42_23_Clipboard.png "Sound Playing")
+![alt text](http://s11.postimg.cc/r56am4b37/2016_09_25_13_42_23_Clipboard.png "Sound Playing")
 
 ## License
 

@@ -1,4 +1,4 @@
-﻿![alt text](https://s9.postimg.org/n3e4vsb5b/logo.png "SoundBoard Logo")
+﻿![alt text](https://s9.postimg.cc/n3e4vsb5b/logo.png "SoundBoard Logo")
 
 # About SoundBoard
 

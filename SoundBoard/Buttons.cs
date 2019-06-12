@@ -36,7 +36,10 @@ namespace SoundBoard
 
         private void menuButton_Click(object sender, RoutedEventArgs e)
         {
-            buddy.BrowseForSound();
+            if (buddy.ContextMenu is null == false)
+            {
+                buddy.ContextMenu.IsOpen = true;
+            }
         }
     }
 
@@ -74,8 +77,7 @@ namespace SoundBoard
 
         SoundProgressBar soundProgressBar = new SoundProgressBar();
 
-        ContextMenu contextMenu = new ContextMenu();
-        MenuItem renameMenuItem = new MenuItem();
+        private MenuItem renameMenuItem;
 
         public SoundButton(bool searchButton = false) : base()
         {
@@ -90,14 +92,19 @@ namespace SoundBoard
             Drop += new DragEventHandler(SoundFileDrop);
             Click += new RoutedEventHandler(soundButton_Click);
 
-            // context menu stuff
-            renameMenuItem.Header = "Rename";
+            // Create context menu and items
+            ContextMenu contextMenu = new ContextMenu();
+
+            renameMenuItem = new MenuItem {Header = "Rename"};
             renameMenuItem.Click += RenameMenuItem_Click;
-            contextMenu.Items.Add(renameMenuItem);
+
+            MenuItem chooseSoundMenuItem = new MenuItem {Header = "Choose sound"};
+            chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
+
+            contextMenu.Items.Add(chooseSoundMenuItem);
+            // (Don't add the "Rename" button until we get a real sound)
             
-            // hide the context menu until we hav an actual sound
             ContextMenu = contextMenu;
-            ContextMenu.Visibility = Visibility.Hidden;
         }
 
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e) {
@@ -116,6 +123,11 @@ namespace SoundBoard
 
             // rehandle keypresses in main window
             MainWindow.GetThis().AddHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler, true);
+        }
+
+        private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            BrowseForSound();
         }
 
         private async void SoundFileDrop(object sender, DragEventArgs e) {
@@ -195,8 +207,8 @@ namespace SoundBoard
                 // IMPORTANT, add this sounhd to dictionary
                 MainWindow.sounds[soundName] = soundPath;
 
-                // show the context menu
-                ContextMenu.Visibility = Visibility.Visible;
+                // Now we can add Rename to the menu
+                ContextMenu?.Items.Add(renameMenuItem);
             }
         }
 

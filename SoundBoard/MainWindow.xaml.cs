@@ -13,7 +13,7 @@ using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
-
+using Timer = System.Timers.Timer;
 
 namespace SoundBoard
 { 
@@ -106,6 +106,14 @@ namespace SoundBoard
             AddHandler(KeyDownEvent, keyDownHandler, true);
             AddHandler(KeyUpEvent, new KeyEventHandler(KeyUpHandler), true);
             Closing += new System.ComponentModel.CancelEventHandler(FormClosingHandler);
+
+            // Set up timer to automatically save settings on an interval
+            Timer timer = new Timer
+            {
+                Interval = TWO_MINUTES_IN_MILLISECONDS
+            };
+            timer.Elapsed += (_, __) => this.Invoke(SaveSettings);
+            timer.Start();
 
             RightWindowCommandsOverlayBehavior = WindowCommandsOverlayBehavior.Never;
 
@@ -580,6 +588,11 @@ namespace SoundBoard
 
         private void FormClosingHandler(object sender, EventArgs e)
         {
+            SaveSettings();
+        }
+
+        private void SaveSettings()
+        {
             string filename = "soundboard.config";
 
             using (FileStream fileStream = new FileStream(filename, FileMode.Create))
@@ -633,5 +646,7 @@ namespace SoundBoard
                 writer.WriteEndDocument();
             }
         }
+
+        private const int TWO_MINUTES_IN_MILLISECONDS = 120000;
     }
 }

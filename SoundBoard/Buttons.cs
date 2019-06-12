@@ -118,7 +118,9 @@ namespace SoundBoard
             // stop handling keypresses in the main window
             MainWindow.GetThis().RemoveHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler);
 
-            string result = await MainWindow.GetThis().ShowInputAsync("Rename", "What do you want to change " + soundName + " to?");
+            string result = await MainWindow.GetThis().ShowInputAsync("Rename",
+                "What do you want to call it?",
+                new MetroDialogSettings {DefaultText = Content.ToString()});
 
             if (result != null && result != "") {
                 soundName = result;

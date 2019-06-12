@@ -400,11 +400,15 @@ namespace SoundBoard
         {
             RemoveHandler(KeyDownEvent, keyDownHandler);
 
-            string result = await this.ShowInputAsync("Rename", "Whaddya wanna call it?");
-            if (result != null && result != "")
+            if (Tabs.SelectedItem is MetroTabItem tab)
             {
-                MetroTabItem tab = (MetroTabItem)Tabs.SelectedItem;
-                tab.Header = result;
+                string result = await this.ShowInputAsync("Rename", "What do you want to call it?",
+                    new MetroDialogSettings {DefaultText = tab.Header.ToString()});
+
+                if (string.IsNullOrEmpty(result) == false)
+                {
+                    tab.Header = result;
+                }
             }
 
             AddHandler(KeyDownEvent, keyDownHandler, true);

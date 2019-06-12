@@ -10,6 +10,7 @@ using System.Windows.Interop;
 using System.Windows.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
+using Microsoft.Win32;
 
 namespace SoundBoard
 {
@@ -35,23 +36,8 @@ namespace SoundBoard
 
         private void menuButton_Click(object sender, RoutedEventArgs e)
         {
-            // show file dialog
-            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
-
-            // file type filter
-            dialog.DefaultExt = ".wav";
-            dialog.Filter = "Audo Files (*.wav, *.mp3)|*.wav;*.mp3";
-
-
-            var result = dialog.ShowDialog();
-
-            // if we got a file
-            if (result == true)
-            {
-                buddy.SetFile(dialog.FileName);
-            }
+            buddy.BrowseForSound();
         }
-
     }
 
     class SoundProgressBar : MahApps.Metro.Controls.MetroProgressBar
@@ -161,6 +147,22 @@ namespace SoundBoard
             Foreground = new SolidColorBrush(Colors.Gray);
         }
 
+        public void BrowseForSound()
+        {
+            // Show file dialog
+            OpenFileDialog dialog = new OpenFileDialog
+            {
+                // Set file type filters
+                DefaultExt = ".wav",
+                Filter = "Audio Files (*.wav, *.mp3)|*.wav;*.mp3"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                SetFile(dialog.FileName);
+            }
+        }
+
         public void SetFile(string _soundPath, string _soundName = "", bool newSound = true)
         {
             if (_soundPath == "")
@@ -209,43 +211,49 @@ namespace SoundBoard
 
         private async void soundButton_Click(object sender, RoutedEventArgs e)
         {
-            if (soundPath == "" || soundPath == null) return;
-
-            try
+            if (string.IsNullOrEmpty(soundPath))
             {
-                if (!File.Exists(soundPath)) throw new Exception("File " + soundPath + " doesn't seem to exist!");
-
-                // stop any previous sounds
-                player.Stop();
-                player.Dispose();
-                //audioFileReader.Dispose()
-
-                // reinitialize
-                player = new WaveOut();
-                audioFileReader = new AudioFileReader(soundPath);
-                player.Init(audioFileReader);
-
-                // unmute volume by turning it up and back down again
-                SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
-                SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
-
-                // handle stop
-                player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
-
-                stopWatch = Stopwatch.StartNew();
-
-                MainWindow.soundPlayers.Add(player);
-
-                // aaaaand play
-                player.Play();
-
-                // begin updating progress
-                CancellationTokenSource tokenSource = new CancellationTokenSource();
-                Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
+                // If this button doesn't have a sound yet, browse for it now
+                BrowseForSound();
             }
-            catch (Exception ex)
+            else
             {
-                await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.Affirmative);
+                try
+                {
+                    if (!File.Exists(soundPath)) throw new Exception("File " + soundPath + " doesn't seem to exist!");
+
+                    // stop any previous sounds
+                    player.Stop();
+                    player.Dispose();
+                    //audioFileReader.Dispose()
+
+                    // reinitialize
+                    player = new WaveOut();
+                    audioFileReader = new AudioFileReader(soundPath);
+                    player.Init(audioFileReader);
+
+                    // unmute volume by turning it up and back down again
+                    SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
+                    SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
+
+                    // handle stop
+                    player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
+
+                    stopWatch = Stopwatch.StartNew();
+
+                    MainWindow.soundPlayers.Add(player);
+
+                    // aaaaand play
+                    player.Play();
+
+                    // begin updating progress
+                    CancellationTokenSource tokenSource = new CancellationTokenSource();
+                    Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.Affirmative);
+                }
             }
         }
 

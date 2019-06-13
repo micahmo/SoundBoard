@@ -326,17 +326,6 @@ namespace SoundBoard
             Foreground = new SolidColorBrush(Colors.Gray);
         }
 
-        #endregion
-
-        async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
-        {
-            while (true)
-            {
-                action();
-                await Task.Delay(interval, token);
-            }
-        }
-
         private void UpdateProgressAction()
         {
             double maxSeconds = _audioFileReader.TotalTime.TotalMilliseconds;
@@ -347,10 +336,22 @@ namespace SoundBoard
             SoundProgressBar.Value = curSeconds;
 
             // Hide the progress bar if the sound is done or has been stopped
-            if (curSeconds > maxSeconds || _audioFileReader.Position == 0) {
+            if (curSeconds > maxSeconds || _audioFileReader.Position == 0)
+            {
                 SoundProgressBar.Visibility = Visibility.Hidden;
             }
         }
+
+        private async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
+        {
+            while (true)
+            {
+                action();
+                await Task.Delay(interval, token);
+            }
+        }
+
+        #endregion
 
         #region Public properties
 

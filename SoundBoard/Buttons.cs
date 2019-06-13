@@ -1,11 +1,13 @@
 ﻿#region Usings
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using NAudio.Wave;
 using System.Windows;
 using System.Threading;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows.Media;
 using System.Threading.Tasks;
 using System.Windows.Interop;
@@ -19,12 +21,90 @@ using Microsoft.Win32;
 
 namespace SoundBoard
 {
+    #region MenuButtonBase class
+
+    /// <summary>
+    /// Defines a button that can be placed on a sound button to offer additional functionality
+    /// </summary>
+    internal abstract class MenuButtonBase : Button
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        protected MenuButtonBase()
+        {
+            FontSize = 13;
+            Style = (Style)FindResource("MetroCircleButtonStyle");
+            Width = 35;
+            Height = 35;
+            Margin = new Thickness(0, 15, 15, 15);
+            Padding = new Thickness(0.5, 0, 0, 1.5);
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        protected MenuButtonBase(SoundButton parentButton) : this()
+        {
+            ParentButton = parentButton;
+        }
+
+        #endregion
+
+        #region Properties
+
+        protected readonly SoundButton ParentButton;
+
+        #endregion
+    }
+
+    #endregion
+
+    #region HideableMenuButtonBase class
+
+    /// <summary>
+    /// Defines a hideable button that can be placed on a sound button to offer additional functionality
+    /// </summary>
+    internal abstract class HideableMenuButtonBase : MenuButtonBase
+    {
+        #region Constructor
+
+        protected HideableMenuButtonBase(SoundButton parentButton) : base(parentButton) { }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Show the button
+        /// </summary>
+        public virtual void Show()
+        {
+            Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Hide the button
+        /// </summary>
+        public virtual void Hide()
+        {
+            Visibility = Visibility.Hidden;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
     #region MenuButton class
 
     /// <summary>
     /// Defines a menu button that is placed on a sound button to offer additional functionality
     /// </summary>
-    internal sealed class MenuButton : Button
+    internal sealed class MenuButton : MenuButtonBase
     {
         #region Constructor
 
@@ -32,17 +112,11 @@ namespace SoundBoard
         /// Constructor
         /// </summary>
         /// <param name="parentButton"></param>
-        public MenuButton(SoundButton parentButton)
+        public MenuButton(SoundButton parentButton) : base(parentButton)
         {
-            _parentButton = parentButton;
-
             Content = "•••";
-            FontSize = 15;
-            Style = (Style)FindResource("MetroCircleButtonStyle");
-            Width = 40;
-            Height = 40;
-            Margin = new Thickness(0, 15, 15, 0);
-            VerticalAlignment = VerticalAlignment.Top;
+
+            VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Right;
         }
 
@@ -54,17 +128,118 @@ namespace SoundBoard
         {
             base.OnClick();
 
-            if (_parentButton.ContextMenu is null == false)
+            if (ParentButton.ContextMenu is null == false)
             {
-                _parentButton.ContextMenu.IsOpen = true;
+                ParentButton.ContextMenu.IsOpen = true;
             }
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region PlayPauseButton class
+
+    /// <summary>
+    /// Defines a menu button that is placed on a sound button to offer play/pause functionality
+    /// </summary>
+    internal sealed class PlayPauseButton : HideableMenuButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public PlayPauseButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Center;
+            Margin = new Thickness(0, Margin.Top, Width, Margin.Bottom);
+
+            Visibility = Visibility.Hidden; // Hidden by default
+        }
+
+        #endregion
+
+        #region Event handlers
+
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            if (_playing)
+            {
+                ParentButton.Pause();
+                _playing = false;
+                Content = "⯈";
+            }
+            else
+            {
+                ParentButton.Play();
+                _playing = true;
+                Content = "❚❚";
+            }
+        }
+
+        #endregion
+
+        #region Public methods
+
+        public override void Show()
+        {
+            base.Show();
+            
+            Content = "❚❚";
+            _playing = true;
         }
 
         #endregion
 
         #region Private fields
 
-        private readonly SoundButton _parentButton;
+        private bool _playing = false;
+
+        #endregion
+    }
+
+    #endregion
+
+    #region StopButton class
+
+    /// <summary>
+    /// Defines a menu button that is placed on a sound button to offer individual silencing (stopping) functionality
+    /// </summary>
+    internal sealed class StopButton : HideableMenuButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public StopButton(SoundButton parentButton) : base(parentButton)
+        {
+            Content = "■";
+
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Center;
+            Margin = new Thickness(Width, Margin.Top, 0, Margin.Bottom);
+
+            Visibility = Visibility.Hidden; // Hidden by default
+        }
+
+        #endregion
+
+        #region Event handlers
+
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            ParentButton.Stop();
+        }
 
         #endregion
     }
@@ -230,6 +405,12 @@ namespace SoundBoard
 
                     MainWindow.Instance.SoundPlayers.Add(_player);
 
+                    // Show the additional buttons
+                    foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
+                    {
+                        hideableButton.Show();
+                    }
+
                     // Aaaaand play
                     _player.Play();
 
@@ -247,6 +428,12 @@ namespace SoundBoard
         private void SoundStoppedHandler(object sender, EventArgs e)
         {
             _audioFileReader.Position = 0;
+
+            // Hide the additional buttons
+            foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
+            {
+                hideableButton.Hide();
+            }
         }
 
         #endregion
@@ -289,7 +476,10 @@ namespace SoundBoard
             // If there was a previous sound here, get rid of it
             try
             {
-                MainWindow.Instance.Sounds.Remove(SoundName);
+                if (newSound)
+                {
+                    MainWindow.Instance.Sounds.Remove(SoundName);
+                }
             }
             catch
             {
@@ -298,7 +488,7 @@ namespace SoundBoard
 
             SoundPath = soundPath;
 
-            SoundName = string.IsNullOrEmpty(soundPath) ? Path.GetFileNameWithoutExtension(soundPath).Replace("_", "") : soundName.Replace("_", "");
+            SoundName = string.IsNullOrEmpty(soundName) ? Path.GetFileNameWithoutExtension(soundPath).Replace("_", "") : soundName.Replace("_", "");
 
             Content = SoundName;
 
@@ -312,8 +502,37 @@ namespace SoundBoard
                 MainWindow.Instance.Sounds[SoundName] = SoundPath;
 
                 // Now we can add Rename to the menu
-                ContextMenu?.Items.Add(_renameMenuItem);
+                if (ContextMenu?.Items.Contains(_renameMenuItem) == false)
+                {
+                    ContextMenu?.Items.Add(_renameMenuItem);
+                }
             }
+        }
+
+        /// <summary>
+        /// Resumes the sound
+        /// </summary>
+        public void Play()
+        {
+            _player.Play();
+            _stopWatch.Start();
+        }
+
+        /// <summary>
+        /// Pauses the sound
+        /// </summary>
+        public void Pause()
+        {
+            _player.Pause();
+            _stopWatch.Stop();
+        }
+
+        /// <summary>
+        /// Stops the sound
+        /// </summary>
+        public void Stop()
+        {
+            _player.Stop();
         }
 
         #endregion
@@ -373,15 +592,20 @@ namespace SoundBoard
         /// <summary>
         /// Defines the name of the sound file as displayed on the button
         /// </summary>
-        public string SoundName { get; private set; }
+        public string SoundName { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Contains a list of child buttons
+        /// </summary>
+        public ICollection<MenuButtonBase> ChildButtons { get; } = new List<MenuButtonBase>();
 
         #endregion
 
         #region Private fields
 
-        IWavePlayer _player = new WaveOut();
-        AudioFileReader _audioFileReader;
-        Stopwatch _stopWatch;
+        private IWavePlayer _player = new WaveOut();
+        private AudioFileReader _audioFileReader;
+        private Stopwatch _stopWatch;
 
         private readonly MenuItem _renameMenuItem;
 

@@ -222,6 +222,23 @@ namespace SoundBoard
                 Grid.SetColumn(menuButton, 0);
                 Grid.SetRow(menuButton, i);
                 parentGrid.Children.Add(menuButton);
+                soundButton.ChildButtons.Add(menuButton);
+
+                // Play/pause button
+                PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
+
+                Grid.SetColumn(playPauseButton, 0);
+                Grid.SetRow(playPauseButton, i);
+                parentGrid.Children.Add(playPauseButton);
+                soundButton.ChildButtons.Add(playPauseButton);
+
+                // Stop button
+                StopButton stopButton = new StopButton(soundButton);
+
+                Grid.SetColumn(stopButton, 0);
+                Grid.SetRow(stopButton, i);
+                parentGrid.Children.Add(stopButton);
+                soundButton.ChildButtons.Add(stopButton);
 
                 // Progress bar
                 SoundProgressBar progressBar = new SoundProgressBar();
@@ -255,6 +272,23 @@ namespace SoundBoard
                 Grid.SetColumn(menuButton, 1);
                 Grid.SetRow(menuButton, i);
                 parentGrid.Children.Add(menuButton);
+                soundButton.ChildButtons.Add(menuButton);
+
+                // Play/pause button
+                PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
+
+                Grid.SetColumn(playPauseButton, 1);
+                Grid.SetRow(playPauseButton, i);
+                parentGrid.Children.Add(playPauseButton);
+                soundButton.ChildButtons.Add(playPauseButton);
+
+                // Stop button
+                StopButton stopButton = new StopButton(soundButton);
+
+                Grid.SetColumn(stopButton, 1);
+                Grid.SetRow(stopButton, i);
+                parentGrid.Children.Add(stopButton);
+                soundButton.ChildButtons.Add(stopButton);
 
                 // Progress bar
                 SoundProgressBar progressBar = new SoundProgressBar();

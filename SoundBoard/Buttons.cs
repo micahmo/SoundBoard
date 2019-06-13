@@ -1,4 +1,6 @@
-﻿using System;
+﻿#region Usings
+
+using System;
 using System.IO;
 using NAudio.Wave;
 using System.Windows;
@@ -10,16 +12,30 @@ using System.Windows.Interop;
 using System.Windows.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
+using MahApps.Metro.Controls;
 using Microsoft.Win32;
+
+#endregion
 
 namespace SoundBoard
 {
-    class MenuButton : Button
-    {
-        SoundButton buddy;
+    #region MenuButton class
 
-        public MenuButton(SoundButton _buddy) : base()
+    /// <summary>
+    /// Defines a menu button that is placed on a sound button to offer additional functionality
+    /// </summary>
+    internal sealed class MenuButton : Button
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public MenuButton(SoundButton parentButton)
         {
+            _parentButton = parentButton;
+
             Content = "•••";
             FontSize = 15;
             Style = (Style)FindResource("MetroCircleButtonStyle");
@@ -28,75 +44,96 @@ namespace SoundBoard
             Margin = new Thickness(0, 15, 15, 0);
             VerticalAlignment = VerticalAlignment.Top;
             HorizontalAlignment = HorizontalAlignment.Right;
-
-            Click += new RoutedEventHandler(menuButton_Click);
-
-            buddy = _buddy;
         }
 
-        private void menuButton_Click(object sender, RoutedEventArgs e)
+        #endregion
+
+        #region Event handlers
+
+        protected override void OnClick()
         {
-            if (buddy.ContextMenu is null == false)
+            base.OnClick();
+
+            if (_parentButton.ContextMenu is null == false)
             {
-                buddy.ContextMenu.IsOpen = true;
+                _parentButton.ContextMenu.IsOpen = true;
             }
         }
+
+        #endregion
+
+        #region Private fields
+
+        private readonly SoundButton _parentButton;
+
+        #endregion
     }
 
-    class SoundProgressBar : MahApps.Metro.Controls.MetroProgressBar
+    #endregion
+
+    #region SoundProgressBar class
+
+    /// <summary>
+    /// Defines a ProgressBar control to visually indicate the progress of a playing sound
+    /// </summary>
+    internal sealed class SoundProgressBar : MetroProgressBar
     {
-        public SoundProgressBar() : base()
+        public SoundProgressBar()
         {
-            Margin = new Thickness(10, 10, 10, 10);
+            Margin = new Thickness(10);
             VerticalAlignment = VerticalAlignment.Bottom;
 
-            // by default it's hidden
+            // Hide by default
             Visibility = Visibility.Hidden;
         }
     }
 
-    class SoundButton : Button
+    #endregion
+
+    #region SoundButton class
+
+    /// <summary>
+    /// Defines a Button which plays a Sound
+    /// </summary>
+    internal sealed class SoundButton : Button
     {
-        #region volume_stuff
+        #region P/Invoke stuff
 
         private const int APPCOMMAND_VOLUME_UP = 0xA0000;
         private const int APPCOMMAND_VOLUME_DOWN = 0x90000;
         private const int WM_APPCOMMAND = 0x319;
 
         [DllImport("user32.dll")]
-        public static extern IntPtr SendMessageW(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        public static extern IntPtr SendMessageW(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         #endregion
 
-        private string soundPath;
-        private string soundName;
+        #region Constructor
 
-        IWavePlayer player = new WaveOut();
-        AudioFileReader audioFileReader;
-        Stopwatch stopWatch;
-
-        SoundProgressBar soundProgressBar = new SoundProgressBar();
-
-        private MenuItem renameMenuItem;
-
-        public SoundButton(bool searchButton = false) : base()
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal)
         {
-            if (!searchButton)
+            Mode = soundButtonMode;
+
+            if (soundButtonMode == SoundButtonMode.Normal)
             {
                 SetDefaultText();
             }
+
             FontSize = 20;
-            Margin = new Thickness(10, 10, 10, 10);
+            Margin = new Thickness(10);
             Style = (Style)FindResource("SquareButtonStyle");
             AllowDrop = true;
-            Drop += new DragEventHandler(SoundFileDrop);
-            Click += new RoutedEventHandler(soundButton_Click);
+            Drop += SoundFileDrop;
+            Click += soundButton_Click;
 
             // Create context menu and items
             ContextMenu contextMenu = new ContextMenu();
 
-            renameMenuItem = new MenuItem {Header = "Rename"};
-            renameMenuItem.Click += RenameMenuItem_Click;
+            _renameMenuItem = new MenuItem {Header = "Rename"};
+            _renameMenuItem.Click += RenameMenuItem_Click;
 
             MenuItem chooseSoundMenuItem = new MenuItem {Header = "Choose sound"};
             chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
@@ -107,22 +144,27 @@ namespace SoundBoard
             ContextMenu = contextMenu;
         }
 
-        private async void RenameMenuItem_Click(object sender, RoutedEventArgs e) {
-            // stop handling keypresses in the main window
-            MainWindow.GetThis().RemoveHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler);
+        #endregion
 
-            string result = await MainWindow.GetThis().ShowInputAsync("Rename",
+        #region Event handlers
+
+        private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Stop handling keypresses in the main window
+            MainWindow.Instance.RemoveHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler);
+
+            string result = await MainWindow.Instance.ShowInputAsync("Rename",
                 "What do you want to call it?",
                 new MetroDialogSettings {DefaultText = Content.ToString()});
 
-            if (result != null && result != "") {
-                soundName = result;
-                Content = soundName;
-                MainWindow.GetThis().UpdateSoundList();
+            if (!string.IsNullOrEmpty(result))
+            {
+                Content = SoundName = result;
+                MainWindow.Instance.UpdateSoundList();
             }
 
-            // rehandle keypresses in main window
-            MainWindow.GetThis().AddHandler(KeyDownEvent, MainWindow.GetThis().keyDownHandler, true);
+            // Rehandle keypresses in main window
+            MainWindow.Instance.AddHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler, true);
         }
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -130,35 +172,90 @@ namespace SoundBoard
             BrowseForSound();
         }
 
-        private async void SoundFileDrop(object sender, DragEventArgs e) {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-                // get the dropped file(s)
+        private async void SoundFileDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Get the dropped file(s)
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 
-                // only care about the first file
-                string file = files[0];
+                // Only care about the first file
+                string file = files?[0];
 
-                // can only have .mp3 and .wav
-                if (Path.GetExtension(file) != ".mp3" && Path.GetExtension(file) != ".wav") {
-                    await MainWindow.GetThis().ShowMessageAsync("Uh oh!", "Only .wav and .mp3 files supported.", MessageDialogStyle.Affirmative);
-                    return;
+                if (string.IsNullOrEmpty(file) == false)
+                {
+                    // Can only have .mp3 and .wav
+                    if (Path.GetExtension(file) != ".mp3" && Path.GetExtension(file) != ".wav")
+                    {
+                        await MainWindow.Instance.ShowMessageAsync("Uh oh!", "Only .wav and .mp3 files supported.");
+                        return;
+                    }
+
+                    // Set it
+                    SetFile(file);
                 }
-
-                // set it
-                SetFile(file);
             }
         }
 
-        public void SetSoundProgressBar(SoundProgressBar _soundProgressBar)
+        private async void soundButton_Click(object sender, RoutedEventArgs e)
         {
-            soundProgressBar = _soundProgressBar;
+            if (string.IsNullOrEmpty(SoundPath))
+            {
+                // If this button doesn't have a sound yet, browse for it now
+                BrowseForSound();
+            }
+            else
+            {
+                try
+                {
+                    if (!File.Exists(SoundPath)) throw new Exception("File \'" + SoundPath + "\' doesn't seem to exist!");
+
+                    // Stop any previous sounds
+                    _player.Stop();
+                    _player.Dispose();
+
+                    // Reinitialize the player
+                    _player = new WaveOut();
+                    _audioFileReader = new AudioFileReader(SoundPath);
+                    _player.Init(_audioFileReader);
+
+                    // Trick to unmute volume by turning it up and back down again
+                    SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
+                    SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
+
+                    // Handle stop
+                    _player.PlaybackStopped += SoundStoppedHandler;
+
+                    _stopWatch = Stopwatch.StartNew();
+
+                    MainWindow.Instance.SoundPlayers.Add(_player);
+
+                    // Aaaaand play
+                    _player.Play();
+
+                    // Begin updating progress bar
+                    CancellationTokenSource tokenSource = new CancellationTokenSource();
+                    await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    await MainWindow.Instance.ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message);
+                }
+            }
         }
 
-        private void SetDefaultText() {
-            Content = "Drag a sound here...";
-            Foreground = new SolidColorBrush(Colors.Gray);
+        private void SoundStoppedHandler(object sender, EventArgs e)
+        {
+            _audioFileReader.Position = 0;
         }
 
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Prompt the user to browse for and choose a sound for this button
+        /// </summary>
         public void BrowseForSound()
         {
             // Show file dialog
@@ -175,99 +272,61 @@ namespace SoundBoard
             }
         }
 
-        public void SetFile(string _soundPath, string _soundName = "", bool newSound = true)
+        /// <summary>
+        /// Set the sound file associated with this button
+        /// </summary>
+        /// <param name="soundPath"></param>
+        /// <param name="soundName"></param>
+        /// <param name="newSound"></param>
+        public void SetFile(string soundPath, string soundName = "", bool newSound = true)
         {
-            if (_soundPath == "")
+            if (string.IsNullOrEmpty(soundPath))
             {
                 SetDefaultText();
                 return;
             }
 
-            // if there was a previous sound here, get rid of it
-            try {
-                MainWindow.sounds.Remove(soundName);
-            } catch { }
-
-            soundPath = _soundPath;
-
-            if (_soundName == "") {
-                // for some whacked out reason, I have to remove underscores to avoid crazy bug
-                soundName = Path.GetFileNameWithoutExtension(_soundPath).Replace("_", "");
-            } else {
-                soundName = _soundName.Replace("_", "");
+            // If there was a previous sound here, get rid of it
+            try
+            {
+                MainWindow.Instance.Sounds.Remove(SoundName);
             }
-            Content = soundName;
+            catch
+            {
+                // ignored
+            }
 
-            // if this is a new sound on the main soundboard
+            SoundPath = soundPath;
+
+            SoundName = string.IsNullOrEmpty(soundPath) ? Path.GetFileNameWithoutExtension(soundPath).Replace("_", "") : soundName.Replace("_", "");
+
+            Content = SoundName;
+
+            // If this is a new sound on the main soundboard, set up some additional properties
             if (newSound)
             {
-                // set text color
+                // Set text color
                 Foreground = new SolidColorBrush(Colors.Black);
 
-                // IMPORTANT, add this sounhd to dictionary
-                MainWindow.sounds[soundName] = soundPath;
+                // Add this sound to dictionary
+                MainWindow.Instance.Sounds[SoundName] = SoundPath;
 
                 // Now we can add Rename to the menu
-                ContextMenu?.Items.Add(renameMenuItem);
+                ContextMenu?.Items.Add(_renameMenuItem);
             }
         }
 
-        public string GetFileName() {
-            return soundName;
-        }
+        #endregion
 
-        public string GetFile()
+        #region Private methods
+
+        private void SetDefaultText()
         {
-            return soundPath;
+            Content = "Drag a sound here...";
+            Foreground = new SolidColorBrush(Colors.Gray);
         }
 
-        private async void soundButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(soundPath))
-            {
-                // If this button doesn't have a sound yet, browse for it now
-                BrowseForSound();
-            }
-            else
-            {
-                try
-                {
-                    if (!File.Exists(soundPath)) throw new Exception("File " + soundPath + " doesn't seem to exist!");
-
-                    // stop any previous sounds
-                    player.Stop();
-                    player.Dispose();
-                    //audioFileReader.Dispose()
-
-                    // reinitialize
-                    player = new WaveOut();
-                    audioFileReader = new AudioFileReader(soundPath);
-                    player.Init(audioFileReader);
-
-                    // unmute volume by turning it up and back down again
-                    SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
-                    SendMessageW(new WindowInteropHelper(MainWindow.GetThis()).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.GetThis()).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
-
-                    // handle stop
-                    player.PlaybackStopped += new EventHandler<StoppedEventArgs>(SoundStoppedHandler);
-
-                    stopWatch = Stopwatch.StartNew();
-
-                    MainWindow.soundPlayers.Add(player);
-
-                    // aaaaand play
-                    player.Play();
-
-                    // begin updating progress
-                    CancellationTokenSource tokenSource = new CancellationTokenSource();
-                    Task timerTask = UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
-                }
-                catch (Exception ex)
-                {
-                    await MainWindow.GetThis().ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message, MessageDialogStyle.Affirmative);
-                }
-            }
-        }
+        #endregion
 
         async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
         {
@@ -280,21 +339,73 @@ namespace SoundBoard
 
         private void UpdateProgressAction()
         {
-            double maxSeconds = audioFileReader.TotalTime.TotalMilliseconds;
-            double curSeconds = stopWatch.Elapsed.TotalMilliseconds;
+            double maxSeconds = _audioFileReader.TotalTime.TotalMilliseconds;
+            double curSeconds = _stopWatch.Elapsed.TotalMilliseconds;
 
-            soundProgressBar.Visibility = Visibility.Visible;
-            soundProgressBar.Maximum = maxSeconds;
-            soundProgressBar.Value = curSeconds;
+            SoundProgressBar.Visibility = Visibility.Visible;
+            SoundProgressBar.Maximum = maxSeconds;
+            SoundProgressBar.Value = curSeconds;
 
-            // is the sound done or has it been stopped? hide the progress bar
-            if (curSeconds > maxSeconds || audioFileReader.Position == 0) {
-                soundProgressBar.Visibility = Visibility.Hidden;
+            // Hide the progress bar if the sound is done or has been stopped
+            if (curSeconds > maxSeconds || _audioFileReader.Position == 0) {
+                SoundProgressBar.Visibility = Visibility.Hidden;
             }
         }
 
-        private void SoundStoppedHandler(object sender, EventArgs e) {
-            audioFileReader.Position = 0;
-        }
+        #region Public properties
+
+        /// <summary>
+        /// Defines the mode used by the button
+        /// </summary>
+        public SoundButtonMode Mode { get; }
+
+        /// <summary>
+        /// Defines the progress bar used to show the progress of this sound
+        /// </summary>
+        public SoundProgressBar SoundProgressBar { get; set; } = new SoundProgressBar();
+
+        /// <summary>
+        /// Defines the path of the underlying sound file
+        /// </summary>
+        public string SoundPath { get; private set; }
+
+        /// <summary>
+        /// Defines the name of the sound file as displayed on the button
+        /// </summary>
+        public string SoundName { get; private set; }
+
+        #endregion
+
+        #region Private fields
+
+        IWavePlayer _player = new WaveOut();
+        AudioFileReader _audioFileReader;
+        Stopwatch _stopWatch;
+
+        private readonly MenuItem _renameMenuItem;
+
+        #endregion
     }
+
+    #endregion
+
+    #region SoundButtonMode enum
+
+    /// <summary>
+    /// Defines the mode used by an instance of <see cref="SoundButton"/>
+    /// </summary>
+    internal enum SoundButtonMode
+    {
+        /// <summary>
+        /// The button is used in a normal context
+        /// </summary>
+        Normal,
+
+        /// <summary>
+        /// The button is used as a search result
+        /// </summary>
+        Search
+    }
+
+    #endregion
 }

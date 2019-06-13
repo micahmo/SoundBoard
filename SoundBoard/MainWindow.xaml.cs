@@ -171,16 +171,16 @@ namespace SoundBoard
             foreach (MetroTabItem tab in Tabs.Items)
             {
                 ContextMenu contextMenu = new ContextMenu();
-                MenuItem renameMenuItem = new MenuItem();
-                MenuItem removeMenuItem = new MenuItem();
 
-                renameMenuItem.Header = "Rename";
-                renameMenuItem.Click += RenameMenuItem_Click;
+                if (tab.Tag?.ToString() != WELCOME_PAGE_TAG)
+                {
+                    MenuItem renameMenuItem = new MenuItem {Header = "Rename"};
+                    renameMenuItem.Click += RenameMenuItem_Click;
+                    contextMenu.Items.Add(renameMenuItem);
+                }
 
-                removeMenuItem.Header = "Remove";
+                MenuItem removeMenuItem = new MenuItem {Header = "Remove"};
                 removeMenuItem.Click += RemoveMenuItem_Click;
-
-                contextMenu.Items.Add(renameMenuItem);
                 contextMenu.Items.Add(removeMenuItem);
 
                 tab.MouseRightButtonUp += MetroTabItem_RightClick;
@@ -271,6 +271,8 @@ namespace SoundBoard
 
         private void CreateHelpContent(MetroTabItem tab)
         {
+            tab.Tag = WELCOME_PAGE_TAG;
+
             StackPanel stackPanel = new StackPanel();
 
             TextBlock text = new TextBlock
@@ -592,6 +594,9 @@ namespace SoundBoard
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
+
+            // Make sure the new tab has a context menu
+            CreateTabContextMenus();
         }
 
         private async void about_Click(object sender, RoutedEventArgs e)
@@ -610,7 +615,7 @@ namespace SoundBoard
             tab.Focus();
 
             // Make sure the new tab has a context menu
-            CreateTabContextMenus(); // TODO: Should we also add this if the ABOUT button is clicked?
+            CreateTabContextMenus();
         }
 
         private async void renamePage_Click(object sender, RoutedEventArgs e)
@@ -714,6 +719,8 @@ namespace SoundBoard
         #region Consts
 
         private const int TWO_MINUTES_IN_MILLISECONDS = 120000;
+
+        private const string WELCOME_PAGE_TAG = nameof(WELCOME_PAGE_TAG);
 
         #endregion
     }

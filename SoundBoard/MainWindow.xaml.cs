@@ -672,7 +672,9 @@ namespace SoundBoard
 
         private async void removePage_Click(object sender, RoutedEventArgs e)
         {
-            MessageDialogResult result = await this.ShowMessageAsync("Just checking...", "Are you sure you want to delete this page?", MessageDialogStyle.AffirmativeAndNegative);
+            MessageDialogResult result = await this.ShowMessageAsync("Just checking...",
+                "Are you sure you want to delete this page?", MessageDialogStyle.AffirmativeAndNegative,
+                new MetroDialogSettings {AffirmativeButtonText = "Yes", NegativeButtonText = "No"});
             if (result == MessageDialogResult.Affirmative)
             {
                 Tabs.Items.Remove(Tabs.SelectedItem);

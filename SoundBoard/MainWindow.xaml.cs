@@ -16,6 +16,7 @@ using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using Microsoft.Win32;
 using Timer = System.Timers.Timer;
 using static System.Environment;
 using ContextMenu = System.Windows.Controls.ContextMenu;
@@ -187,6 +188,8 @@ namespace SoundBoard
 
                             CreatePageContent(tab, buttons);
                         }
+
+                        CreateTabContextMenus();
                     }
                 }
             }
@@ -687,6 +690,33 @@ namespace SoundBoard
                 string.Format(Properties.Resources.VersionNumber, version));
         }
 
+        private void overflow_Click(object sender, RoutedEventArgs e)
+        {
+            ContextMenu overflowMenu = Overflow.ContextMenu;
+
+            if (overflowMenu is null)
+            {
+                overflowMenu = new ContextMenu();
+
+                MenuItem importConfig = new MenuItem {Header = Properties.Resources.ImportConfiguration};
+                importConfig.Click += ImportConfig_Click;
+
+                MenuItem exportConfig = new MenuItem {Header = Properties.Resources.ExportConfiguration};
+                exportConfig.Click += ExportConfig_Click;
+
+                MenuItem clearConfig = new MenuItem {Header = Properties.Resources.ClearConfiguration};
+                clearConfig.Click += ClearConfig_Click;
+
+                overflowMenu.Items.Add(importConfig);
+                overflowMenu.Items.Add(exportConfig);
+                overflowMenu.Items.Add(clearConfig);
+
+                Overflow.ContextMenu = overflowMenu;
+            }
+
+            overflowMenu.IsOpen = true;
+        }
+
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
             MetroTabItem tab = new MetroTabItem {Header = Properties.Resources.NewPage.ToLower()};
@@ -732,6 +762,93 @@ namespace SoundBoard
         private void FormClosingHandler(object sender, EventArgs e)
         {
             SaveSettings();
+        }
+
+        private async void ExportConfig_Click(object sender, RoutedEventArgs e)
+        {
+            // First, make sure our current settings are saved
+            SaveSettings();
+
+            // Prompt the user to browse for where the file should be saved.
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                FileName = $@"SoundBoardConfiguration-{DateTime.Now.ToString(@"s").Replace(@":", @".")}",
+                Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    File.Copy(ConfigFilePath, saveFileDialog.FileName, true);
+                }
+                catch (Exception ex)
+                {
+                    await this.ShowMessageAsync(Properties.Resources.Oops,
+                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                }
+            }
+        }
+
+        private async void ImportConfig_Click(object sender, RoutedEventArgs e)
+        {
+            // Prompt the user to browse for a config file
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    // Ensure that the user really wants to override the current configuration
+                    MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
+                        Properties.Resources.ConfirmImportConfig, MessageDialogStyle.AffirmativeAndNegative,
+                        new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No });
+
+                    if (result == MessageDialogResult.Affirmative)
+                    {
+                        // Load settings with the given file
+                        LoadSettings(openFileDialog.FileName);
+
+                        // Immediately save the settings to overwrite our file
+                        SaveSettings();
+
+                        // Select the first tab, if any
+                        if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await this.ShowMessageAsync(Properties.Resources.Oops,
+                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                }
+            }
+        }
+
+        private async void ClearConfig_Click(object sender, RoutedEventArgs e)
+        {
+            // Confirm that the user really wants to clear their configuraiton
+            MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
+                Properties.Resources.ConfirmClearConfig, MessageDialogStyle.AffirmativeAndNegative,
+                new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No });
+            if (result == MessageDialogResult.Affirmative)
+            {
+                try
+                {
+                    // Delete the config file
+                    File.Delete(ConfigFilePath);
+
+                    // Remove all tabs
+                    Tabs.Items.Clear();
+                }
+                catch (Exception ex)
+                {
+                    await this.ShowMessageAsync(Properties.Resources.Oops,
+                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                }
+            }
         }
 
         #endregion

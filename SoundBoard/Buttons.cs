@@ -421,7 +421,7 @@ namespace SoundBoard
                 catch (Exception ex)
                 {
                     await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Oops,
-                        Properties.Resources.ThereIsAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
             }
         }

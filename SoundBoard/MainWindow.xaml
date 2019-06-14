@@ -32,6 +32,7 @@
             <Button Content="add page" Click="addPage_Click"/>
             <Button Content="help" Click="help_Click"/>
             <Button Content="about" Click="about_Click"/>
+            <Button Content="•••" Click="overflow_Click" Name="Overflow"/>
         </Controls:WindowCommands>
     </Controls:MetroWindow.RightWindowCommands>
 

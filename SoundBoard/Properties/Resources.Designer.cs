@@ -88,11 +88,47 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear configuration.
+        /// </summary>
+        internal static string ClearConfiguration {
+            get {
+                return ResourceManager.GetString("ClearConfiguration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configuration Files.
+        /// </summary>
+        internal static string ConfigurationFiles {
+            get {
+                return ResourceManager.GetString("ConfigurationFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear your current configuration, including all tabs and sounds?.
+        /// </summary>
+        internal static string ConfirmClearConfig {
+            get {
+                return ResourceManager.GetString("ConfirmClearConfig", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to delete this page?.
         /// </summary>
         internal static string ConfirmDeletePage {
             get {
                 return ResourceManager.GetString("ConfirmDeletePage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to override the current configuration with the imported configuration?.
+        /// </summary>
+        internal static string ConfirmImportConfig {
+            get {
+                return ResourceManager.GetString("ConfirmImportConfig", resourceCulture);
             }
         }
         
@@ -115,6 +151,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Export configuration.
+        /// </summary>
+        internal static string ExportConfiguration {
+            get {
+                return ResourceManager.GetString("ExportConfiguration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to File &apos;{0}&apos; doesn&apos;t seem to exist!.
         /// </summary>
         internal static string FileDoesNotExist {
@@ -129,6 +174,15 @@ namespace SoundBoard.Properties {
         internal static string HowDoesItWork {
             get {
                 return ResourceManager.GetString("HowDoesItWork", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Import configuration.
+        /// </summary>
+        internal static string ImportConfiguration {
+            get {
+                return ResourceManager.GetString("ImportConfiguration", resourceCulture);
             }
         }
         
@@ -250,11 +304,11 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There&apos;s a problem!.
+        ///   Looks up a localized string similar to There was a problem!.
         /// </summary>
-        internal static string ThereIsAProblem {
+        internal static string ThereWasAProblem {
             get {
-                return ResourceManager.GetString("ThereIsAProblem", resourceCulture);
+                return ResourceManager.GetString("ThereWasAProblem", resourceCulture);
             }
         }
         

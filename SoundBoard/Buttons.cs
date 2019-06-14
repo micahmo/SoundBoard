@@ -16,6 +16,7 @@ using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
+using System.Windows.Input;
 
 #endregion
 
@@ -301,7 +302,6 @@ namespace SoundBoard
             Margin = new Thickness(10);
             Style = (Style)FindResource(@"SquareButtonStyle");
             AllowDrop = true;
-            Drop += SoundFileDrop;
             Click += soundButton_Click;
 
             // Create context menu and items
@@ -345,31 +345,6 @@ namespace SoundBoard
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
             BrowseForSound();
-        }
-
-        private async void SoundFileDrop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                // Get the dropped file(s)
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                // Only care about the first file
-                string file = files?[0];
-
-                if (string.IsNullOrEmpty(file) == false)
-                {
-                    // Can only have .mp3 and .wav
-                    if (Path.GetExtension(file) != @".mp3" && Path.GetExtension(file) != @".wav")
-                    {
-                        await MainWindow.Instance.ShowMessageAsync(Properties.Resources.UhOh, Properties.Resources.SupportedFileTypes);
-                        return;
-                    }
-
-                    // Set it
-                    SetFile(file);
-                }
-            }
         }
 
         private async void soundButton_Click(object sender, RoutedEventArgs e)
@@ -435,6 +410,138 @@ namespace SoundBoard
             {
                 hideableButton.Hide();
             }
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+            _mouseDownPosition = Mouse.GetPosition(this);
+        }
+
+        /// <inheritdoc />
+        protected override void OnMouseUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseUp(e);
+            _mouseDownPosition = null;
+        }
+
+        /// <inheritdoc />
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+
+            if (_mouseDownPosition is null == false && 
+                PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this), MOUSE_MOVE_THRESHOLD))
+            {
+                _mouseDownPosition = Mouse.GetPosition(this);
+                DragDrop.DoDragDrop(this, new SoundDragData(SoundName, SoundPath, this), DragDropEffects.Link);
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void OnMouseLeave(MouseEventArgs e)
+        {
+            base.OnMouseLeave(e);
+            _mouseDownPosition = null;
+        }
+
+        /// <inheritdoc />
+        protected override void OnDragEnter(DragEventArgs e)
+        {
+            SoundDragData soundDragData = e.Data.GetData(typeof(SoundDragData)) as SoundDragData;
+
+            if (soundDragData is null == false && soundDragData.Source != this)
+            {
+                e.Effects = DragDropEffects.Link;
+            }
+            else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Link;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+
+            e.Handled = true;
+        }
+
+        /// <inheritdoc />
+        protected override void OnDragOver(DragEventArgs e)
+        {
+            SoundDragData soundDragData = e.Data.GetData(typeof(SoundDragData)) as SoundDragData;
+
+            if (soundDragData is null == false && soundDragData.Source != this)
+            {
+                e.Effects = DragDropEffects.Link;
+            }
+            else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Link;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+
+            e.Handled = true;
+        }
+
+        /// <inheritdoc />
+        protected override async void OnDrop(DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                // Get the dropped file(s)
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                // Only care about the first file
+                string file = files?[0];
+
+                if (string.IsNullOrEmpty(file) == false)
+                {
+                    // Can only have .mp3 and .wav
+                    if (Path.GetExtension(file) != @".mp3" && Path.GetExtension(file) != @".wav")
+                    {
+                        await MainWindow.Instance.ShowMessageAsync(Properties.Resources.UhOh, Properties.Resources.SupportedFileTypes);
+                        return;
+                    }
+
+                    // Stop any current recording
+                    Stop();
+
+                    // Set it
+                    SetFile(file);
+                }
+            }
+            else
+            {
+                SoundDragData soundDragData = e.Data.GetData(typeof(SoundDragData)) as SoundDragData;
+                if (soundDragData is null == false && soundDragData.Source != this)
+                {
+                    // Set up some placeholders for our source and destination (so we don't lose anything)
+                    SoundButton sourceButton = soundDragData.Source;
+                    SoundDragData sourceButtonData = soundDragData;
+
+                    SoundButton destinationButton = this;
+                    SoundDragData destinationButtonData = new SoundDragData(this.SoundName, this.SoundPath);
+
+                    // Make sure neither of the buttons is currently playing anything
+                    sourceButton.Stop();
+                    destinationButton.Stop();
+
+                    // Do the swap!
+                    sourceButton.SetFile(destinationButtonData.SoundPath, destinationButtonData.SoundName);
+                    destinationButton.SetFile(sourceButtonData.SoundPath, sourceButtonData.SoundName);
+                }
+            }
+
+            e.Handled = true;
         }
 
         #endregion
@@ -544,8 +651,15 @@ namespace SoundBoard
 
         private void SetDefaultText()
         {
+            SoundPath = string.Empty;
+            SoundName = string.Empty;
             Content = Properties.Resources.DragASoundHere;
             Foreground = new SolidColorBrush(Colors.Gray);
+
+            if (ContextMenu?.Items.Contains(_renameMenuItem) == true)
+            {
+                ContextMenu?.Items.Remove(_renameMenuItem);
+            }
         }
 
         private void UpdateProgressAction()
@@ -571,6 +685,20 @@ namespace SoundBoard
                 action();
                 await Task.Delay(interval, token);
             }
+        }
+
+        /// <summary>
+        /// Returns true if the distance (absolute value) between both <paramref name="firstPoint"/>.X and <paramref name="secondPoint"/>.X
+        /// and <paramref name="firstPoint"/>.Y and <paramref name="secondPoint"/>.Y is greater than <paramref name="threshold"/>.
+        /// </summary>
+        /// <param name="firstPoint"></param>
+        /// <param name="secondPoint"></param>
+        /// <param name="threshold"></param>
+        /// <returns></returns>
+        private bool PointsArePastThreshold(Point firstPoint, Point secondPoint, int threshold)
+        {
+            return Math.Abs(firstPoint.X - secondPoint.X) > threshold &&
+                   Math.Abs(firstPoint.Y - secondPoint.Y) > threshold;
         }
 
         #endregion
@@ -612,6 +740,14 @@ namespace SoundBoard
 
         private readonly MenuItem _renameMenuItem;
 
+        private Point? _mouseDownPosition = null;
+
+        #endregion
+
+        #region Private consts
+
+        private const int MOUSE_MOVE_THRESHOLD = 5; // The mouse will have to move at least 5 pixels for the drag operation to start
+
         #endregion
     }
 
@@ -633,6 +769,49 @@ namespace SoundBoard
         /// The button is used as a search result
         /// </summary>
         Search
+    }
+
+    #endregion
+
+    #region SoundDragData class
+
+    internal class SoundDragData
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="soundName"></param>
+        /// <param name="soundPath"></param>
+        /// <param name="source"></param>
+        public SoundDragData(string soundName, string soundPath, SoundButton source = null)
+        {
+            SoundName = soundName;
+            SoundPath = soundPath;
+            Source = source;
+        }
+
+        #endregion
+
+        #region Public properties
+
+        /// <summary>
+        /// The name (label) of the sound being dragged
+        /// </summary>
+        public string SoundName { get; }
+
+        /// <summary>
+        /// The path of the sound being dragged
+        /// </summary>
+        public string SoundPath { get; }
+
+        /// <summary>
+        /// The control from which the drag data originated
+        /// </summary>
+        public SoundButton Source { get; }
+
+        #endregion
     }
 
     #endregion

@@ -114,4 +114,90 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="WelcomeToSoundBoard" xml:space="preserve">
+    <value>Welcome to Sound Board!</value>
+  </data>
+  <data name="SoundBoardDescription" xml:space="preserve">
+    <value>...an app where you can create and run your own custom sound board full of your favorite bytes, effects, and clips.</value>
+  </data>
+  <data name="HowDoesItWork" xml:space="preserve">
+    <value>How does it work?</value>
+  </data>
+  <data name="SoundBoardExplanation1" xml:space="preserve">
+    <value>Sound Board is split into pages, so you can group your favorite sounds together. To get started, add your first sound page by clicking "add page" above!</value>
+  </data>
+  <data name="SoundBoardExplanation2" xml:space="preserve">
+    <value>To load a sound, just drag an audio file onto a button or click the three little dots to browse. Then click the button with the sound name on it to play it!</value>
+  </data>
+  <data name="SoundBoardExplanation3" xml:space="preserve">
+    <value>To find a sound in a hurry, just start typing its name and an instant search bar will appear!</value>
+  </data>
+  <data name="SoundBoardExplanation4" xml:space="preserve">
+    <value>Pages and sounds are saved, so when you're done, just close the app, and it'll pick up right where you left off next time!</value>
+  </data>
+  <data name="SoundBoardExplanation5" xml:space="preserve">
+    <value>Add, remove pages, or rename pages at any time by clicking buttons at the top. Feel free to remove this page when you're ready to go! Bring it back any time by clicking "help".</value>
+  </data>
+  <data name="Welcome" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="AboutSoundBoard" xml:space="preserve">
+    <value>About Sound Board</value>
+  </data>
+  <data name="CreatedByMicahMorrison" xml:space="preserve">
+    <value>Created by Micah Morrison</value>
+  </data>
+  <data name="VersionNumber" xml:space="preserve">
+    <value>Version {0}</value>
+    <comment>{0} is a version number</comment>
+  </data>
+  <data name="NewPage" xml:space="preserve">
+    <value>New Page</value>
+  </data>
+  <data name="WhatDoYouWantToCallIt" xml:space="preserve">
+    <value>What do you want to call it?</value>
+  </data>
+  <data name="JustChecking" xml:space="preserve">
+    <value>Just checking...</value>
+  </data>
+  <data name="ConfirmDeletePage" xml:space="preserve">
+    <value>Are you sure you want to delete this page?</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="ChooseSound" xml:space="preserve">
+    <value>Choose sound</value>
+  </data>
+  <data name="UhOh" xml:space="preserve">
+    <value>Uh oh!</value>
+  </data>
+  <data name="SupportedFileTypes" xml:space="preserve">
+    <value>Only .wav and .mp3 files supported.</value>
+  </data>
+  <data name="FileDoesNotExist" xml:space="preserve">
+    <value>File '{0}' doesn't seem to exist!</value>
+    <comment>{0} is the name of a file</comment>
+  </data>
+  <data name="Oops" xml:space="preserve">
+    <value>Oops!</value>
+  </data>
+  <data name="ThereIsAProblem" xml:space="preserve">
+    <value>There's a problem!</value>
+  </data>
+  <data name="AudioFiles" xml:space="preserve">
+    <value>Audio Files</value>
+  </data>
+  <data name="DragASoundHere" xml:space="preserve">
+    <value>Drag a sound here...</value>
+  </data>
 </root>

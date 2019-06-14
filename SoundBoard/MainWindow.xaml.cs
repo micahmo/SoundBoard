@@ -174,12 +174,12 @@ namespace SoundBoard
 
                 if (tab.Tag?.ToString() != WELCOME_PAGE_TAG)
                 {
-                    MenuItem renameMenuItem = new MenuItem {Header = "Rename"};
+                    MenuItem renameMenuItem = new MenuItem {Header = Properties.Resources.Rename};
                     renameMenuItem.Click += RenameMenuItem_Click;
                     contextMenu.Items.Add(renameMenuItem);
                 }
 
-                MenuItem removeMenuItem = new MenuItem {Header = "Remove"};
+                MenuItem removeMenuItem = new MenuItem {Header = Properties.Resources.Remove};
                 removeMenuItem.Click += RemoveMenuItem_Click;
                 contextMenu.Items.Add(removeMenuItem);
 
@@ -311,7 +311,7 @@ namespace SoundBoard
 
             TextBlock text = new TextBlock
             {
-                Text = "WELCOME TO SOUND BOARD!",
+                Text = Properties.Resources.WelcomeToSoundBoard.ToUpper(),
                 Padding = new Thickness(5),
                 FontSize = 25,
                 TextWrapping = TextWrapping.Wrap
@@ -320,7 +320,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "...an app where you can create and run your own custom sound board full of your favorite bytes, effects, and clips.",
+                Text = Properties.Resources.SoundBoardDescription,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -329,7 +329,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "HOW DOES IT WORK?",
+                Text = Properties.Resources.HowDoesItWork.ToUpper(),
                 Padding = new Thickness(5),
                 FontSize = 20,
                 FontWeight = FontWeights.Bold,
@@ -339,7 +339,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "Sound Board is split into pages, so you can group your favorite sounds together. To get started, add your first sound page by clicking \"add page\" above!",
+                Text = Properties.Resources.SoundBoardExplanation1,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -348,7 +348,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "To load a sound, just drag an audio file onto a button or click the three little dots to browse. Then click the button with the sound name on it to play it!",
+                Text = Properties.Resources.SoundBoardExplanation2,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -357,7 +357,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "To find a sound in a hurry, just start typing its name and an instant search bar will appear!",
+                Text = Properties.Resources.SoundBoardExplanation3,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -366,7 +366,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "Pages and sounds are saved, so when you're done, just close the app, and it'll pick up right where you left off next time!",
+                Text = Properties.Resources.SoundBoardExplanation4,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -375,7 +375,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = "Add, remove pages, or rename pages at any time by clicking buttons at the top. Feel free to remove this page when you're ready to go! Bring it back any time by clicking \"help\".",
+                Text = Properties.Resources.SoundBoardExplanation5,
                 Padding = new Thickness(5),
                 FontSize = 15,
                 TextWrapping = TextWrapping.Wrap
@@ -387,7 +387,7 @@ namespace SoundBoard
 
         private void SaveSettings()
         {
-            string filename = "soundboard.config";
+            string filename = @"soundboard.config";
 
             using (FileStream fileStream = new FileStream(filename, FileMode.Create))
             using (StreamWriter streamWriter = new StreamWriter(fileStream))
@@ -624,7 +624,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MetroTabItem {Header = "welcome"};
+            MetroTabItem tab = new MetroTabItem {Header = Properties.Resources.Welcome.ToLower()};
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -638,12 +638,14 @@ namespace SoundBoard
             Assembly assembly = Assembly.GetExecutingAssembly();
             string version = AssemblyName.GetAssemblyName(assembly.Location).Version.ToString();
 
-            await this.ShowMessageAsync("About Sound Board", "Created by Micah Morrison\nversion " + version);
+            await this.ShowMessageAsync(Properties.Resources.AboutSoundBoard,
+                Properties.Resources.CreatedByMicahMorrison + Environment.NewLine +
+                string.Format(Properties.Resources.VersionNumber, version));
         }
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MetroTabItem {Header = "new page"};
+            MetroTabItem tab = new MetroTabItem {Header = Properties.Resources.NewPage.ToLower()};
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -658,7 +660,7 @@ namespace SoundBoard
 
             if (Tabs.SelectedItem is MetroTabItem tab)
             {
-                string result = await this.ShowInputAsync("Rename", "What do you want to call it?",
+                string result = await this.ShowInputAsync(Properties.Resources.Rename, Properties.Resources.WhatDoYouWantToCallIt,
                     new MetroDialogSettings {DefaultText = tab.Header.ToString()});
 
                 if (string.IsNullOrEmpty(result) == false)
@@ -672,9 +674,9 @@ namespace SoundBoard
 
         private async void removePage_Click(object sender, RoutedEventArgs e)
         {
-            MessageDialogResult result = await this.ShowMessageAsync("Just checking...",
-                "Are you sure you want to delete this page?", MessageDialogStyle.AffirmativeAndNegative,
-                new MetroDialogSettings {AffirmativeButtonText = "Yes", NegativeButtonText = "No"});
+            MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
+                Properties.Resources.ConfirmDeletePage, MessageDialogStyle.AffirmativeAndNegative,
+                new MetroDialogSettings {AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No});
             if (result == MessageDialogResult.Affirmative)
             {
                 Tabs.Items.Remove(Tabs.SelectedItem);

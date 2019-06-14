@@ -36,7 +36,7 @@ namespace SoundBoard
         protected MenuButtonBase()
         {
             FontSize = 13;
-            Style = (Style)FindResource("MetroCircleButtonStyle");
+            Style = (Style)FindResource(@"MetroCircleButtonStyle");
             Width = 35;
             Height = 35;
             Margin = new Thickness(0, 15, 15, 15);
@@ -114,7 +114,7 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public MenuButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = "•••";
+            Content = @"•••";
 
             VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Right;
@@ -173,13 +173,13 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
-                Content = "⯈";
+                Content = @"⯈";
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
-                Content = "❚❚";
+                Content = @"❚❚";
             }
         }
 
@@ -191,7 +191,7 @@ namespace SoundBoard
         {
             base.Show();
             
-            Content = "❚❚";
+            Content = @"❚❚";
             _playing = true;
         }
 
@@ -221,7 +221,7 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public StopButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = "■";
+            Content = @"■";
 
             VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Center;
@@ -299,7 +299,7 @@ namespace SoundBoard
 
             FontSize = 20;
             Margin = new Thickness(10);
-            Style = (Style)FindResource("SquareButtonStyle");
+            Style = (Style)FindResource(@"SquareButtonStyle");
             AllowDrop = true;
             Drop += SoundFileDrop;
             Click += soundButton_Click;
@@ -307,10 +307,10 @@ namespace SoundBoard
             // Create context menu and items
             ContextMenu contextMenu = new ContextMenu();
 
-            _renameMenuItem = new MenuItem {Header = "Rename"};
+            _renameMenuItem = new MenuItem {Header = Properties.Resources.Rename};
             _renameMenuItem.Click += RenameMenuItem_Click;
 
-            MenuItem chooseSoundMenuItem = new MenuItem {Header = "Choose sound"};
+            MenuItem chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
             chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
 
             contextMenu.Items.Add(chooseSoundMenuItem);
@@ -328,8 +328,8 @@ namespace SoundBoard
             // Stop handling keypresses in the main window
             MainWindow.Instance.RemoveHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler);
 
-            string result = await MainWindow.Instance.ShowInputAsync("Rename",
-                "What do you want to call it?",
+            string result = await MainWindow.Instance.ShowInputAsync(Properties.Resources.Rename,
+                Properties.Resources.WhatDoYouWantToCallIt,
                 new MetroDialogSettings {DefaultText = Content.ToString()});
 
             if (!string.IsNullOrEmpty(result))
@@ -360,9 +360,9 @@ namespace SoundBoard
                 if (string.IsNullOrEmpty(file) == false)
                 {
                     // Can only have .mp3 and .wav
-                    if (Path.GetExtension(file) != ".mp3" && Path.GetExtension(file) != ".wav")
+                    if (Path.GetExtension(file) != @".mp3" && Path.GetExtension(file) != @".wav")
                     {
-                        await MainWindow.Instance.ShowMessageAsync("Uh oh!", "Only .wav and .mp3 files supported.");
+                        await MainWindow.Instance.ShowMessageAsync(Properties.Resources.UhOh, Properties.Resources.SupportedFileTypes);
                         return;
                     }
 
@@ -383,7 +383,7 @@ namespace SoundBoard
             {
                 try
                 {
-                    if (!File.Exists(SoundPath)) throw new Exception("File \'" + SoundPath + "\' doesn't seem to exist!");
+                    if (!File.Exists(SoundPath)) throw new Exception(string.Format(Properties.Resources.FileDoesNotExist, SoundPath));
 
                     // Stop any previous sounds
                     _player.Stop();
@@ -420,7 +420,8 @@ namespace SoundBoard
                 }
                 catch (Exception ex)
                 {
-                    await MainWindow.Instance.ShowMessageAsync("Oops!", "There's a problem!\n\n" + ex.Message);
+                    await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Oops,
+                        Properties.Resources.ThereIsAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
             }
         }
@@ -449,8 +450,8 @@ namespace SoundBoard
             OpenFileDialog dialog = new OpenFileDialog
             {
                 // Set file type filters
-                DefaultExt = ".wav",
-                Filter = "Audio Files (*.wav, *.mp3)|*.wav;*.mp3"
+                DefaultExt = @".wav",
+                Filter = Properties.Resources.AudioFiles + @" (*.wav, *.mp3)|*.wav;*.mp3"
             };
 
             if (dialog.ShowDialog() == true)
@@ -488,7 +489,9 @@ namespace SoundBoard
 
             SoundPath = soundPath;
 
-            SoundName = string.IsNullOrEmpty(soundName) ? Path.GetFileNameWithoutExtension(soundPath).Replace("_", "") : soundName.Replace("_", "");
+            SoundName = string.IsNullOrEmpty(soundName)
+                ? Path.GetFileNameWithoutExtension(soundPath).Replace(@"_", "")
+                : soundName.Replace(@"_", "");
 
             Content = SoundName;
 
@@ -541,7 +544,7 @@ namespace SoundBoard
 
         private void SetDefaultText()
         {
-            Content = "Drag a sound here...";
+            Content = Properties.Resources.DragASoundHere;
             Foreground = new SolidColorBrush(Colors.Gray);
         }
 

@@ -17,6 +17,10 @@ using System.Runtime.InteropServices;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using Timer = System.Timers.Timer;
+using static System.Environment;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MenuItem = System.Windows.Controls.MenuItem;
 
 #endregion
 
@@ -106,7 +110,7 @@ namespace SoundBoard
 
             RightWindowCommandsOverlayBehavior = WindowCommandsOverlayBehavior.Never;
 
-            LoadSettings();
+            LoadSettingsCompat();
 
             CreateTabContextMenus();
         }
@@ -116,16 +120,45 @@ namespace SoundBoard
         #region Private methods
 
         /// <summary>
-        /// Load settings from the config file and populate the UI
+        /// Loads settings with compatibility for legacy config files
         /// </summary>
+        private void LoadSettingsCompat()
+        {
+            // For backwards compatibility, see if the legacy config file exists.
+            if (File.Exists(LegacyConfigFilePath))
+            {
+                // Load the settings with the legacy path
+                LoadSettings(LegacyConfigFilePath);
+
+                // Save the settings to the new path
+                SaveSettings(ConfigFilePath);
+
+                // Delete the legacy config file
+                File.Delete(LegacyConfigFilePath);
+            }
+            else
+            {
+                // The legacy file doesn't exist, so go ahead and load the new one
+                LoadSettings(ConfigFilePath);
+            }
+        }
+
         private void LoadSettings()
+        {
+            LoadSettings(ConfigFilePath);
+        }
+
+        /// <summary>
+        /// Load settings from the config file and populate the UI.
+        /// </summary>
+        private void LoadSettings(string configFilePath)
         {
             try
             {
                 // try to load settings
                 XmlDocument xmlDocument = new XmlDocument();
 
-                xmlDocument.Load("soundboard.config");
+                xmlDocument.Load(configFilePath);
 
                 XmlElement xelRoot = xmlDocument.DocumentElement;
                 if (xelRoot != null)
@@ -387,9 +420,20 @@ namespace SoundBoard
 
         private void SaveSettings()
         {
-            string filename = @"soundboard.config";
+            SaveSettings(ConfigFilePath);
+        }
 
-            using (FileStream fileStream = new FileStream(filename, FileMode.Create))
+        private void SaveSettings(string configFilePath)
+        {
+            // Ensure that the directory for the given config file exists
+            try
+            {
+                // ReSharper disable once AssignNullToNotNullAttribute
+                Directory.CreateDirectory(Path.GetDirectoryName(configFilePath));
+            }
+            catch { /* Ignored */ }
+
+            using (FileStream fileStream = new FileStream(configFilePath, FileMode.Create))
             using (StreamWriter streamWriter = new StreamWriter(fileStream))
             using (XmlTextWriter textWriter = new XmlTextWriter(streamWriter))
             {
@@ -751,6 +795,16 @@ namespace SoundBoard
 
         private string _searchString = string.Empty;
         private SoundButton _focusedButton;
+
+        #endregion
+
+        #region Private properties
+
+        private string ConfigFilePath => Path.Combine(GetFolderPath(SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
+
+        private string LegacyConfigFilePath => @"soundboard.config";
+
+        private string ApplicationName => @"SoundBoard";
 
         #endregion
 

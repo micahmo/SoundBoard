@@ -310,11 +310,14 @@ namespace SoundBoard
             _renameMenuItem = new MenuItem {Header = Properties.Resources.Rename};
             _renameMenuItem.Click += RenameMenuItem_Click;
 
+            _clearMenuItem = new MenuItem { Header = Properties.Resources.Clear };
+            _clearMenuItem.Click += ClearMenuItem_Click;
+
             MenuItem chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
             chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
 
             contextMenu.Items.Add(chooseSoundMenuItem);
-            // (Don't add the "Rename" button until we get a real sound)
+            // (Don't add the "Rename" or "Clear" button until we get a real sound)
             
             ContextMenu = contextMenu;
         }
@@ -340,6 +343,11 @@ namespace SoundBoard
 
             // Rehandle keypresses in main window
             MainWindow.Instance.AddHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler, true);
+        }
+
+        private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ClearFile();
         }
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -568,6 +576,14 @@ namespace SoundBoard
         }
 
         /// <summary>
+        /// Removes the file associated with this button
+        /// </summary>
+        public void ClearFile()
+        {
+            SetFile(string.Empty);
+        }
+
+        /// <summary>
         /// Set the sound file associated with this button
         /// </summary>
         /// <param name="soundPath"></param>
@@ -611,10 +627,15 @@ namespace SoundBoard
                 // Add this sound to dictionary
                 MainWindow.Instance.Sounds[SoundName] = SoundPath;
 
-                // Now we can add Rename to the menu
+                // Now we can add Rename and Clear to the menu
                 if (ContextMenu?.Items.Contains(_renameMenuItem) == false)
                 {
                     ContextMenu?.Items.Add(_renameMenuItem);
+                }
+
+                if (ContextMenu?.Items.Contains(_clearMenuItem) == false)
+                {
+                    ContextMenu?.Items.Add(_clearMenuItem);
                 }
             }
         }
@@ -659,6 +680,11 @@ namespace SoundBoard
             if (ContextMenu?.Items.Contains(_renameMenuItem) == true)
             {
                 ContextMenu?.Items.Remove(_renameMenuItem);
+            }
+
+            if (ContextMenu?.Items.Contains(_clearMenuItem) == true)
+            {
+                ContextMenu?.Items.Remove(_clearMenuItem);
             }
         }
 
@@ -739,6 +765,7 @@ namespace SoundBoard
         private Stopwatch _stopWatch;
 
         private readonly MenuItem _renameMenuItem;
+        private readonly MenuItem _clearMenuItem;
 
         private Point? _mouseDownPosition = null;
 

@@ -218,4 +218,7 @@
   <data name="ClearConfiguration" xml:space="preserve">
     <value>Clear configuration</value>
   </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
 </root>

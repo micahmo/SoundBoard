@@ -17,6 +17,7 @@ using System.Runtime.InteropServices;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
+using Point = System.Windows.Point;
 
 #endregion
 
@@ -73,7 +74,10 @@ namespace SoundBoard
     {
         #region Constructor
 
-        protected HideableMenuButtonBase(SoundButton parentButton) : base(parentButton) { }
+        protected HideableMenuButtonBase(SoundButton parentButton) : base(parentButton)
+        {
+            Padding = new Thickness(Padding.Left, Padding.Top + 2, Padding.Right, Padding.Bottom);
+        }
 
         #endregion
 
@@ -174,13 +178,13 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
-                Content = @"⯈";
+                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11);
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
-                Content = @"❚❚";
+                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11);
             }
         }
 
@@ -191,8 +195,8 @@ namespace SoundBoard
         public override void Show()
         {
             base.Show();
-            
-            Content = @"❚❚";
+
+            Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11);
             _playing = true;
         }
 
@@ -222,7 +226,7 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public StopButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = @"■";
+            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11);
 
             VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Center;

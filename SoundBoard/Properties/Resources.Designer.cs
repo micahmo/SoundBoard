@@ -178,6 +178,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Go to sound.
+        /// </summary>
+        internal static string GoToSound {
+            get {
+                return ResourceManager.GetString("GoToSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to How does it work?.
         /// </summary>
         internal static string HowDoesItWork {

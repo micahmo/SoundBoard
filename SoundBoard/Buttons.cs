@@ -17,7 +17,7 @@ using System.Runtime.InteropServices;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
-using Point = System.Windows.Point;
+using Timer = System.Timers.Timer;
 
 #endregion
 
@@ -293,9 +293,13 @@ namespace SoundBoard
         /// <summary>
         /// Constructor
         /// </summary>
-        public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal)
+        public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal, 
+                           MetroTabItem parentTab = null, 
+                           (MetroTabItem SourceTab, SoundButton SourceButton) sourceTabAndButton = default)
         {
             Mode = soundButtonMode;
+            ParentTab = parentTab;
+            SourceTabAndButton = sourceTabAndButton;
 
             if (soundButtonMode == SoundButtonMode.Normal)
             {
@@ -320,8 +324,18 @@ namespace SoundBoard
             MenuItem chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
             chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
 
-            contextMenu.Items.Add(chooseSoundMenuItem);
-            // (Don't add the "Rename" or "Clear" button until we get a real sound)
+            MenuItem goToSoundMenuItem = new MenuItem {Header = Properties.Resources.GoToSound};
+            goToSoundMenuItem.Click += GoToSoundMenuItem_Click;
+
+            if (soundButtonMode == SoundButtonMode.Normal)
+            {
+                contextMenu.Items.Add(chooseSoundMenuItem);
+                // (Don't add the "Rename" or "Clear" button until we get a real sound)
+            }
+            else if (soundButtonMode == SoundButtonMode.Search)
+            {
+                contextMenu.Items.Add(goToSoundMenuItem);
+            }
             
             ContextMenu = contextMenu;
         }
@@ -342,7 +356,6 @@ namespace SoundBoard
             if (!string.IsNullOrEmpty(result))
             {
                 Content = SoundName = result;
-                MainWindow.Instance.UpdateSoundList();
             }
 
             // Rehandle keypresses in main window
@@ -421,6 +434,24 @@ namespace SoundBoard
             foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
             {
                 hideableButton.Hide();
+            }
+        }
+
+        private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // First, close the search
+            MainWindow.Instance.CloseSearch();
+
+            // Now find the button for the given sound
+
+            if (SourceTabAndButton.SourceTab is MetroTabItem metroTabItem && 
+                SourceTabAndButton.SourceButton is SoundButton soundButton)
+            {
+                // Focus the parent tab
+                metroTabItem.Focus();
+
+                // Highlight the sound button
+                soundButton.Highlight();
             }
         }
 
@@ -601,19 +632,6 @@ namespace SoundBoard
                 return;
             }
 
-            // If there was a previous sound here, get rid of it
-            try
-            {
-                if (newSound)
-                {
-                    MainWindow.Instance.Sounds.Remove(SoundName);
-                }
-            }
-            catch
-            {
-                // ignored
-            }
-
             SoundPath = soundPath;
 
             SoundName = string.IsNullOrEmpty(soundName)
@@ -627,9 +645,6 @@ namespace SoundBoard
             {
                 // Set text color
                 Foreground = new SolidColorBrush(Colors.Black);
-
-                // Add this sound to dictionary
-                MainWindow.Instance.Sounds[SoundName] = SoundPath;
 
                 // Now we can add Rename and Clear to the menu
                 if (ContextMenu?.Items.Contains(_renameMenuItem) == false)
@@ -668,6 +683,64 @@ namespace SoundBoard
         public void Stop()
         {
             _player.Stop();
+        }
+
+        /// <summary>
+        /// Temporarily highlights the button to draw the user's attention to it
+        /// </summary>
+        public async void Highlight()
+        {
+            // Change our highlight color to dark gray and
+            Resources[@"HighlightColor"] = new SolidColorBrush(Colors.DarkGray);
+            Style = (Style) FindResource(@"MyHighlightedSquareButtonStyle");
+
+            // Leave the button highlighted for a second so that the user clearly sees it
+            await Task.Delay(ONE_SECOND);
+
+            // ----- Do a homebrew animation using a timer ----- //
+
+            Timer animationTimer = new Timer { Interval = ANIMATION_TIMER_INTERVAL };
+
+            // Find our starting value for R (since it's gray, it will be the same for G and B).
+            byte val = ((SolidColorBrush) Resources[@"HighlightColor"]).Color.R;
+
+            // Hook up our timer. Use a local function so that we can unsubscribe by name
+            animationTimer.Elapsed += timer_Elapsed;
+
+            void timer_Elapsed(object sender, EventArgs e)
+            {
+                // Unsubscribe right away so that we don't get double hits
+                animationTimer.Elapsed -= timer_Elapsed;
+
+                // Check if we've reached our destination color. If so, stop the timer
+                if (val >= 255)
+                {
+                    animationTimer.Stop();
+                    animationTimer.Dispose();
+                    return;
+                }
+                
+                // Update the color (on the main thread)
+                this.Invoke(() =>
+                {
+                    val = (byte)Math.Min(255, val + 2); // Make sure we don't go over our target
+                    SolidColorBrush adjustedColor = new SolidColorBrush(Color.FromArgb(255, val, val, val));
+                    Resources[@"HighlightColor"] = adjustedColor;
+                });
+
+                // Subscribe again
+                animationTimer.Elapsed += timer_Elapsed;
+            }
+
+            // Start our timer
+            animationTimer.Start();
+
+            // When our animation is completely done, reset our style
+            animationTimer.Disposed += (_, __) =>
+            {
+                // Remember to modify the style on the main thread
+                this.Invoke(() => { Style = (Style) FindResource(@"SquareButtonStyle"); });
+            };
         }
 
         #endregion
@@ -760,6 +833,17 @@ namespace SoundBoard
         /// </summary>
         public ICollection<MenuButtonBase> ChildButtons { get; } = new List<MenuButtonBase>();
 
+        /// <summary>
+        /// When in <see cref="SoundButtonMode.Search"/>, this property specifies the underlying <see cref="MetroTabItem"/> and <see cref="SoundButton"/>
+        /// that this search result originated from.
+        /// </summary>
+        public (MetroTabItem SourceTab, SoundButton SourceButton) SourceTabAndButton { get; }
+
+        /// <summary>
+        /// Specifies the <see cref="MetroTabItem"/> on which this sound lives. Will be null when in <see cref="SoundButtonMode.Search"/>.
+        /// </summary>
+        public MetroTabItem ParentTab { get; }
+
         #endregion
 
         #region Private fields
@@ -778,6 +862,10 @@ namespace SoundBoard
         #region Private consts
 
         private const int MOUSE_MOVE_THRESHOLD = 5; // The mouse will have to move at least 5 pixels for the drag operation to start
+
+        private const int ONE_SECOND = 1000; // 1 s in ms
+
+        private const int ANIMATION_TIMER_INTERVAL = 10; // 10 ms
 
         #endregion
     }

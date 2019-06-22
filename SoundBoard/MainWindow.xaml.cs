@@ -241,7 +241,7 @@ namespace SoundBoard
                 parentGrid.RowDefinitions.Add(row);
 
                 // Sound button
-                SoundButton soundButton = new SoundButton();
+                SoundButton soundButton = new SoundButton(parentTab: tab);
 
                 Grid.SetColumn(soundButton, 0);
                 Grid.SetRow(soundButton, i);
@@ -291,7 +291,7 @@ namespace SoundBoard
                 // Only have to add the rows once (above)
 
                 // Sound button
-                SoundButton soundButton = new SoundButton();
+                SoundButton soundButton = new SoundButton(parentTab: tab);
 
                 Grid.SetColumn(soundButton, 1);
                 Grid.SetRow(soundButton, i);
@@ -532,8 +532,7 @@ namespace SoundBoard
                     // If the search bar is open, close it
                     if (Search.IsOpen)
                     {
-                        _searchString = string.Empty; // Don't wait for it to close to clear the query
-                        Search.IsOpen = false;
+                        CloseSearch();
                     }
                     // Otherwise, stop any playing sounds
                     else
@@ -629,12 +628,12 @@ namespace SoundBoard
                 // Perform search
                 if (string.IsNullOrEmpty(_searchString) == false)
                 {
-                    foreach (KeyValuePair<string, string> entry in Sounds)
+                    foreach (SoundButton soundButton in SoundButtons)
                     {
-                        if (entry.Key.ToLower().Contains(_searchString.ToLower()))
+                        if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
                         {
-                            SoundButton button = new SoundButton(SoundButtonMode.Search);
-                            button.SetFile(entry.Value, entry.Key, false);
+                            SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
+                            button.SetFile(soundButton.SoundPath, soundButton.SoundName, false);
 
                             ResultsPanel.Children.Add(button);
                         }
@@ -755,8 +754,6 @@ namespace SoundBoard
             {
                 Tabs.Items.Remove(Tabs.SelectedItem);
             }
-
-            UpdateSoundList();
         }
 
         private void FormClosingHandler(object sender, EventArgs e)
@@ -876,34 +873,12 @@ namespace SoundBoard
         public List<IWavePlayer> SoundPlayers { get; } = new List<IWavePlayer>();
 
         /// <summary>
-        /// Contains a map of SoundName to SoundPath
+        /// Closes the search pane and clears any query
         /// </summary>
-        public Dictionary<string, string> Sounds { get; } = new Dictionary<string, string>();
-
-        #endregion
-
-        #region Public methods
-
-        /// <summary>
-        /// Ensures that the the local <see cref="Sounds"/> list accurately reflects the UI
-        /// </summary>
-        public void UpdateSoundList()
+        public void CloseSearch()
         {
-            Sounds.Clear();
-
-            foreach (MetroTabItem tab in Tabs.Items)
-            {
-                if (tab.Content is Grid grid)
-                {
-                    foreach (var child in grid.Children)
-                    {
-                        if (child is SoundButton soundButton)
-                        {
-                            Sounds[soundButton.SoundName] = soundButton.SoundPath;
-                        }
-                    }
-                }
-            }
+            _searchString = string.Empty; // Don't wait for it to close to clear the query
+            Search.IsOpen = false;
         }
 
         #endregion
@@ -922,6 +897,30 @@ namespace SoundBoard
         private string LegacyConfigFilePath => @"soundboard.config";
 
         private string ApplicationName => @"SoundBoard";
+
+        private IEnumerable<SoundButton> SoundButtons
+        {
+            get
+            {
+                List<SoundButton> soundButtons = new List<SoundButton>();
+
+                foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
+                {
+                    if (tab.Content is Grid grid)
+                    {
+                        foreach (var child in grid.Children)
+                        {
+                            if (child is SoundButton button)
+                            {
+                                soundButtons.Add(button);
+                            }
+                        }
+                    }
+                }
+
+                return soundButtons;
+            }
+        }
 
         #endregion
 

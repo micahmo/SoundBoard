@@ -313,6 +313,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Source.
+        /// </summary>
+        internal static string Source {
+            get {
+                return ResourceManager.GetString("Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Only .wav and .mp3 files supported..
         /// </summary>
         internal static string SupportedFileTypes {

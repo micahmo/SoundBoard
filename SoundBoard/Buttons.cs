@@ -327,16 +327,22 @@ namespace SoundBoard
             MenuItem goToSoundMenuItem = new MenuItem {Header = Properties.Resources.GoToSound};
             goToSoundMenuItem.Click += GoToSoundMenuItem_Click;
 
+            _soundPathMenuItem = new MenuItem();
+            _soundPathMenuItem.Click += SoundPathMenuItem_Click;
+
+            _viewSourceMenuItem = new MenuItem { Header = Properties.Resources.Source };
+            _viewSourceMenuItem.Items.Add(_soundPathMenuItem);
+
             if (soundButtonMode == SoundButtonMode.Normal)
             {
                 contextMenu.Items.Add(chooseSoundMenuItem);
-                // (Don't add the "Rename" or "Clear" button until we get a real sound)
+                // (Don't add the menu items that require a real sound in SetFile is called)
             }
             else if (soundButtonMode == SoundButtonMode.Search)
             {
                 contextMenu.Items.Add(goToSoundMenuItem);
             }
-            
+
             ContextMenu = contextMenu;
         }
 
@@ -453,6 +459,12 @@ namespace SoundBoard
                 // Highlight the sound button
                 soundButton.Highlight();
             }
+        }
+
+        private void SoundPathMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            // Open explorer with the current path selected
+            Process.Start("explorer.exe", $"/select, \"{SoundPath}\"");
         }
 
         #endregion
@@ -646,7 +658,7 @@ namespace SoundBoard
                 // Set text color
                 Foreground = new SolidColorBrush(Colors.Black);
 
-                // Now we can add Rename and Clear to the menu
+                // Now we can add our menu items which require having a real sound on the button
                 if (ContextMenu?.Items.Contains(_renameMenuItem) == false)
                 {
                     ContextMenu?.Items.Add(_renameMenuItem);
@@ -657,6 +669,14 @@ namespace SoundBoard
                     ContextMenu?.Items.Add(_clearMenuItem);
                 }
             }
+
+            if (ContextMenu?.Items.Contains(_viewSourceMenuItem) == false)
+            {
+                ContextMenu.Items.Add(_separatorMenuItem);
+                ContextMenu.Items.Add(_viewSourceMenuItem);
+            }
+
+            _soundPathMenuItem.Header = SoundPath;
         }
 
         /// <summary>
@@ -763,6 +783,12 @@ namespace SoundBoard
             {
                 ContextMenu?.Items.Remove(_clearMenuItem);
             }
+
+            if (ContextMenu?.Items.Contains(_viewSourceMenuItem) == true)
+            {
+                ContextMenu?.Items.Remove(_separatorMenuItem);
+                ContextMenu?.Items.Remove(_viewSourceMenuItem);
+            }
         }
 
         private void UpdateProgressAction()
@@ -854,6 +880,9 @@ namespace SoundBoard
 
         private readonly MenuItem _renameMenuItem;
         private readonly MenuItem _clearMenuItem;
+        private readonly MenuItem _soundPathMenuItem;
+        private readonly MenuItem _viewSourceMenuItem;
+        private readonly Separator _separatorMenuItem = new Separator();
 
         private Point? _mouseDownPosition = null;
 

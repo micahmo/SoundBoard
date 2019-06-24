@@ -635,8 +635,7 @@ namespace SoundBoard
         /// </summary>
         /// <param name="soundPath"></param>
         /// <param name="soundName"></param>
-        /// <param name="newSound"></param>
-        public void SetFile(string soundPath, string soundName = "", bool newSound = true)
+        public void SetFile(string soundPath, string soundName = "")
         {
             if (string.IsNullOrEmpty(soundPath))
             {
@@ -652,8 +651,8 @@ namespace SoundBoard
 
             Content = SoundName;
 
-            // If this is a new sound on the main soundboard, set up some additional properties
-            if (newSound)
+            // If this is a normal button on the main soundboard, set up some additional properties
+            if (Mode != SoundButtonMode.Search)
             {
                 // Set text color
                 Foreground = new SolidColorBrush(Colors.Black);

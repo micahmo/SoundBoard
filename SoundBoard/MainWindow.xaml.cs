@@ -633,7 +633,7 @@ namespace SoundBoard
                         if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
                         {
                             SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
-                            button.SetFile(soundButton.SoundPath, soundButton.SoundName, false);
+                            button.SetFile(soundButton.SoundPath, soundButton.SoundName);
 
                             ResultsPanel.Children.Add(button);
                         }

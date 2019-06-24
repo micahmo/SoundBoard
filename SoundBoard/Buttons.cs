@@ -312,38 +312,7 @@ namespace SoundBoard
             AllowDrop = true;
             Click += soundButton_Click;
 
-            // Create context menu and items
-            ContextMenu contextMenu = new ContextMenu();
-
-            _renameMenuItem = new MenuItem {Header = Properties.Resources.Rename};
-            _renameMenuItem.Click += RenameMenuItem_Click;
-
-            _clearMenuItem = new MenuItem { Header = Properties.Resources.Clear };
-            _clearMenuItem.Click += ClearMenuItem_Click;
-
-            MenuItem chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
-            chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
-
-            MenuItem goToSoundMenuItem = new MenuItem {Header = Properties.Resources.GoToSound};
-            goToSoundMenuItem.Click += GoToSoundMenuItem_Click;
-
-            _soundPathMenuItem = new MenuItem();
-            _soundPathMenuItem.Click += SoundPathMenuItem_Click;
-
-            _viewSourceMenuItem = new MenuItem { Header = Properties.Resources.Source };
-            _viewSourceMenuItem.Items.Add(_soundPathMenuItem);
-
-            if (soundButtonMode == SoundButtonMode.Normal)
-            {
-                contextMenu.Items.Add(chooseSoundMenuItem);
-                // (Don't add the menu items that require a real sound in SetFile is called)
-            }
-            else if (soundButtonMode == SoundButtonMode.Search)
-            {
-                contextMenu.Items.Add(goToSoundMenuItem);
-            }
-
-            ContextMenu = contextMenu;
+            SetUpContextMenu();
         }
 
         #endregion
@@ -652,30 +621,13 @@ namespace SoundBoard
             Content = SoundName;
 
             // If this is a normal button on the main soundboard, set up some additional properties
-            if (Mode != SoundButtonMode.Search)
+            if (Mode == SoundButtonMode.Normal)
             {
                 // Set text color
                 Foreground = new SolidColorBrush(Colors.Black);
-
-                // Now we can add our menu items which require having a real sound on the button
-                if (ContextMenu?.Items.Contains(_renameMenuItem) == false)
-                {
-                    ContextMenu?.Items.Add(_renameMenuItem);
-                }
-
-                if (ContextMenu?.Items.Contains(_clearMenuItem) == false)
-                {
-                    ContextMenu?.Items.Add(_clearMenuItem);
-                }
             }
 
-            if (ContextMenu?.Items.Contains(_viewSourceMenuItem) == false)
-            {
-                ContextMenu.Items.Add(_separatorMenuItem);
-                ContextMenu.Items.Add(_viewSourceMenuItem);
-            }
-
-            _soundPathMenuItem.Header = SoundPath;
+            SetUpContextMenu();
         }
 
         /// <summary>
@@ -773,21 +725,7 @@ namespace SoundBoard
             Content = Properties.Resources.DragASoundHere;
             Foreground = new SolidColorBrush(Colors.Gray);
 
-            if (ContextMenu?.Items.Contains(_renameMenuItem) == true)
-            {
-                ContextMenu?.Items.Remove(_renameMenuItem);
-            }
-
-            if (ContextMenu?.Items.Contains(_clearMenuItem) == true)
-            {
-                ContextMenu?.Items.Remove(_clearMenuItem);
-            }
-
-            if (ContextMenu?.Items.Contains(_viewSourceMenuItem) == true)
-            {
-                ContextMenu?.Items.Remove(_separatorMenuItem);
-                ContextMenu?.Items.Remove(_viewSourceMenuItem);
-            }
+            SetUpContextMenu();
         }
 
         private void UpdateProgressAction()
@@ -828,6 +766,141 @@ namespace SoundBoard
             return Math.Abs(firstPoint.X - secondPoint.X) > threshold &&
                    Math.Abs(firstPoint.Y - secondPoint.Y) > threshold;
         }
+
+        /// <summary>
+        /// Sets up the <see cref="ContextMenu"/> for the current button.
+        /// Should be called initially (i.e., in the constructor)
+        /// and any time the button's state changes (i.e., when a sound is added/changed)
+        /// </summary>
+        private void SetUpContextMenu()
+        {
+            // If we don't have a context menu yet, create one and assign it
+            if (ContextMenu is null)
+            {
+                ContextMenu = new ContextMenu();
+            }
+
+            // ----- Initialize our menu items ----- //
+
+            // IF the "Choose sound" menu item is null, create it and hook up its handler
+            if (_chooseSoundMenuItem is null)
+            {
+                _chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
+                _chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
+            }
+
+            // If the "Rename" menu item is null, create it and hook up its handler
+            if (_renameMenuItem is null)
+            {
+                _renameMenuItem = new MenuItem {Header = Properties.Resources.Rename};
+                _renameMenuItem.Click += RenameMenuItem_Click;
+            }
+
+            // If the "Clear" menu item is null, create it and hook up its handler
+            if (_clearMenuItem is null)
+            {
+                _clearMenuItem = new MenuItem {Header = Properties.Resources.Clear};
+                _clearMenuItem.Click += ClearMenuItem_Click;
+            }
+
+            // If the path menu item is null, create it and hook up its handler
+            if (_soundPathMenuItem is null)
+            {
+                _soundPathMenuItem = new MenuItem();
+                _soundPathMenuItem.Click += SoundPathMenuItem_Click;
+            }
+
+            // If the "Source" menu item is null, create it and hook up its handler
+            if (_viewSourceMenuItem is null)
+            {
+                _viewSourceMenuItem = new MenuItem {Header = Properties.Resources.Source};
+                _viewSourceMenuItem.Items.Add(_soundPathMenuItem);
+            }
+
+            // If the "Go to sound" menu item is null, create it and hook up its handler
+            if (_goToSoundMenuItem is null)
+            {
+                _goToSoundMenuItem = new MenuItem { Header = Properties.Resources.GoToSound };
+                _goToSoundMenuItem.Click += GoToSoundMenuItem_Click;
+            }
+
+            // If our separator menu item is null, create it
+            if (_separatorMenuItem is null)
+            {
+                _separatorMenuItem = new Separator();
+            }
+
+            // ----- Add our menu items to our context menu, depending on our current state ----- //
+
+            if (Mode == SoundButtonMode.Normal)
+            {
+                // Add our menu items for our Normal mode
+
+                if (ContextMenu.Items.Contains(_chooseSoundMenuItem) == false)
+                {
+                    ContextMenu.Items.Add(_chooseSoundMenuItem);
+                }
+
+                if (HasValidSound)
+                {
+                    if (ContextMenu.Items.Contains(_renameMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_renameMenuItem);
+                    }
+
+                    if (ContextMenu.Items.Contains(_clearMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_clearMenuItem);
+                    }
+                }
+            }
+            else if (Mode == SoundButtonMode.Search)
+            {
+                // Add our  menu items for our Search mode
+
+                if (ContextMenu.Items.Contains(_goToSoundMenuItem) == false)
+                {
+                    ContextMenu.Items.Add(_goToSoundMenuItem);
+                }
+            }
+
+            // Add our menu items for either mode
+            if (HasValidSound)
+            {
+                _soundPathMenuItem.Header = SoundPath;
+
+                if (ContextMenu.Items.Contains(_viewSourceMenuItem) == false)
+                {
+                    ContextMenu.Items.Add(_separatorMenuItem);
+                    ContextMenu.Items.Add(_viewSourceMenuItem);
+                }
+            }
+            else
+            {
+                // Remove some menu items that should not be in the menu if we no longer have a valid sound
+                if (ContextMenu.Items.Contains(_renameMenuItem))
+                {
+                    ContextMenu.Items.Remove(_renameMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_clearMenuItem))
+                {
+                    ContextMenu.Items.Remove(_clearMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_viewSourceMenuItem))
+                {
+                    ContextMenu.Items.Remove(_separatorMenuItem);
+                    ContextMenu.Items.Remove(_viewSourceMenuItem);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Private properties
+
+        private bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
 
         #endregion
 
@@ -877,13 +950,15 @@ namespace SoundBoard
         private AudioFileReader _audioFileReader;
         private Stopwatch _stopWatch;
 
-        private readonly MenuItem _renameMenuItem;
-        private readonly MenuItem _clearMenuItem;
-        private readonly MenuItem _soundPathMenuItem;
-        private readonly MenuItem _viewSourceMenuItem;
-        private readonly Separator _separatorMenuItem = new Separator();
+        private MenuItem _chooseSoundMenuItem;
+        private MenuItem _renameMenuItem;
+        private MenuItem _clearMenuItem;
+        private MenuItem _soundPathMenuItem;
+        private MenuItem _viewSourceMenuItem;
+        private MenuItem _goToSoundMenuItem;
+        private Separator _separatorMenuItem;
 
-        private Point? _mouseDownPosition = null;
+        private Point? _mouseDownPosition;
 
         #endregion
 

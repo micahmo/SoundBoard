@@ -26,7 +26,7 @@
 
     <Controls:MetroWindow.RightWindowCommands>
         <Controls:WindowCommands>
-            <Button Content="silence" Click="silence_Click" Name="Silence"/>
+            <Button Content="silence" Click="silence_Click" Name="Silence" ToolTip="Stop all sounds"/>
             <Button Content="rename page" Click="renamePage_Click" Name="Rename"/>
             <Button Content="remove page" Click="removePage_Click" Name="Remove"/>
             <Button Content="add page" Click="addPage_Click"/>

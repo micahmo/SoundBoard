@@ -219,9 +219,17 @@ namespace SoundBoard
                 removeMenuItem.Click += RemoveMenuItem_Click;
                 contextMenu.Items.Add(removeMenuItem);
 
-                tab.MouseRightButtonUp += MetroTabItem_RightClick;
-
-                tab.ContextMenu = contextMenu;
+                // Handle showing the context menu manually (instead of assigning it to the tab's ContextMenu property)
+                //  so that we can filter out bubbled events from child controls and only show it when the tab itself is clicked.
+                // args.Source shows the real object from which the event originated.
+                tab.MouseRightButtonUp += (_, args) =>
+                {
+                    if (args.Source is MetroTabItem metroTabItem)
+                    {
+                        metroTabItem.Focus();
+                        contextMenu.IsOpen = true;
+                    }
+                };
             }
         }
 
@@ -483,14 +491,6 @@ namespace SoundBoard
         #endregion
 
         #region Event handlers
-
-        private void MetroTabItem_RightClick(object sender, EventArgs e)
-        {
-            if (sender is MetroTabItem metroTabItem)
-            {
-                metroTabItem.Focus();
-            }
-        }
 
         private void RenameMenuItem_Click(object sender, EventArgs e)
         {

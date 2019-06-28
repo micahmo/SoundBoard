@@ -313,6 +313,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sound &apos;{0}&apos; was cleared..
+        /// </summary>
+        internal static string SoundWasCleared {
+            get {
+                return ResourceManager.GetString("SoundWasCleared", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Source.
         /// </summary>
         internal static string Source {

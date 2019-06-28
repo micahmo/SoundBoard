@@ -227,4 +227,8 @@
   <data name="Source" xml:space="preserve">
     <value>Source</value>
   </data>
+  <data name="SoundWasCleared" xml:space="preserve">
+    <value>Sound '{0}' was cleared.</value>
+    <comment>{0} is the name of a sound</comment>
+  </data>
 </root>

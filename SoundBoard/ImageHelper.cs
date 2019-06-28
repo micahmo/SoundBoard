@@ -48,6 +48,8 @@ namespace SoundBoard
 
         public static string StopButtonPath = @"pack://application:,,,/Images/stop-button.png";
 
+        public static string CloseButtonPath = @"pack://application:,,,/Images/close.png";
+
         #endregion
     }
 }

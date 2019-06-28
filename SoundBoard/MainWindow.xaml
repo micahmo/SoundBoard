@@ -15,12 +15,58 @@
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>
+            
             <Controls:Flyout x:Name="Search" Header="Search" ClosingFinished="FlyoutCloseHandler" Position="Left" Width="300" >
                 <StackPanel x:Name="SearchPanel">
                     <TextBox x:Name="Query" IsReadOnly="True" FontSize="20" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
                     <StackPanel x:Name="ResultsPanel" />
                 </StackPanel>
             </Controls:Flyout>
+            
+            <Controls:Flyout x:Name="Snackbar" Position="Bottom" IsAutoCloseEnabled="true" CloseButtonVisibility="Collapsed">
+                <Grid x:Name="SnackbarGrid" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="15, 10, 50, 10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="SnackbarMessage" 
+                             Grid.Column="0"
+                             IsReadOnly="True"
+                             IsHitTestVisible="False"
+                             FontSize="15"
+                             BorderThickness="0"
+                             HorizontalAlignment="Left"
+                             VerticalAlignment="Center"
+                             TextAlignment="Center"/>
+                    
+                    <Button x:Name="UndoButton"
+                            Style="{StaticResource SquareButtonStyle}"
+                            BorderThickness="0"
+                            Grid.Column="2"
+                            Controls:ControlsHelper.ContentCharacterCasing="Normal"
+                            Content="UNDO"
+                            FontSize="12"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="20, 0, 20, 0"
+                            Click="UndoButton_Click"/>
+                    
+                    <Button x:Name="CloseSnackbarButton" 
+                            Style="{StaticResource SquareButtonStyle}"
+                            BorderThickness="0"
+                            Grid.Column="3"
+                            FontSize="20"
+                            Width="30"
+                            Height="30"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Click="CloseSnackbarButton_Click"/>
+                </Grid>
+            </Controls:Flyout>
+
         </Controls:FlyoutsControl>
     </Controls:MetroWindow.Flyouts>
 

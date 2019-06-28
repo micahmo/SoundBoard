@@ -84,6 +84,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Buttons.cs" />
+    <Compile Include="UndoClasses.cs" />
+    <Compile Include="Utilities.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -151,7 +153,8 @@
   <ItemGroup>
     <Resource Include="Images\play-arrow.png" />
     <Resource Include="Images\pause-button.png" />
-    <Resource Include="Images\stop-button.png" />
+    <Resource Include="Images\stop-button.png" /> 
+    <Resource Include="Images\close.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.0.6\build\Fody.targets" Condition="Exists('..\packages\Fody.5.0.6\build\Fody.targets')" />

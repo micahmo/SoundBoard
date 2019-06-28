@@ -275,7 +275,7 @@ namespace SoundBoard
     /// <summary>
     /// Defines a Button which plays a Sound
     /// </summary>
-    internal sealed class SoundButton : Button
+    internal sealed class SoundButton : Button, IUndoable<SoundButtonUndoState>
     {
         #region P/Invoke stuff
 
@@ -338,6 +338,16 @@ namespace SoundBoard
 
         private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            SoundButtonUndoState soundButtonUndoState = SaveState();
+
+            // Set up our UndoAction
+            MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+
+            // Create and show a snackbar
+            string message = Properties.Resources.SoundWasCleared;
+            string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
+            MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+
             ClearFile();
         }
 
@@ -990,6 +1000,20 @@ namespace SoundBoard
         private const int ONE_SECOND = 1000; // 1 s in ms
 
         private const int ANIMATION_TIMER_INTERVAL = 10; // 10 ms
+
+        #endregion
+
+        #region IUndoable members
+        public SoundButtonUndoState SaveState()
+        {
+            return new SoundButtonUndoState {SoundPath = SoundPath, SoundName = SoundName};
+        }
+
+        public void LoadState(SoundButtonUndoState undoState)
+        {
+            SetFile(undoState.SoundPath);
+            Content = SoundName = undoState.SoundName;
+        }
 
         #endregion
     }

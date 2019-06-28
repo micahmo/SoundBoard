@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
@@ -114,6 +115,11 @@ namespace SoundBoard
             LoadSettingsCompat();
 
             CreateTabContextMenus();
+
+            CloseSnackbarButton.Content = ImageHelper.GetImage(ImageHelper.CloseButtonPath, 11, 11);
+
+            // Subscribe to any mouse down. We want any interaction with the application to close the snackbar
+            EventManager.RegisterClassHandler(typeof(Window), MouseDownEvent, new MouseButtonEventHandler(AnyMouseDown));
         }
 
         #endregion
@@ -848,6 +854,25 @@ namespace SoundBoard
             }
         }
 
+        private void CloseSnackbarButton_Click(object sender, RoutedEventArgs e)
+        {
+            Snackbar.IsOpen = false;
+        }
+
+        private void UndoButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Invoke the assigned undo action
+            _undoAction?.Invoke();
+
+            // Always close the snackbar when undoing
+            Snackbar.IsOpen = false;
+        }
+
+        private void AnyMouseDown(object sender, EventArgs e)
+        {
+            Snackbar.IsOpen = false;
+        }
+
         #endregion
 
         #region Public properties
@@ -873,6 +898,15 @@ namespace SoundBoard
         public List<IWavePlayer> SoundPlayers { get; } = new List<IWavePlayer>();
 
         /// <summary>
+        /// Returns the <see cref="Font"/> of the <see cref="SnackbarMessage"/>.
+        /// </summary>
+        public Font SnackbarMessageFont => new Font(SnackbarMessage.FontFamily.ToString(), (float) SnackbarMessage.FontSize);
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
         /// Closes the search pane and clears any query
         /// </summary>
         public void CloseSearch()
@@ -881,12 +915,35 @@ namespace SoundBoard
             Search.IsOpen = false;
         }
 
+        /// <summary>
+        /// Defines an <see cref="Action"/> to call if <see cref="ShowUndoSnackbar(string, int)"/> is called
+        /// and the user chooses to perform the undo.
+        /// </summary>
+        /// <param name="action"></param>
+        public void SetUndoAction(Action action)
+        {
+            _undoAction = action;
+        }
+
+        /// <summary>
+        /// Shows a snackbar that allows the user to undo an action.
+        /// </summary>
+        /// <param name="message">Message to show the user on the snackbar</param>
+        /// <param name="timeout">Time in ms until the snackbar is closed automatically. Defaults to 5 seconds.</param>
+        public void ShowUndoSnackbar(string message = "", int timeout = 5000)
+        {
+            SnackbarMessage.Text = message;
+            Snackbar.AutoCloseInterval = timeout;
+            Snackbar.IsOpen = true;
+        }
+
         #endregion
 
         #region Private fields
 
         private string _searchString = string.Empty;
         private SoundButton _focusedButton;
+        private Action _undoAction;
 
         #endregion
 

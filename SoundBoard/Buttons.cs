@@ -310,7 +310,6 @@ namespace SoundBoard
             Margin = new Thickness(10);
             Style = (Style)FindResource(@"SquareButtonStyle");
             AllowDrop = true;
-            Click += soundButton_Click;
 
             SetUpContextMenu();
         }
@@ -345,60 +344,6 @@ namespace SoundBoard
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
             BrowseForSound();
-        }
-
-        private async void soundButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(SoundPath))
-            {
-                // If this button doesn't have a sound yet, browse for it now
-                BrowseForSound();
-            }
-            else
-            {
-                try
-                {
-                    if (!File.Exists(SoundPath)) throw new Exception(string.Format(Properties.Resources.FileDoesNotExist, SoundPath));
-
-                    // Stop any previous sounds
-                    _player.Stop();
-                    _player.Dispose();
-
-                    // Reinitialize the player
-                    _player = new WaveOut();
-                    _audioFileReader = new AudioFileReader(SoundPath);
-                    _player.Init(_audioFileReader);
-
-                    // Trick to unmute volume by turning it up and back down again
-                    SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
-                    SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
-
-                    // Handle stop
-                    _player.PlaybackStopped += SoundStoppedHandler;
-
-                    _stopWatch = Stopwatch.StartNew();
-
-                    MainWindow.Instance.SoundPlayers.Add(_player);
-
-                    // Show the additional buttons
-                    foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
-                    {
-                        hideableButton.Show();
-                    }
-
-                    // Aaaaand play
-                    _player.Play();
-
-                    // Begin updating progress bar
-                    CancellationTokenSource tokenSource = new CancellationTokenSource();
-                    await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
-                }
-                catch (Exception ex)
-                {
-                    await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Oops,
-                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
-                }
-            }
         }
 
         private void SoundStoppedHandler(object sender, EventArgs e)
@@ -439,6 +384,30 @@ namespace SoundBoard
         #endregion
 
         #region Overrides
+
+        /// <inheritdoc />
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            if (string.IsNullOrEmpty(SoundPath))
+            {
+                // If this button doesn't have a sound yet, browse for it now
+                BrowseForSound();
+            }
+            else
+            {
+                if (Mode == SoundButtonMode.Normal)
+                {
+                    StartSound();
+                }
+                else if (Mode == SoundButtonMode.Search && 
+                         SourceTabAndButton.SourceButton is SoundButton sourceButton)
+                {
+                    sourceButton.StartSound();
+                }
+            }
+        }
 
         /// <inheritdoc />
         protected override void OnMouseDown(MouseButtonEventArgs e)
@@ -571,6 +540,58 @@ namespace SoundBoard
         #endregion
 
         #region Public methods
+
+        /// <summary>
+        /// Start playing the sound associated with this button
+        /// </summary>
+        public async void StartSound()
+        {
+            try
+            {
+                if (!File.Exists(SoundPath))
+                {
+                    throw new Exception(string.Format(Properties.Resources.FileDoesNotExist, SoundPath));
+                }
+
+                // Stop any previous sounds
+                _player.Stop();
+                _player.Dispose();
+
+                // Reinitialize the player
+                _player = new WaveOut();
+                _audioFileReader = new AudioFileReader(SoundPath);
+                _player.Init(_audioFileReader);
+
+                // Trick to unmute volume by turning it up and back down again
+                SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
+                SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
+
+                // Handle stop
+                _player.PlaybackStopped += SoundStoppedHandler;
+
+                _stopWatch = Stopwatch.StartNew();
+
+                MainWindow.Instance.SoundPlayers.Add(_player);
+
+                // Show the additional buttons
+                foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
+                {
+                    hideableButton.Show();
+                }
+
+                // Aaaaand play
+                _player.Play();
+
+                // Begin updating progress bar
+                CancellationTokenSource tokenSource = new CancellationTokenSource();
+                await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
+            }
+            catch (Exception ex)
+            {
+                await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Oops,
+                    Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
 
         /// <summary>
         /// Prompt the user to browse for and choose a sound for this button

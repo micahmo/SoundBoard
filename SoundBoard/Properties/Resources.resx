@@ -231,4 +231,8 @@
     <value>Sound '{0}' was cleared.</value>
     <comment>{0} is the name of a sound</comment>
   </data>
+  <data name="TabWasRemoved" xml:space="preserve">
+    <value>Page '{0}' was removed.</value>
+    <comment>{0} is the name of a tab</comment>
+  </data>
 </root>

@@ -17,6 +17,7 @@ using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using Gma.System.MouseKeyHook;
 using Microsoft.Win32;
 using Timer = System.Timers.Timer;
 using static System.Environment;
@@ -31,7 +32,7 @@ namespace SoundBoard
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public sealed partial class MainWindow
+    public sealed partial class MainWindow : IUndoable<TabPageUndoState>
     {
         #region P/Invoke stuff
 
@@ -119,7 +120,8 @@ namespace SoundBoard
             CloseSnackbarButton.Content = ImageHelper.GetImage(ImageHelper.CloseButtonPath, 11, 11);
 
             // Subscribe to any mouse down. We want any interaction with the application to close the snackbar
-            EventManager.RegisterClassHandler(typeof(Window), MouseDownEvent, new MouseButtonEventHandler(AnyMouseDown));
+            _globalMouseEvents = Hook.AppEvents();
+            _globalMouseEvents.MouseDown += Global_MouseDown;
         }
 
         #endregion
@@ -751,13 +753,20 @@ namespace SoundBoard
             AddHandler(KeyDownEvent, KeyDownHandler, true);
         }
 
-        private async void removePage_Click(object sender, RoutedEventArgs e)
+        private void removePage_Click(object sender, RoutedEventArgs e)
         {
-            MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
-                Properties.Resources.ConfirmDeletePage, MessageDialogStyle.AffirmativeAndNegative,
-                new MetroDialogSettings {AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No});
-            if (result == MessageDialogResult.Affirmative)
+            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
             {
+                TabPageUndoState tabPageUndoState = SaveState();
+
+                // Set up our UndoAction
+                SetUndoAction(() => { LoadState(tabPageUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.TabWasRemoved;
+                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                ShowUndoSnackbar(string.Format(message, truncatedTabName));
+
                 Tabs.Items.Remove(Tabs.SelectedItem);
             }
         }
@@ -868,9 +877,23 @@ namespace SoundBoard
             Snackbar.IsOpen = false;
         }
 
-        private void AnyMouseDown(object sender, EventArgs e)
+        private void Global_MouseDown(object sender, EventArgs e)
         {
             Snackbar.IsOpen = false;
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void OnClosed(EventArgs e)
+        {
+            // Do cleanup
+            _globalMouseEvents.MouseDown -= Global_MouseDown;
+            _globalMouseEvents.Dispose();
+
+            base.OnClosed(e);
         }
 
         #endregion
@@ -941,6 +964,7 @@ namespace SoundBoard
 
         #region Private fields
 
+        private readonly IKeyboardMouseEvents _globalMouseEvents;
         private string _searchString = string.Empty;
         private SoundButton _focusedButton;
         private Action _undoAction;
@@ -986,6 +1010,23 @@ namespace SoundBoard
         private const int TWO_MINUTES_IN_MILLISECONDS = 120000;
 
         private const string WELCOME_PAGE_TAG = nameof(WELCOME_PAGE_TAG);
+
+        #endregion
+
+        #region IUndoable members
+
+        /// <inheritdoc />
+        public TabPageUndoState SaveState()
+        {
+            return new TabPageUndoState {MetroTabItem = Tabs.SelectedItem as MetroTabItem, Index = Tabs.SelectedIndex};
+        }
+
+        /// <inheritdoc />
+        public void LoadState(TabPageUndoState undoState)
+        {
+            Tabs.Items.Insert(undoState.Index, undoState.MetroTabItem);
+            Tabs.SelectedIndex = undoState.Index;
+        }
 
         #endregion
     }

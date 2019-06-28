@@ -340,6 +340,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Page &apos;{0}&apos; was removed..
+        /// </summary>
+        internal static string TabWasRemoved {
+            get {
+                return ResourceManager.GetString("TabWasRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There was a problem!.
         /// </summary>
         internal static string ThereWasAProblem {

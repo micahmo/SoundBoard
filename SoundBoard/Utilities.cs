@@ -2,6 +2,7 @@
 
 using System.Drawing;
 using System.Windows.Forms;
+using NAudio.CoreAudioApi;
 
 #endregion
 
@@ -33,6 +34,20 @@ namespace SoundBoard
             }
 
             return input + (truncated ? ELLIPSES : string.Empty);
+        }
+
+        /// <summary>
+        /// Unmute the system audio device(s), with optional parameters to specify the <see cref="DataFlow"/> and <see cref="DeviceState"/>.
+        /// </summary>
+        public static void UnmuteSystemAudio(DataFlow dataFlow = DataFlow.Render, DeviceState deviceState = DeviceState.Active)
+        {
+            using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+            {
+                foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(dataFlow, deviceState))
+                {
+                    device.AudioEndpointVolume.Mute = false;
+                }
+            }
         }
 
         #endregion

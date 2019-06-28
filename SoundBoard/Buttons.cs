@@ -277,17 +277,6 @@ namespace SoundBoard
     /// </summary>
     internal sealed class SoundButton : Button, IUndoable<SoundButtonUndoState>
     {
-        #region P/Invoke stuff
-
-        private const int APPCOMMAND_VOLUME_UP = 0xA0000;
-        private const int APPCOMMAND_VOLUME_DOWN = 0x90000;
-        private const int WM_APPCOMMAND = 0x319;
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr SendMessageW(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
-
-        #endregion
-
         #region Constructor
 
         /// <summary>
@@ -572,9 +561,8 @@ namespace SoundBoard
                 _audioFileReader = new AudioFileReader(SoundPath);
                 _player.Init(_audioFileReader);
 
-                // Trick to unmute volume by turning it up and back down again
-                SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_UP);
-                SendMessageW(new WindowInteropHelper(MainWindow.Instance).Handle, WM_APPCOMMAND, new WindowInteropHelper(MainWindow.Instance).Handle, (IntPtr)APPCOMMAND_VOLUME_DOWN);
+                // Unmute the system audio for all active/render devices
+                Utilities.UnmuteSystemAudio();
 
                 // Handle stop
                 _player.PlaybackStopped += SoundStoppedHandler;

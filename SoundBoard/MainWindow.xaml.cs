@@ -142,8 +142,9 @@ namespace SoundBoard
                 // Save the settings to the new path
                 SaveSettings(ConfigFilePath);
 
-                // Delete the legacy config file
-                File.Delete(LegacyConfigFilePath);
+                // Save the legacy config file in case there is an error
+                if (File.Exists(TempConfigFilePath)) File.Delete(TempConfigFilePath);
+                File.Move(LegacyConfigFilePath, TempConfigFilePath);
             }
             else
             {

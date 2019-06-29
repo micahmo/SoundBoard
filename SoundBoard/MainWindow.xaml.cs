@@ -214,6 +214,8 @@ namespace SoundBoard
             // Add context menu to each tab
             foreach (MetroTabItem tab in Tabs.Items)
             {
+                if (_tabContextMenus.ContainsKey(tab)) continue;
+
                 ContextMenu contextMenu = new ContextMenu();
 
                 if (tab.Tag?.ToString() != WELCOME_PAGE_TAG)
@@ -238,6 +240,10 @@ namespace SoundBoard
                         contextMenu.IsOpen = true;
                     }
                 };
+
+                // Because we're managing the tab context menus manually (instead of assigning to the tab's ContextMenu property)
+                // we also have to keep track of whether we've created a context menu for this tab yet.
+                _tabContextMenus[tab] = contextMenu;
             }
         }
 
@@ -1003,6 +1009,7 @@ namespace SoundBoard
         private string _searchString = string.Empty;
         private SoundButton _focusedButton;
         private Action _undoAction;
+        private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
 
         #endregion
 

@@ -1001,8 +1001,11 @@ namespace SoundBoard
 
         public void LoadState(SoundButtonUndoState undoState)
         {
-            SetFile(undoState.SoundPath);
-            Content = SoundName = undoState.SoundName;
+            if (string.IsNullOrEmpty(undoState.SoundPath) == false)
+            {
+                SetFile(undoState.SoundPath);
+                Content = SoundName = undoState.SoundName;
+            }
         }
 
         #endregion

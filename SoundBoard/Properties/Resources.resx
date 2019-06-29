@@ -163,23 +163,8 @@
   <data name="WhatDoYouWantToCallIt" xml:space="preserve">
     <value>What do you want to call it?</value>
   </data>
-  <data name="JustChecking" xml:space="preserve">
-    <value>Just checking...</value>
-  </data>
   <data name="ConfirmDeletePage" xml:space="preserve">
     <value>Are you sure you want to delete this page?</value>
-  </data>
-  <data name="ConfirmImportConfig" xml:space="preserve">
-    <value>Are you sure you want to override the current configuration with the imported configuration?</value>
-  </data>
-  <data name="ConfirmClearConfig" xml:space="preserve">
-    <value>Are you sure you want to clear your current configuration, including all tabs and sounds?</value>
-  </data>
-  <data name="Yes" xml:space="preserve">
-    <value>Yes</value>
-  </data>
-  <data name="No" xml:space="preserve">
-    <value>No</value>
   </data>
   <data name="ChooseSound" xml:space="preserve">
     <value>Choose sound</value>
@@ -234,5 +219,11 @@
   <data name="TabWasRemoved" xml:space="preserve">
     <value>Page '{0}' was removed.</value>
     <comment>{0} is the name of a tab</comment>
+  </data>
+  <data name="ConfigurationWasImported" xml:space="preserve">
+    <value>Configuration was imported.</value>
+  </data>
+  <data name="ConfigurationWasCleared" xml:space="preserve">
+    <value>Configuration was cleared.</value>
   </data>
 </root>

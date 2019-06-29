@@ -59,5 +59,16 @@
         public int Index { get; set; }
     }
 
+    /// <summary>
+    /// Defines the undo save state for Configurations
+    /// </summary>
+    public class ConfigUndoState : UndoStateBase
+    {
+        /// <summary>
+        /// The path of the saved config file
+        /// </summary>
+        public string SavedConfigStatePath { get; set; }
+    }
+
     #endregion
 }

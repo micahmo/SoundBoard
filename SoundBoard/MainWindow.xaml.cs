@@ -32,7 +32,7 @@ namespace SoundBoard
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public sealed partial class MainWindow : IUndoable<TabPageUndoState>
+    public sealed partial class MainWindow : IUndoable<TabPageUndoState>, IUndoable<ConfigUndoState>
     {
         #region P/Invoke stuff
 
@@ -851,28 +851,30 @@ namespace SoundBoard
             {
                 try
                 {
-                    // Ensure that the user really wants to override the current configuration
-                    MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
-                        Properties.Resources.ConfirmImportConfig, MessageDialogStyle.AffirmativeAndNegative,
-                        new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No });
-
-                    if (result == MessageDialogResult.Affirmative)
+                    // Stop all sounds
+                    foreach (SoundButton soundButton in GetSoundButtons())
                     {
-                        // Stop all sounds
-                        foreach (SoundButton soundButton in GetSoundButtons())
-                        {
-                            soundButton.Stop();
-                        }
-
-                        // Load settings with the given file
-                        LoadSettings(openFileDialog.FileName);
-
-                        // Immediately save the settings to overwrite our file
-                        SaveSettings();
-
-                        // Select the first tab, if any
-                        if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
+                        soundButton.Stop();
                     }
+
+                    ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                    // Set up our UndoAction
+                    SetUndoAction(() => { LoadState(configUndoState); });
+
+                    // Create and show a snackbar
+                    string message = Properties.Resources.ConfigurationWasImported;
+                    string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int) Width - 50);
+                    ShowUndoSnackbar(truncatedMessage);
+
+                    // Load settings with the given file
+                    LoadSettings(openFileDialog.FileName);
+
+                    // Immediately save the settings to overwrite our file
+                    SaveSettings();
+
+                    // Select the first tab, if any
+                    if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
                 }
                 catch (Exception ex)
                 {
@@ -884,31 +886,31 @@ namespace SoundBoard
 
         private async void ClearConfig_Click(object sender, RoutedEventArgs e)
         {
-            // Confirm that the user really wants to clear their configuraiton
-            MessageDialogResult result = await this.ShowMessageAsync(Properties.Resources.JustChecking,
-                Properties.Resources.ConfirmClearConfig, MessageDialogStyle.AffirmativeAndNegative,
-                new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.Yes, NegativeButtonText = Properties.Resources.No });
-            if (result == MessageDialogResult.Affirmative)
+            try
             {
-                try
+                // Stop all sounds
+                foreach (SoundButton soundButton in GetSoundButtons())
                 {
-                    // Stop all sounds
-                    foreach (SoundButton soundButton in GetSoundButtons())
-                    {
-                        soundButton.Stop();
-                    }
-
-                    // Delete the config file
-                    File.Delete(ConfigFilePath);
-
-                    // Remove all tabs
-                    Tabs.Items.Clear();
+                    soundButton.Stop();
                 }
-                catch (Exception ex)
-                {
-                    await this.ShowMessageAsync(Properties.Resources.Oops,
-                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
-                }
+
+                ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                // Set up our UndoAction
+                SetUndoAction(() => { LoadState(configUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.ConfigurationWasCleared;
+                string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
+                ShowUndoSnackbar(truncatedMessage);
+
+                // Clear the config from the UI by removing all the tabs
+                Tabs.Items.Clear();
+            }
+            catch (Exception ex)
+            {
+                await this.ShowMessageAsync(Properties.Resources.Oops,
+                    Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
         }
 
@@ -1029,6 +1031,8 @@ namespace SoundBoard
 
         private string ConfigFilePath => Path.Combine(GetFolderPath(SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
 
+        private string TempConfigFilePath => ConfigFilePath + @".temp";
+
         private string LegacyConfigFilePath => @"soundboard.config";
 
         private string ApplicationName => @"SoundBoard";
@@ -1056,6 +1060,28 @@ namespace SoundBoard
         {
             Tabs.Items.Insert(undoState.Index, undoState.MetroTabItem);
             Tabs.SelectedIndex = undoState.Index;
+        }
+
+
+        /// <inheritdoc />
+        ConfigUndoState IUndoable<ConfigUndoState>.SaveState()
+        {
+            if (File.Exists(TempConfigFilePath)) File.Delete(TempConfigFilePath);
+            File.Move(ConfigFilePath, TempConfigFilePath);
+            return new ConfigUndoState {SavedConfigStatePath = TempConfigFilePath};
+        }
+
+        /// <inheritdoc />
+        public void LoadState(ConfigUndoState undoState)
+        {
+            foreach (SoundButton soundButton in GetSoundButtons())
+            {
+                soundButton.Stop();
+            }
+
+            LoadSettings(undoState.SavedConfigStatePath);
+            SaveSettings();
+            if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
         }
 
         #endregion

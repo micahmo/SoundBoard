@@ -115,11 +115,20 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to clear your current configuration, including all tabs and sounds?.
+        ///   Looks up a localized string similar to Configuration was cleared..
         /// </summary>
-        internal static string ConfirmClearConfig {
+        internal static string ConfigurationWasCleared {
             get {
-                return ResourceManager.GetString("ConfirmClearConfig", resourceCulture);
+                return ResourceManager.GetString("ConfigurationWasCleared", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Configuration was imported..
+        /// </summary>
+        internal static string ConfigurationWasImported {
+            get {
+                return ResourceManager.GetString("ConfigurationWasImported", resourceCulture);
             }
         }
         
@@ -129,15 +138,6 @@ namespace SoundBoard.Properties {
         internal static string ConfirmDeletePage {
             get {
                 return ResourceManager.GetString("ConfirmDeletePage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to override the current configuration with the imported configuration?.
-        /// </summary>
-        internal static string ConfirmImportConfig {
-            get {
-                return ResourceManager.GetString("ConfirmImportConfig", resourceCulture);
             }
         }
         
@@ -205,29 +205,11 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Just checking....
-        /// </summary>
-        internal static string JustChecking {
-            get {
-                return ResourceManager.GetString("JustChecking", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to New Page.
         /// </summary>
         internal static string NewPage {
             get {
                 return ResourceManager.GetString("NewPage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to No.
-        /// </summary>
-        internal static string No {
-            get {
-                return ResourceManager.GetString("No", resourceCulture);
             }
         }
         
@@ -399,15 +381,6 @@ namespace SoundBoard.Properties {
         internal static string WhatDoYouWantToCallIt {
             get {
                 return ResourceManager.GetString("WhatDoYouWantToCallIt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Yes.
-        /// </summary>
-        internal static string Yes {
-            get {
-                return ResourceManager.GetString("Yes", resourceCulture);
             }
         }
     }

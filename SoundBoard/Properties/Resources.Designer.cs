@@ -70,6 +70,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All sounds cleared from &apos;{0}&apos;..
+        /// </summary>
+        internal static string AllSoundsClearedFromTab {
+            get {
+                return ResourceManager.GetString("AllSoundsClearedFromTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Audio Files.
         /// </summary>
         internal static string AudioFiles {
@@ -93,6 +102,15 @@ namespace SoundBoard.Properties {
         internal static string Clear {
             get {
                 return ResourceManager.GetString("Clear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear all sounds.
+        /// </summary>
+        internal static string ClearAllSounds {
+            get {
+                return ResourceManager.GetString("ClearAllSounds", resourceCulture);
             }
         }
         

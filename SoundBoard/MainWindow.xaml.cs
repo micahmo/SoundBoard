@@ -20,7 +20,6 @@ using System.Windows.Automation.Provider;
 using Gma.System.MouseKeyHook;
 using Microsoft.Win32;
 using Timer = System.Timers.Timer;
-using static System.Environment;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
@@ -32,7 +31,7 @@ namespace SoundBoard
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public sealed partial class MainWindow : IUndoable<TabPageUndoState>, IUndoable<ConfigUndoState>
+    public sealed partial class MainWindow : IUndoable<TabPageUndoState>, IUndoable<ConfigUndoState>, IUndoable<TabPageSoundsUndoState>
     {
         #region P/Invoke stuff
 
@@ -229,6 +228,13 @@ namespace SoundBoard
                 MenuItem removeMenuItem = new MenuItem {Header = Properties.Resources.Remove};
                 removeMenuItem.Click += RemoveMenuItem_Click;
                 contextMenu.Items.Add(removeMenuItem);
+
+                if (tab.Tag?.ToString() != WELCOME_PAGE_TAG)
+                {
+                    MenuItem clearAllSoundsMenuItem = new MenuItem { Header = Properties.Resources.ClearAllSounds };
+                    clearAllSoundsMenuItem.Click += ClearAllSoundsMenuItem_Click;
+                    contextMenu.Items.Add(clearAllSoundsMenuItem);
+                }
 
                 // Handle showing the context menu manually (instead of assigning it to the tab's ContextMenu property)
                 //  so that we can filter out bubbled events from child controls and only show it when the tab itself is clicked.
@@ -545,6 +551,27 @@ namespace SoundBoard
             ButtonAutomationPeer peer = new ButtonAutomationPeer(Remove);
             IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
             invokeProv?.Invoke();
+        }
+
+        private void ClearAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            {
+                TabPageSoundsUndoState tabPageSoundsUndoState = (this as IUndoable<TabPageSoundsUndoState>).SaveState();
+
+                // Set up our UndoAction
+                SetUndoAction(() => { LoadState(tabPageSoundsUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.AllSoundsClearedFromTab;
+                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                ShowUndoSnackbar(string.Format(message, truncatedTabName));
+
+                foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
+                {
+                    soundButton.ClearFile();
+                }
+            }
         }
 
         private void RoutedKeyDownHandler(object sender, RoutedEventArgs args)
@@ -1030,7 +1057,7 @@ namespace SoundBoard
 
         #region Private properties
 
-        private string ConfigFilePath => Path.Combine(GetFolderPath(SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
+        private string ConfigFilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
 
         private string TempConfigFilePath => ConfigFilePath + @".temp";
 
@@ -1084,6 +1111,32 @@ namespace SoundBoard
             LoadSettings(undoState.SavedConfigStatePath);
             SaveSettings();
             if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
+        }
+
+        /// <inheritdoc />
+        TabPageSoundsUndoState IUndoable<TabPageSoundsUndoState>.SaveState()
+        {
+            var soundButtonUndoStates = new List<(SoundButtonUndoState, int)>();
+
+            int index = 0;
+            foreach (SoundButton soundButton in GetSoundButtons(Tabs.SelectedItem as MetroTabItem))
+            {
+                soundButtonUndoStates.Add((soundButton.SaveState(), index));
+                ++index;
+            }
+
+            return new TabPageSoundsUndoState {SoundButtonUndoStates = soundButtonUndoStates};
+        }
+
+        /// <inheritdoc />
+        public void LoadState(TabPageSoundsUndoState undoState)
+        {
+            IList<SoundButton> soundButtons = GetSoundButtons(Tabs.SelectedItem as MetroTabItem).ToList();
+
+            foreach (var soundButtonUndoState in undoState.SoundButtonUndoStates)
+            {
+                soundButtons[soundButtonUndoState.ButtonIndex].LoadState(soundButtonUndoState.SoundButtonUndoState);
+            }
         }
 
         #endregion

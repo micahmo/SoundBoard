@@ -70,5 +70,16 @@
         public string SavedConfigStatePath { get; set; }
     }
 
+    /// <summary>
+    /// Defines the undo save state for a list of sounds on a page
+    /// </summary>
+    public class TabPageSoundsUndoState : UndoStateBase
+    {
+        /// <summary>
+        /// The <see cref="SoundButtonUndoState"/>s for each <see cref="SoundButton"/> on the page.
+        /// </summary>
+        public System.Collections.Generic.ICollection<(SoundButtonUndoState SoundButtonUndoState, int ButtonIndex)> SoundButtonUndoStates { get; set; }
+    }
+
     #endregion
 }

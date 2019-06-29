@@ -226,4 +226,11 @@
   <data name="ConfigurationWasCleared" xml:space="preserve">
     <value>Configuration was cleared.</value>
   </data>
+  <data name="ClearAllSounds" xml:space="preserve">
+    <value>Clear all sounds</value>
+  </data>
+  <data name="AllSoundsClearedFromTab" xml:space="preserve">
+    <value>All sounds cleared from '{0}'.</value>
+    <comment>{0} is the name of a tab page</comment>
+  </data>
 </root>

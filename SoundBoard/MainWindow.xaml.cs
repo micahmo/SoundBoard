@@ -496,6 +496,30 @@ namespace SoundBoard
             }
         }
 
+        /// <summary>
+        /// Returns all <see cref="SoundButton"/>s in the given <see cref="MainWindow"/>.
+        /// If parameter <paramref name="metroTabItem"/> is passed, only <see cref="SoundButton"/>s which appear on the given <paramref name="metroTabItem"/> are returned.
+        /// </summary>
+        private IEnumerable<SoundButton> GetSoundButtons(MetroTabItem metroTabItem = null)
+        {
+            foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
+            {
+                if (metroTabItem is null || tab == metroTabItem)
+                {
+                    if (tab.Content is Grid grid)
+                    {
+                        foreach (var child in grid.Children)
+                        {
+                            if (child is SoundButton button)
+                            {
+                                yield return button;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Event handlers
@@ -636,7 +660,7 @@ namespace SoundBoard
                 // Perform search
                 if (string.IsNullOrEmpty(_searchString) == false)
                 {
-                    foreach (SoundButton soundButton in SoundButtons)
+                    foreach (SoundButton soundButton in GetSoundButtons())
                     {
                         if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
                         {
@@ -767,6 +791,13 @@ namespace SoundBoard
                 string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
                 ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
+                // Stop all sounds on this page
+                foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
+                {
+                    soundButton.Stop();
+                }
+
+                // Remove the page
                 Tabs.Items.Remove(Tabs.SelectedItem);
             }
         }
@@ -982,30 +1013,6 @@ namespace SoundBoard
         private string LegacyConfigFilePath => @"soundboard.config";
 
         private string ApplicationName => @"SoundBoard";
-
-        private IEnumerable<SoundButton> SoundButtons
-        {
-            get
-            {
-                List<SoundButton> soundButtons = new List<SoundButton>();
-
-                foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
-                {
-                    if (tab.Content is Grid grid)
-                    {
-                        foreach (var child in grid.Children)
-                        {
-                            if (child is SoundButton button)
-                            {
-                                soundButtons.Add(button);
-                            }
-                        }
-                    }
-                }
-
-                return soundButtons;
-            }
-        }
 
         #endregion
 

@@ -858,6 +858,12 @@ namespace SoundBoard
 
                     if (result == MessageDialogResult.Affirmative)
                     {
+                        // Stop all sounds
+                        foreach (SoundButton soundButton in GetSoundButtons())
+                        {
+                            soundButton.Stop();
+                        }
+
                         // Load settings with the given file
                         LoadSettings(openFileDialog.FileName);
 
@@ -886,6 +892,12 @@ namespace SoundBoard
             {
                 try
                 {
+                    // Stop all sounds
+                    foreach (SoundButton soundButton in GetSoundButtons())
+                    {
+                        soundButton.Stop();
+                    }
+
                     // Delete the config file
                     File.Delete(ConfigFilePath);
 

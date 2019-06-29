@@ -1067,6 +1067,7 @@ namespace SoundBoard
         ConfigUndoState IUndoable<ConfigUndoState>.SaveState()
         {
             if (File.Exists(TempConfigFilePath)) File.Delete(TempConfigFilePath);
+            SaveSettings();
             File.Move(ConfigFilePath, TempConfigFilePath);
             return new ConfigUndoState {SavedConfigStatePath = TempConfigFilePath};
         }

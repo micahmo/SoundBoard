@@ -615,6 +615,7 @@ namespace SoundBoard
         /// </summary>
         public void ClearFile()
         {
+            Stop();
             SetFile(string.Empty);
         }
 

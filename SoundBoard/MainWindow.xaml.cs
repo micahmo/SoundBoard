@@ -879,7 +879,11 @@ namespace SoundBoard
 
         private void Global_MouseDown(object sender, EventArgs e)
         {
-            Snackbar.IsOpen = false;
+            // Always close the snackbar on any user interaction (UNLESS they're clicking on the undo button)
+            if (UndoButton.IsMouseOver == false)
+            {
+                Snackbar.IsOpen = false;
+            }
         }
 
         #endregion

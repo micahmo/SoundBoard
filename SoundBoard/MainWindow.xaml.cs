@@ -198,6 +198,7 @@ namespace SoundBoard
                         }
 
                         CreateTabContextMenus();
+                        SetUpTabDragging();
                     }
                 }
             }
@@ -251,6 +252,16 @@ namespace SoundBoard
                 // Because we're managing the tab context menus manually (instead of assigning to the tab's ContextMenu property)
                 // we also have to keep track of whether we've created a context menu for this tab yet.
                 _tabContextMenus[tab] = contextMenu;
+            }
+        }
+
+        private void SetUpTabDragging()
+        {
+            foreach (MetroTabItem tab in Tabs.Items)
+            {
+                tab.AllowDrop = true;
+                tab.DragEnter -= Tab_DragEnter; // Unsubscribe first so we don't get double subscriptions
+                tab.DragEnter += Tab_DragEnter;
             }
         }
 
@@ -791,6 +802,7 @@ namespace SoundBoard
 
             // Make sure the new tab has a context menu
             CreateTabContextMenus();
+            SetUpTabDragging();
         }
 
         private async void renamePage_Click(object sender, RoutedEventArgs e)
@@ -963,6 +975,11 @@ namespace SoundBoard
             {
                 Snackbar.IsOpen = false;
             }
+        }
+
+        private void Tab_DragEnter(object sender, DragEventArgs e)
+        {
+            (sender as MetroTabItem)?.Focus();
         }
 
         #endregion

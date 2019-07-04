@@ -1072,6 +1072,16 @@ namespace SoundBoard
         public SoundButton Source { get; }
 
         #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $@"{nameof(SoundDragData)}: {{ {nameof(SoundName)}: '{SoundName}', {nameof(SoundPath)}: '{SoundPath}' }}";
+        }
+
+        #endregion
     }
 
     #endregion

@@ -183,7 +183,7 @@ namespace SoundBoard
                         {
                             string name = node["name"]?.InnerText;
 
-                            MetroTabItem tab = new MetroTabItem {Header = name};
+                            MetroTabItem tab = new MyMetroTabItem {Header = name};
                             Tabs.Items.Add(tab);
 
                             List<Tuple<string, string>> buttons = new List<Tuple<string, string>>();
@@ -198,7 +198,6 @@ namespace SoundBoard
                         }
 
                         CreateTabContextMenus();
-                        SetUpTabDragging();
                     }
                 }
             }
@@ -252,16 +251,6 @@ namespace SoundBoard
                 // Because we're managing the tab context menus manually (instead of assigning to the tab's ContextMenu property)
                 // we also have to keep track of whether we've created a context menu for this tab yet.
                 _tabContextMenus[tab] = contextMenu;
-            }
-        }
-
-        private void SetUpTabDragging()
-        {
-            foreach (MetroTabItem tab in Tabs.Items)
-            {
-                tab.AllowDrop = true;
-                tab.DragEnter -= Tab_DragEnter; // Unsubscribe first so we don't get double subscriptions
-                tab.DragEnter += Tab_DragEnter;
             }
         }
 
@@ -747,7 +736,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MetroTabItem {Header = Properties.Resources.Welcome.ToLower()};
+            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.Welcome.ToLower()};
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -795,14 +784,13 @@ namespace SoundBoard
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MetroTabItem {Header = Properties.Resources.NewPage.ToLower()};
+            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.NewPage.ToLower()};
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
 
             // Make sure the new tab has a context menu
             CreateTabContextMenus();
-            SetUpTabDragging();
         }
 
         private async void renamePage_Click(object sender, RoutedEventArgs e)
@@ -975,11 +963,6 @@ namespace SoundBoard
             {
                 Snackbar.IsOpen = false;
             }
-        }
-
-        private void Tab_DragEnter(object sender, DragEventArgs e)
-        {
-            (sender as MetroTabItem)?.Focus();
         }
 
         #endregion

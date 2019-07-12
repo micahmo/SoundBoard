@@ -50,6 +50,10 @@ namespace SoundBoard
 
         public static string CloseButtonPath = @"pack://application:,,,/Images/close.png";
 
+        public static string AddButtonPath = @"pack://application:,,,/Images/add.png";
+
+        public static string AddFocusButtonPath = @"pack://application:,,,/Images/add_focus.png";
+
         #endregion
     }
 }

@@ -87,6 +87,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Buttons.cs" />
+    <Compile Include="MyMetroTabItem.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />
     <Page Include="MainWindow.xaml">
@@ -158,6 +159,8 @@
     <Resource Include="Images\pause-button.png" />
     <Resource Include="Images\stop-button.png" />
     <Resource Include="Images\close.png" />
+	<Resource Include="Images\add.png" />
+	<Resource Include="Images\add_focus.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

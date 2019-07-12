@@ -428,7 +428,7 @@ namespace SoundBoard
             base.OnMouseMove(e);
 
             if (_mouseDownPosition is null == false && 
-                PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this), MOUSE_MOVE_THRESHOLD))
+                Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)))
             {
                 _mouseDownPosition = Mouse.GetPosition(this);
                 DragDrop.DoDragDrop(this, new SoundDragData(SoundName, SoundPath, this), DragDropEffects.Link);
@@ -774,20 +774,6 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// Returns true if the distance (absolute value) between both <paramref name="firstPoint"/>.X and <paramref name="secondPoint"/>.X
-        /// and <paramref name="firstPoint"/>.Y and <paramref name="secondPoint"/>.Y is greater than <paramref name="threshold"/>.
-        /// </summary>
-        /// <param name="firstPoint"></param>
-        /// <param name="secondPoint"></param>
-        /// <param name="threshold"></param>
-        /// <returns></returns>
-        private bool PointsArePastThreshold(Point firstPoint, Point secondPoint, int threshold)
-        {
-            return Math.Abs(firstPoint.X - secondPoint.X) > threshold &&
-                   Math.Abs(firstPoint.Y - secondPoint.Y) > threshold;
-        }
-
-        /// <summary>
         /// Sets up the <see cref="ContextMenu"/> for the current button.
         /// Should be called initially (i.e., in the constructor)
         /// and any time the button's state changes (i.e., when a sound is added/changed)
@@ -983,8 +969,6 @@ namespace SoundBoard
         #endregion
 
         #region Private consts
-
-        private const int MOUSE_MOVE_THRESHOLD = 5; // The mouse will have to move at least 5 pixels for the drag operation to start
 
         private const int ONE_SECOND = 1000; // 1 s in ms
 

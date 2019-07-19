@@ -518,14 +518,22 @@ namespace SoundBoard
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
-            _mouseDownPosition = Mouse.GetPosition(this);
+
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                _mouseDownPosition = Mouse.GetPosition(this);
+            }
         }
 
         /// <inheritdoc />
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
             base.OnMouseUp(e);
-            _mouseDownPosition = null;
+
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                _mouseDownPosition = null;
+            }
         }
 
         /// <inheritdoc />

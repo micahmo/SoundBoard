@@ -259,6 +259,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Set color.
+        /// </summary>
+        internal static string SetColor {
+            get {
+                return ResourceManager.GetString("SetColor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to ...an app where you can create and run your own custom sound board full of your favorite bytes, effects, and clips..
         /// </summary>
         internal static string SoundBoardDescription {

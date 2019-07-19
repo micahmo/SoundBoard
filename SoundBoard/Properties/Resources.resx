@@ -233,4 +233,7 @@
     <value>All sounds cleared from '{0}'.</value>
     <comment>{0} is the name of a tab page</comment>
   </data>
+  <data name="SetColor" xml:space="preserve">
+    <value>Set color</value>
+  </data>
 </root>

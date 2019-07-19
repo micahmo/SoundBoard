@@ -41,6 +41,11 @@
         /// SoundName
         /// </summary>
         public string SoundName { get; set; }
+
+        /// <summary>
+        /// Color
+        /// </summary>
+        public System.Windows.Media.Color? Color { get; set; }
     }
 
     /// <summary>

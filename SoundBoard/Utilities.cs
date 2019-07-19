@@ -1,7 +1,6 @@
 ﻿#region Usings
 
 using System;
-using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using NAudio.CoreAudioApi;
@@ -11,7 +10,6 @@ using Point = System.Windows.Point;
 
 namespace SoundBoard
 {
-
     #region Utilities class
     
     /// <summary>
@@ -26,7 +24,7 @@ namespace SoundBoard
         /// by measuring its size in the given <paramref name="font"/>. Pass in an optional <paramref name="offsetString"/>
         ///  to add to the total width of the input string.
         /// </summary>
-        public static string Truncate(string input, Font font, int maxWidth, string offsetString = "")
+        public static string Truncate(string input, System.Drawing.Font font, int maxWidth, string offsetString = "")
         {
             bool truncated = false;
 
@@ -65,6 +63,26 @@ namespace SoundBoard
         {
             return Math.Abs(firstPoint.X - secondPoint.X) > threshold &&
                    Math.Abs(firstPoint.Y - secondPoint.Y) > threshold;
+        }
+
+        /// <summary>
+        /// Extension method on <see cref="System.Windows.Media.Color"/> which converts it to a <see cref="System.Drawing.Color"/>.
+        /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public static System.Drawing.Color ToSystemDrawingColor(this System.Windows.Media.Color color)
+        {
+            return System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        /// <summary>
+        /// Extension method on <see cref="System.Drawing.Color"/> which converts it to a <see cref="System.Windows.Media.Color"/>.
+        /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public static System.Windows.Media.Color ToSystemWindowsMediaColor(this System.Drawing.Color color)
+        {
+            return System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
         }
 
         #endregion

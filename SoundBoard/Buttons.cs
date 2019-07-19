@@ -10,14 +10,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Media;
 using System.Threading.Tasks;
-using System.Windows.Interop;
 using System.Windows.Controls;
 using MahApps.Metro.Controls.Dialogs;
-using System.Runtime.InteropServices;
 using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
+using Dsafa.WpfColorPicker;
 using Timer = System.Timers.Timer;
+using ControlPaint = System.Windows.Forms.ControlPaint;
 
 #endregion
 
@@ -38,11 +38,12 @@ namespace SoundBoard
         protected MenuButtonBase()
         {
             FontSize = 13;
-            Style = (Style)FindResource(@"MetroCircleButtonStyle");
             Width = 35;
             Height = 35;
             Margin = new Thickness(0, 15, 15, 15);
             Padding = new Thickness(0.5, 0, 0, 1.5);
+
+            Style = (Style) FindResource(@"MetroCircleButtonStyle");
         }
 
         /// <summary>
@@ -52,6 +53,45 @@ namespace SoundBoard
         protected MenuButtonBase(SoundButton parentButton) : this()
         {
             ParentButton = parentButton;
+
+            // Default mode is light, unless the parent button specifies otherwise
+            Mode = ColorMode.Light;
+            if (ParentButton?.SoundButtonStyle?.IsLightColor == false)
+            {
+                Mode = ColorMode.Dark;
+            }
+
+            SetUpStyle();
+        }
+
+        #endregion
+
+        #region Protected methods
+
+        /// <summary>
+        /// Set the mode of the button
+        /// </summary>
+        public virtual void SetMode(ColorMode mode = ColorMode.Dark)
+        {
+            Mode = mode;
+            SetUpStyle();
+        }
+
+        /// <summary>
+        /// Sets up the WPF button style
+        /// </summary>
+        protected virtual void SetUpStyle()
+        {
+            Style style = new Style(GetType(), (Style)FindResource(@"MetroCircleButtonStyle"));
+
+            if (Mode == ColorMode.Dark)
+            {
+                // If we're in dark mode, our button borders should be white.
+                style.Setters.Add(new Setter(BorderBrushProperty, new SolidColorBrush(Colors.White)));
+            }
+
+            // Apply the style
+            Style = style;
         }
 
         #endregion
@@ -59,6 +99,25 @@ namespace SoundBoard
         #region Properties
 
         protected readonly SoundButton ParentButton;
+
+        public ColorMode Mode;
+
+        #endregion
+
+        #region Mode enum
+
+        public enum ColorMode
+        {
+            /// <summary>
+            /// Light mode means dark buttons
+            /// </summary>
+            Light,
+
+            /// <summary>
+            /// Dark mode means light buttons
+            /// </summary>
+            Dark
+        }
 
         #endregion
     }
@@ -119,7 +178,9 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public MenuButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = @"•••";
+            Padding = new Thickness(Padding.Left, Padding.Top + 2, Padding.Right, Padding.Bottom);
+
+            Content = ImageHelper.GetImage(ImageHelper.MenuButtonPath, 15, 15, Mode == ColorMode.Dark);
 
             VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Right;
@@ -127,7 +188,7 @@ namespace SoundBoard
 
         #endregion
 
-        #region Event handlers
+        #region Overrides
 
         protected override void OnClick()
         {
@@ -137,6 +198,13 @@ namespace SoundBoard
             {
                 ParentButton.ContextMenu.IsOpen = true;
             }
+        }
+
+        public override void SetMode(ColorMode mode = ColorMode.Dark)
+        {
+            base.SetMode(mode);
+
+            Content = ImageHelper.GetImage(ImageHelper.MenuButtonPath, 15, 15, Mode == ColorMode.Dark);
         }
 
         #endregion
@@ -168,7 +236,7 @@ namespace SoundBoard
 
         #endregion
 
-        #region Event handlers
+        #region Overrides
 
         protected override void OnClick()
         {
@@ -178,13 +246,27 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
-                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11);
+                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
-                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11);
+                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
+            }
+        }
+
+        public override void SetMode(ColorMode mode = ColorMode.Dark)
+        {
+            base.SetMode(mode);
+
+            if (_playing)
+            {
+                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, mode == ColorMode.Dark);
+            }
+            else
+            {
+                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, mode == ColorMode.Dark);
             }
         }
 
@@ -196,7 +278,7 @@ namespace SoundBoard
         {
             base.Show();
 
-            Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11);
+            Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
             _playing = true;
         }
 
@@ -226,7 +308,7 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public StopButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11);
+            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11, Mode == ColorMode.Dark);
 
             VerticalAlignment = VerticalAlignment.Bottom;
             HorizontalAlignment = HorizontalAlignment.Center;
@@ -237,13 +319,20 @@ namespace SoundBoard
 
         #endregion
 
-        #region Event handlers
+        #region Overrides
 
         protected override void OnClick()
         {
             base.OnClick();
 
             ParentButton.Stop();
+        }
+
+        public override void SetMode(ColorMode mode = ColorMode.Dark)
+        {
+            base.SetMode(mode);
+
+            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11, mode == ColorMode.Dark);
         }
 
         #endregion
@@ -258,6 +347,11 @@ namespace SoundBoard
     /// </summary>
     internal sealed class SoundProgressBar : MetroProgressBar
     {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public SoundProgressBar()
         {
             Margin = new Thickness(10);
@@ -266,6 +360,8 @@ namespace SoundBoard
             // Hide by default
             Visibility = Visibility.Hidden;
         }
+
+        #endregion
     }
 
     #endregion
@@ -297,9 +393,9 @@ namespace SoundBoard
 
             FontSize = 20;
             Margin = new Thickness(10);
-            Style = (Style)FindResource(@"SquareButtonStyle");
             AllowDrop = true;
 
+            SetUpStyle();
             SetUpContextMenu();
         }
 
@@ -337,7 +433,7 @@ namespace SoundBoard
             string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
             MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
 
-            ClearFile();
+            ClearButton();
         }
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -378,6 +474,16 @@ namespace SoundBoard
         {
             // Open explorer with the current path selected
             Process.Start("explorer.exe", $"/select, \"{SoundPath}\"");
+        }
+
+        private void SetColorMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ColorPickerDialog colorPickerDialog = new ColorPickerDialog(Color ?? Colors.White) { ShowTransparencyPicker = false };
+
+            if (colorPickerDialog.ShowDialog() == true)
+            {
+                Color = colorPickerDialog.Color;
+            }
         }
 
         #endregion
@@ -428,10 +534,11 @@ namespace SoundBoard
             base.OnMouseMove(e);
 
             if (_mouseDownPosition is null == false && 
-                Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)))
+                Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)) &&
+                Mode != SoundButtonMode.Search)
             {
                 _mouseDownPosition = Mouse.GetPosition(this);
-                DragDrop.DoDragDrop(this, new SoundDragData(SoundName, SoundPath, this), DragDropEffects.Link);
+                DragDrop.DoDragDrop(this, new SoundDragData(this), DragDropEffects.Link);
             }
         }
 
@@ -518,18 +625,28 @@ namespace SoundBoard
                 {
                     // Set up some placeholders for our source and destination (so we don't lose anything)
                     SoundButton sourceButton = soundDragData.Source;
-                    SoundDragData sourceButtonData = soundDragData;
+                    SoundButtonUndoState sourceButtonState = new SoundButtonUndoState
+                    {
+                        SoundName = sourceButton.SoundName,
+                        SoundPath = sourceButton.SoundPath,
+                        Color = sourceButton.Color
+                    };
 
                     SoundButton destinationButton = this;
-                    SoundDragData destinationButtonData = new SoundDragData(this.SoundName, this.SoundPath);
+                    SoundButtonUndoState destinationButtonState = new SoundButtonUndoState
+                    {
+                        SoundName = destinationButton.SoundName,
+                        SoundPath = destinationButton.SoundPath,
+                        Color = destinationButton.Color
+                    };
 
                     // Make sure neither of the buttons is currently playing anything
                     sourceButton.Stop();
                     destinationButton.Stop();
 
                     // Do the swap!
-                    sourceButton.SetFile(destinationButtonData.SoundPath, destinationButtonData.SoundName);
-                    destinationButton.SetFile(sourceButtonData.SoundPath, sourceButtonData.SoundName);
+                    sourceButton.LoadState(destinationButtonState);
+                    destinationButton.LoadState(sourceButtonState);
                 }
             }
 
@@ -613,9 +730,10 @@ namespace SoundBoard
         /// <summary>
         /// Removes the file associated with this button
         /// </summary>
-        public void ClearFile()
+        public void ClearButton()
         {
             Stop();
+            Color = null;
             SetFile(string.Empty);
         }
 
@@ -640,13 +758,7 @@ namespace SoundBoard
 
             Content = SoundName;
 
-            // If this is a normal button on the main soundboard, set up some additional properties
-            if (Mode == SoundButtonMode.Normal)
-            {
-                // Set text color
-                Foreground = new SolidColorBrush(Colors.Black);
-            }
-
+            SetUpStyle();
             SetUpContextMenu();
         }
 
@@ -715,7 +827,7 @@ namespace SoundBoard
                 this.Invoke(() =>
                 {
                     val = (byte)Math.Min(255, val + 2); // Make sure we don't go over our target
-                    SolidColorBrush adjustedColor = new SolidColorBrush(Color.FromArgb(255, val, val, val));
+                    SolidColorBrush adjustedColor = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, val, val, val));
                     Resources[@"HighlightColor"] = adjustedColor;
                 });
 
@@ -729,8 +841,8 @@ namespace SoundBoard
             // When our animation is completely done, reset our style
             animationTimer.Disposed += (_, __) =>
             {
-                // Remember to modify the style on the main thread
-                this.Invoke(() => { Style = (Style) FindResource(@"SquareButtonStyle"); });
+                // Remember to update the style on the main thread
+                this.Invoke(SetUpStyle);
             };
         }
 
@@ -743,8 +855,9 @@ namespace SoundBoard
             SoundPath = string.Empty;
             SoundName = string.Empty;
             Content = Properties.Resources.DragASoundHere;
-            Foreground = new SolidColorBrush(Colors.Gray);
+            Color = null;
 
+            SetUpStyle();
             SetUpContextMenu();
         }
 
@@ -774,7 +887,7 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// Sets up the <see cref="ContextMenu"/> for the current button.
+        /// Sets up the <see cref="System.Windows.Controls.ContextMenu"/> for the current button.
         /// Should be called initially (i.e., in the constructor)
         /// and any time the button's state changes (i.e., when a sound is added/changed)
         /// </summary>
@@ -788,7 +901,7 @@ namespace SoundBoard
 
             // ----- Initialize our menu items ----- //
 
-            // IF the "Choose sound" menu item is null, create it and hook up its handler
+            // If the "Choose sound" menu item is null, create it and hook up its handler
             if (_chooseSoundMenuItem is null)
             {
                 _chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
@@ -807,6 +920,12 @@ namespace SoundBoard
             {
                 _clearMenuItem = new MenuItem {Header = Properties.Resources.Clear};
                 _clearMenuItem.Click += ClearMenuItem_Click;
+            }
+
+            if (_setColorMenuItem is null)
+            {
+                _setColorMenuItem = new MenuItem {Header = Properties.Resources.SetColor};
+                _setColorMenuItem.Click += SetColorMenuItem_Click;
             }
 
             // If the path menu item is null, create it and hook up its handler
@@ -858,6 +977,11 @@ namespace SoundBoard
                     {
                         ContextMenu.Items.Add(_clearMenuItem);
                     }
+
+                    if (ContextMenu.Items.Contains(_setColorMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_setColorMenuItem);
+                    }
                 }
             }
             else if (Mode == SoundButtonMode.Search)
@@ -894,10 +1018,76 @@ namespace SoundBoard
                     ContextMenu.Items.Remove(_clearMenuItem);
                 }
 
+                if (ContextMenu.Items.Contains(_setColorMenuItem))
+                {
+                    ContextMenu.Items.Remove(_setColorMenuItem);
+                }
+
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem))
                 {
                     ContextMenu.Items.Remove(_separatorMenuItem);
                     ContextMenu.Items.Remove(_viewSourceMenuItem);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates and sets a <see cref="Style"/> from the current <see cref="Color"/>.
+        /// </summary>
+        private void SetUpStyle()
+        {
+            SoundButtonStyle soundButtonStyle = SoundButtonStyle;
+
+            // Create a new style based on the SquareButtonStyle
+            Style style = new Style(GetType(), (Style)FindResource(@"SquareButtonStyle"));
+
+            // Add the background color
+            if (soundButtonStyle.BackgroundColor is Color backgroundColor)
+            {
+                style.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(backgroundColor)));
+            }
+
+            // Add the foreground color
+            if (soundButtonStyle.ForegroundColor is Color foregroundColor)
+            {
+                style.Setters.Add(new Setter(ForegroundProperty, new SolidColorBrush(foregroundColor)));
+
+                // Add the background hover color
+                if (soundButtonStyle.BackgroundHoverColor is Color backgroundHoverColor)
+                {
+                    Trigger trigger = new Trigger { Property = IsMouseOverProperty, Value = true };
+                    trigger.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(backgroundHoverColor)));
+                    trigger.Setters.Add(new Setter(ForegroundProperty, new SolidColorBrush(foregroundColor)));
+                    style.Triggers.Add(trigger);
+                }
+            }
+
+            // Add clicked colors
+            if (soundButtonStyle.BackgroundClickColor is Color backgroundClickColor &&
+                soundButtonStyle.ForegroundClickColor is Color foregroundClickColor)
+            {
+                Trigger trigger = new Trigger { Property = IsPressedProperty, Value = true };
+                trigger.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(backgroundClickColor)));
+                trigger.Setters.Add(new Setter(ForegroundProperty, new SolidColorBrush(foregroundClickColor)));
+                style.Triggers.Add(trigger);
+            }
+
+            // Assign the style!
+            Style = style;
+
+            // Restyle the child buttons
+            if (soundButtonStyle.IsLightColor is bool isLightColor && isLightColor == false)
+            {
+                foreach (MenuButtonBase menuButtonBase in ChildButtons)
+                {
+                    menuButtonBase.SetMode(MenuButtonBase.ColorMode.Dark);
+                }
+            }
+            else
+            {
+                foreach (MenuButtonBase menuButtonBase in ChildButtons)
+                {
+                    menuButtonBase.SetMode(MenuButtonBase.ColorMode.Light);
                 }
             }
         }
@@ -907,6 +1097,42 @@ namespace SoundBoard
         #region Private properties
 
         private bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
+
+        internal SoundButtonStyle SoundButtonStyle
+        {
+            get
+            {
+                SoundButtonStyle soundButtonStyle = new SoundButtonStyle();
+                soundButtonStyle.BackgroundColor = Color;
+
+                if (HasValidSound == false)
+                {
+                    // Not a valid sound yet, use a "placeholder" color
+                    soundButtonStyle.ForegroundColor = Colors.Gray;
+                }
+                else
+                {
+                    // Valid sound; calculate our other colors based on our background color
+                    if (soundButtonStyle.BackgroundColor is Color backgroundColor)
+                    {
+                        bool lightColor = backgroundColor.ToSystemDrawingColor().GetBrightness() > 0.5;
+
+                        soundButtonStyle.ForegroundColor = lightColor ? Colors.Black : Colors.White;
+
+                        soundButtonStyle.BackgroundHoverColor = lightColor
+                                ? ControlPaint.Light(backgroundColor.ToSystemDrawingColor()).ToSystemWindowsMediaColor()
+                                : ControlPaint.Dark(backgroundColor.ToSystemDrawingColor(), 0.1f).ToSystemWindowsMediaColor();
+
+                        soundButtonStyle.BackgroundClickColor = Colors.Black;
+                        soundButtonStyle.ForegroundClickColor = Colors.White;
+
+                        soundButtonStyle.IsLightColor = lightColor;
+                    }
+                }
+
+                return soundButtonStyle;
+            }
+        }
 
         #endregion
 
@@ -931,6 +1157,22 @@ namespace SoundBoard
         /// Defines the name of the sound file as displayed on the button
         /// </summary>
         public string SoundName { get; private set; } = string.Empty;
+
+        /// <summary>
+        /// Defines the background color of the button
+        /// </summary>
+        public Color? Color
+        {
+            get => _color;
+            private set
+            {
+                _color = value;
+                SetUpStyle();
+            }
+        }
+
+        private Color? _color = null; // Backing field. Need the "= null", even though it's the default.
+
 
         /// <summary>
         /// Contains a list of child buttons
@@ -963,6 +1205,7 @@ namespace SoundBoard
         private MenuItem _viewSourceMenuItem;
         private MenuItem _goToSoundMenuItem;
         private Separator _separatorMenuItem;
+        private MenuItem _setColorMenuItem;
 
         private Point? _mouseDownPosition;
 
@@ -980,7 +1223,7 @@ namespace SoundBoard
 
         public SoundButtonUndoState SaveState()
         {
-            return new SoundButtonUndoState {SoundPath = SoundPath, SoundName = SoundName};
+            return new SoundButtonUndoState {SoundPath = SoundPath, SoundName = SoundName, Color = Color};
         }
 
         public void LoadState(SoundButtonUndoState undoState)
@@ -989,6 +1232,11 @@ namespace SoundBoard
             {
                 SetFile(undoState.SoundPath);
                 Content = SoundName = undoState.SoundName;
+                Color = undoState.Color;
+            }
+            else
+            {
+                SetDefaultText();
             }
         }
 
@@ -1017,6 +1265,46 @@ namespace SoundBoard
 
     #endregion
 
+    #region SoundButtonStyle class
+
+    /// <summary>
+    /// Defines a Style applied to a <see cref="SoundButton"/>.
+    /// </summary>
+    internal class SoundButtonStyle
+    {
+        /// <summary>
+        /// Defines the background color of the SoundButton
+        /// </summary>
+        public Color? BackgroundColor { get; set; }
+
+        /// <summary>
+        /// Defines the foreground color of the SoundButton
+        /// </summary>
+        public Color? ForegroundColor { get; set; }
+
+        /// <summary>
+        /// Defines the background color of the SoundButton when the mouse is over it
+        /// </summary>
+        public Color? BackgroundHoverColor { get; set; }
+
+        /// <summary>
+        /// Defines the background color of the SoundButton when it is clicked
+        /// </summary>
+        public Color? BackgroundClickColor { get; set; }
+
+        /// <summary>
+        /// Defines the foreground color of the SoundButton when it is clicked
+        /// </summary>
+        public Color? ForegroundClickColor { get; set; }
+
+        /// <summary>
+        /// Whether the main color palette of this style is light (e.g., requiring dark foreground)
+        /// </summary>
+        public bool? IsLightColor { get; set; }
+    }
+
+    #endregion
+
     #region SoundDragData class
 
     internal class SoundDragData
@@ -1026,13 +1314,8 @@ namespace SoundBoard
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="soundName"></param>
-        /// <param name="soundPath"></param>
-        /// <param name="source"></param>
-        public SoundDragData(string soundName, string soundPath, SoundButton source = null)
+        public SoundDragData(SoundButton source = null)
         {
-            SoundName = soundName;
-            SoundPath = soundPath;
             Source = source;
         }
 
@@ -1041,29 +1324,9 @@ namespace SoundBoard
         #region Public properties
 
         /// <summary>
-        /// The name (label) of the sound being dragged
-        /// </summary>
-        public string SoundName { get; }
-
-        /// <summary>
-        /// The path of the sound being dragged
-        /// </summary>
-        public string SoundPath { get; }
-
-        /// <summary>
         /// The control from which the drag data originated
         /// </summary>
         public SoundButton Source { get; }
-
-        #endregion
-
-        #region Overrides
-
-        /// <inheritdoc />
-        public override string ToString()
-        {
-            return $@"{nameof(SoundDragData)}: {{ {nameof(SoundName)}: '{SoundName}', {nameof(SoundPath)}: '{SoundPath}' }}";
-        }
 
         #endregion
     }

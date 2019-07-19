@@ -50,6 +50,9 @@
     <Reference Include="Costura, Version=4.0.0.0, Culture=neutral, PublicKeyToken=9919ef960d84173d, processorArchitecture=MSIL">
       <HintPath>..\packages\Costura.Fody.4.0.0\lib\net40\Costura.dll</HintPath>
     </Reference>
+    <Reference Include="Dsafa.WpfColorPicker">
+      <HintPath>lib\Dsafa.WpfColorPicker.dll</HintPath>
+    </Reference>
     <Reference Include="Gma.System.MouseKeyHook, Version=5.6.130.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MouseKeyHook.5.6.0\lib\net40\Gma.System.MouseKeyHook.dll</HintPath>
     </Reference>
@@ -159,6 +162,11 @@
     <Resource Include="Images\close.png" />
     <Resource Include="Images\add.png" />
     <Resource Include="Images\add_focus.png" />
+    <Resource Include="Images\pause-button_light.png" />
+    <Resource Include="Images\play-arrow_light.png" />
+    <Resource Include="Images\stop-button_light.png" />
+    <Resource Include="Images\menu.png" />
+    <Resource Include="Images\menu_light.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.1.1\build\Fody.targets" Condition="Exists('..\packages\Fody.5.1.1\build\Fody.targets')" />

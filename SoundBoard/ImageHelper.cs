@@ -18,8 +18,10 @@ namespace SoundBoard
         /// <summary>
         /// Returns an <see cref="Image"/> for the given <paramref name="path"/>.
         /// </summary>
-        public static Image GetImage(string path, int? width = null, int? height = null)
+        public static Image GetImage(string path, int? width = null, int? height = null, bool light = false)
         {
+            path = $@"{path}{(light ? _lightPathPostfix : string.Empty)}{_extension}";
+
             if (width is null == false && height is null == false)
             {
                 return new Image {Source = new BitmapImage(new Uri(path)), Width = (int) width, Height = (int) height};
@@ -42,17 +44,27 @@ namespace SoundBoard
 
         #region Public static consts
 
-        public static string PlayButtonPath = @"pack://application:,,,/Images/play-arrow.png";
+        public static string PlayButtonPath = @"pack://application:,,,/Images/play-arrow";
 
-        public static string PauseButtonPath = @"pack://application:,,,/Images/pause-button.png";
+        public static string PauseButtonPath = @"pack://application:,,,/Images/pause-button";
 
-        public static string StopButtonPath = @"pack://application:,,,/Images/stop-button.png";
+        public static string StopButtonPath = @"pack://application:,,,/Images/stop-button";
 
-        public static string CloseButtonPath = @"pack://application:,,,/Images/close.png";
+        public static string CloseButtonPath = @"pack://application:,,,/Images/close";
 
-        public static string AddButtonPath = @"pack://application:,,,/Images/add.png";
+        public static string AddButtonPath = @"pack://application:,,,/Images/add";
 
-        public static string AddFocusButtonPath = @"pack://application:,,,/Images/add_focus.png";
+        public static string AddFocusButtonPath = @"pack://application:,,,/Images/add_focus";
+
+        public static string MenuButtonPath = @"pack://application:,,,/Images/menu";
+
+        #endregion
+
+        #region Private static consts
+
+        private static string _lightPathPostfix = @"_light";
+
+        private static string _extension = @".png";
 
         #endregion
     }

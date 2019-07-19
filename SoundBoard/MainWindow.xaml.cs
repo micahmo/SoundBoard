@@ -19,6 +19,7 @@ using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using Gma.System.MouseKeyHook;
 using Microsoft.Win32;
+using Color = System.Windows.Media.Color;
 using Timer = System.Timers.Timer;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -186,12 +187,24 @@ namespace SoundBoard
                             MetroTabItem tab = new MyMetroTabItem {Header = name};
                             Tabs.Items.Add(tab);
 
-                            List<Tuple<string, string>> buttons = new List<Tuple<string, string>>();
+                            List<SoundButtonUndoState> buttons = new List<SoundButtonUndoState>();
 
                             // Read the button data
                             for (int i = 0; i < 10; ++i)
                             {
-                                buttons.Add(new Tuple<string, string>(node["button" + i]?.Attributes["name"].Value, node["button" + i]?.Attributes["path"].Value));
+                                SoundButtonUndoState soundButtonUndoState = new SoundButtonUndoState
+                                {
+                                    SoundName = node["button" + i]?.Attributes["name"].Value,
+                                    SoundPath = node["button" + i]?.Attributes["path"].Value,
+                                };
+
+                                if (node["button" + i]?.Attributes["color"]?.Value is string colorString && string.IsNullOrEmpty(colorString) == false)
+                                {
+                                    var drawingColor = ColorTranslator.FromHtml(colorString);
+                                    soundButtonUndoState.Color = Color.FromArgb(drawingColor.A, drawingColor.R, drawingColor.G, drawingColor.B);
+                                }
+
+                                buttons.Add(soundButtonUndoState);
                             }
 
                             CreatePageContent(tab, buttons);
@@ -254,7 +267,7 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MetroTabItem tab, List<Tuple<string, string>> buttons = null)
+        private void CreatePageContent(MetroTabItem tab, List<SoundButtonUndoState> buttons = null)
         {
             Grid parentGrid = new Grid();
 
@@ -278,7 +291,7 @@ namespace SoundBoard
 
                 if (buttons is null == false)
                 {
-                    soundButton.SetFile(buttons[i].Item2, buttons[i].Item1);
+                    soundButton.LoadState(buttons[i]);
                 }
 
                 // Menu button
@@ -328,7 +341,7 @@ namespace SoundBoard
 
                 if (buttons is null == false)
                 {
-                    soundButton.SetFile(buttons[i + 5].Item2, buttons[i + 5].Item1);
+                    soundButton.LoadState(buttons[i + 5]);
                 }
 
                 // Menu button
@@ -492,6 +505,7 @@ namespace SoundBoard
                                 textWriter.WriteStartElement("button" + j++);
                                 textWriter.WriteAttributeString("name", button.SoundName);
                                 textWriter.WriteAttributeString("path", button.SoundPath);
+                                textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteEndElement();
                             }
                         }
@@ -569,7 +583,7 @@ namespace SoundBoard
 
                 foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
                 {
-                    soundButton.ClearFile();
+                    soundButton.ClearButton();
                 }
             }
         }

@@ -46,6 +46,11 @@
         /// Color
         /// </summary>
         public System.Windows.Media.Color? Color { get; set; }
+
+        /// <summary>
+        /// VolumeOffset
+        /// </summary>
+        public int VolumeOffset { get; set; }
     }
 
     /// <summary>

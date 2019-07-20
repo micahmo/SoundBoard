@@ -16,6 +16,7 @@ using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
 using Dsafa.WpfColorPicker;
+using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
 
@@ -486,6 +487,33 @@ namespace SoundBoard
             }
         }
 
+        private void AdjustVolumeMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            _adjustVolumeMenuItem.Items.Clear();
+
+            for (int i = -5; i <= 5; ++i)
+            {
+                string header = (i > 0) ? $@"+{i}" : i.ToString();
+
+                MenuItem volumeAdjustmentMenuItem = new MenuItem { Header = header };
+
+                if (i == VolumeOffset)
+                {
+                    volumeAdjustmentMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
+                }
+
+                if (_player.PlaybackState == PlaybackState.Playing)
+                {
+                    volumeAdjustmentMenuItem.IsEnabled = false;
+                }
+
+                int offset = i; // Copy i so we're not accessing modified closure
+                volumeAdjustmentMenuItem.Click += (_, __) => { VolumeOffset = offset; };
+
+                _adjustVolumeMenuItem.Items.Add(volumeAdjustmentMenuItem);
+            }
+        }
+
         #endregion
 
         #region Overrides
@@ -633,20 +661,10 @@ namespace SoundBoard
                 {
                     // Set up some placeholders for our source and destination (so we don't lose anything)
                     SoundButton sourceButton = soundDragData.Source;
-                    SoundButtonUndoState sourceButtonState = new SoundButtonUndoState
-                    {
-                        SoundName = sourceButton.SoundName,
-                        SoundPath = sourceButton.SoundPath,
-                        Color = sourceButton.Color
-                    };
+                    SoundButtonUndoState sourceButtonState = sourceButton.SaveState();
 
                     SoundButton destinationButton = this;
-                    SoundButtonUndoState destinationButtonState = new SoundButtonUndoState
-                    {
-                        SoundName = destinationButton.SoundName,
-                        SoundPath = destinationButton.SoundPath,
-                        Color = destinationButton.Color
-                    };
+                    SoundButtonUndoState destinationButtonState = destinationButton.SaveState();
 
                     // Make sure neither of the buttons is currently playing anything
                     sourceButton.Stop();
@@ -684,7 +702,6 @@ namespace SoundBoard
                 // Reinitialize the player
                 _player = new WaveOut();
                 _audioFileReader = new AudioFileReader(SoundPath);
-                _player.Init(_audioFileReader);
 
                 // Unmute the system audio for all active/render devices
                 Utilities.UnmuteSystemAudio();
@@ -700,6 +717,21 @@ namespace SoundBoard
                 foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
                 {
                     hideableButton.Show();
+                }
+
+                // Set the volume
+                if (VolumeOffset == 0)
+                {
+                    _player.Init(_audioFileReader);
+                }
+                else
+                {
+                    float volume = VolumeOffset < 0 ? 1f / (VolumeOffset * VOLUME_OFFSET_MULTIPLIER) : (VolumeOffset * VOLUME_OFFSET_MULTIPLIER);
+
+                    _player.Init(new VolumeSampleProvider(_audioFileReader.ToSampleProvider())
+                    {
+                        Volume = volume
+                    });
                 }
 
                 // Aaaaand play
@@ -864,6 +896,7 @@ namespace SoundBoard
             SoundName = string.Empty;
             Content = Properties.Resources.DragASoundHere;
             Color = null;
+            VolumeOffset = 0;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -936,6 +969,17 @@ namespace SoundBoard
                 _setColorMenuItem.Click += SetColorMenuItem_Click;
             }
 
+            if (_adjustVolumeMenuItem is null)
+            {
+                _adjustVolumeMenuItem = new MenuItem {Header = Properties.Resources.AdjustVolume};
+
+                // Add a dummy item so that this item becomes a parent with a sub-menu
+                // The real items will be populated every time at run-time in the SubmenuOpened handler
+                _adjustVolumeMenuItem.Items.Add(new MenuItem());
+
+                _adjustVolumeMenuItem.SubmenuOpened += AdjustVolumeMenuItem_SubmenuOpened;
+            }
+
             // If the path menu item is null, create it and hook up its handler
             if (_soundPathMenuItem is null)
             {
@@ -990,6 +1034,11 @@ namespace SoundBoard
                     {
                         ContextMenu.Items.Add(_setColorMenuItem);
                     }
+
+                    if (ContextMenu.Items.Contains(_adjustVolumeMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_adjustVolumeMenuItem);
+                    }
                 }
             }
             else if (Mode == SoundButtonMode.Search)
@@ -1029,6 +1078,11 @@ namespace SoundBoard
                 if (ContextMenu.Items.Contains(_setColorMenuItem))
                 {
                     ContextMenu.Items.Remove(_setColorMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_adjustVolumeMenuItem))
+                {
+                    ContextMenu.Items.Remove(_adjustVolumeMenuItem);
                 }
 
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem))
@@ -1181,6 +1235,7 @@ namespace SoundBoard
 
         private Color? _color = null; // Backing field. Need the "= null", even though it's the default.
 
+        public int VolumeOffset { get; private set; } = 0;
 
         /// <summary>
         /// Contains a list of child buttons
@@ -1214,6 +1269,7 @@ namespace SoundBoard
         private MenuItem _goToSoundMenuItem;
         private Separator _separatorMenuItem;
         private MenuItem _setColorMenuItem;
+        private MenuItem _adjustVolumeMenuItem;
 
         private Point? _mouseDownPosition;
 
@@ -1225,13 +1281,21 @@ namespace SoundBoard
 
         private const int ANIMATION_TIMER_INTERVAL = 10; // 10 ms
 
+        private const float VOLUME_OFFSET_MULTIPLIER = 2f;
+
         #endregion
 
         #region IUndoable members
 
         public SoundButtonUndoState SaveState()
         {
-            return new SoundButtonUndoState {SoundPath = SoundPath, SoundName = SoundName, Color = Color};
+            return new SoundButtonUndoState
+            {
+                SoundPath = SoundPath,
+                SoundName = SoundName,
+                Color = Color,
+                VolumeOffset = VolumeOffset
+            };
         }
 
         public void LoadState(SoundButtonUndoState undoState)
@@ -1241,6 +1305,7 @@ namespace SoundBoard
                 SetFile(undoState.SoundPath);
                 Content = SoundName = undoState.SoundName;
                 Color = undoState.Color;
+                VolumeOffset = undoState.VolumeOffset;
             }
             else
             {

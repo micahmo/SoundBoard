@@ -204,6 +204,13 @@ namespace SoundBoard
                                     soundButtonUndoState.Color = Color.FromArgb(drawingColor.A, drawingColor.R, drawingColor.G, drawingColor.B);
                                 }
 
+                                if (node["button" + i]?.Attributes["volumeOffset"]?.Value is string volumeOffsetString &&
+                                    string.IsNullOrEmpty(volumeOffsetString) == false &&
+                                    int.TryParse(volumeOffsetString, out int volumeOffset))
+                                {
+                                    soundButtonUndoState.VolumeOffset = volumeOffset;
+                                }
+
                                 buttons.Add(soundButtonUndoState);
                             }
 
@@ -506,6 +513,7 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("name", button.SoundName);
                                 textWriter.WriteAttributeString("path", button.SoundPath);
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
+                                textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteEndElement();
                             }
                         }

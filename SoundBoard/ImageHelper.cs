@@ -58,6 +58,8 @@ namespace SoundBoard
 
         public static string MenuButtonPath = @"pack://application:,,,/Images/menu";
 
+        public static string CheckIconPath = @"pack://application:,,,/Images/check";
+
         #endregion
 
         #region Private static consts

@@ -236,4 +236,7 @@
   <data name="SetColor" xml:space="preserve">
     <value>Set color</value>
   </data>
+  <data name="AdjustVolume" xml:space="preserve">
+    <value>Adjust volume</value>
+  </data>
 </root>

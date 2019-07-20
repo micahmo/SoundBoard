@@ -70,6 +70,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Adjust volume.
+        /// </summary>
+        internal static string AdjustVolume {
+            get {
+                return ResourceManager.GetString("AdjustVolume", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to All sounds cleared from &apos;{0}&apos;..
         /// </summary>
         internal static string AllSoundsClearedFromTab {

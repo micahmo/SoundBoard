@@ -205,10 +205,15 @@ namespace SoundBoard
                                 }
 
                                 if (node["button" + i]?.Attributes["volumeOffset"]?.Value is string volumeOffsetString &&
-                                    string.IsNullOrEmpty(volumeOffsetString) == false &&
-                                    int.TryParse(volumeOffsetString, out int volumeOffset))
+                                    string.IsNullOrEmpty(volumeOffsetString) == false && int.TryParse(volumeOffsetString, out int volumeOffset))
                                 {
                                     soundButtonUndoState.VolumeOffset = volumeOffset;
+                                }
+
+                                if (node["button" + i]?.Attributes["loop"]?.Value is string loopString &&
+                                    string.IsNullOrEmpty(loopString) == false && bool.TryParse(loopString, out bool loop))
+                                {
+                                    soundButtonUndoState.Loop = loop;
                                 }
 
                                 buttons.Add(soundButtonUndoState);
@@ -514,6 +519,7 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("path", button.SoundPath);
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
+                                textWriter.WriteAttributeString("loop", button.Loop.ToString());
                                 textWriter.WriteEndElement();
                             }
                         }

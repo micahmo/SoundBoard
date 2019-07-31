@@ -239,4 +239,7 @@
   <data name="AdjustVolume" xml:space="preserve">
     <value>Adjust volume</value>
   </data>
+  <data name="Loop" xml:space="preserve">
+    <value>Loop</value>
+  </data>
 </root>

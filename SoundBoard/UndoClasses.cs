@@ -51,6 +51,11 @@
         /// VolumeOffset
         /// </summary>
         public int VolumeOffset { get; set; }
+
+        /// <summary>
+        /// Loop
+        /// </summary>
+        public bool Loop { get; set; }
     }
 
     /// <summary>

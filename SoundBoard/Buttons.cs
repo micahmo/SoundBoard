@@ -404,6 +404,16 @@ namespace SoundBoard
 
         #region Event handlers
 
+        private void ContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (ContextMenu?.Items.Contains(_loopMenuItem) == true)
+            {
+                _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+            }
+
+            _loopMenuItem.IsEnabled = _player.PlaybackState != PlaybackState.Playing;
+        }
+
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
         {
             // Stop handling keypresses in the main window
@@ -442,7 +452,7 @@ namespace SoundBoard
             BrowseForSound();
         }
 
-        private void SoundStoppedHandler(object sender, EventArgs e)
+        private void SoundStoppedHandler(object sender, StoppedEventArgs e)
         {
             _audioFileReader.Position = 0;
 
@@ -512,6 +522,11 @@ namespace SoundBoard
 
                 _adjustVolumeMenuItem.Items.Add(volumeAdjustmentMenuItem);
             }
+        }
+
+        private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Loop = !Loop;
         }
 
         #endregion
@@ -696,12 +711,13 @@ namespace SoundBoard
                 }
 
                 // Stop any previous sounds
-                _player.Stop();
+                Stop();
                 _player.Dispose();
 
                 // Reinitialize the player
                 _player = new WaveOut();
                 _audioFileReader = new AudioFileReader(SoundPath);
+                IWaveProvider waveProvider;
 
                 // Unmute the system audio for all active/render devices
                 Utilities.UnmuteSystemAudio();
@@ -718,17 +734,27 @@ namespace SoundBoard
                 {
                     hideableButton.Show();
                 }
+                
+                // Handle looping
+                if (Loop)
+                {
+                    waveProvider = new LoopStream(_audioFileReader);
+                }
+                else
+                {
+                    waveProvider = _audioFileReader;
+                }
 
                 // Set the volume
                 if (VolumeOffset == 0)
                 {
-                    _player.Init(_audioFileReader);
+                    _player.Init(waveProvider);
                 }
                 else
                 {
                     float volume = VolumeOffset < 0 ? 1f / (VolumeOffset * VOLUME_OFFSET_MULTIPLIER) : (VolumeOffset * VOLUME_OFFSET_MULTIPLIER);
 
-                    _player.Init(new VolumeSampleProvider(_audioFileReader.ToSampleProvider())
+                    _player.Init(new VolumeSampleProvider(waveProvider.ToSampleProvider())
                     {
                         Volume = volume
                     });
@@ -825,7 +851,10 @@ namespace SoundBoard
         /// </summary>
         public void Stop()
         {
-            _player.Stop();
+            if (_player.PlaybackState != PlaybackState.Stopped)
+            {
+                _player.Stop();
+            }
         }
 
         /// <summary>
@@ -856,7 +885,7 @@ namespace SoundBoard
                 animationTimer.Elapsed -= timer_Elapsed;
 
                 // Check if we've reached our destination color. If so, stop the timer
-                if (val >= 255)
+                if (val >= byte.MaxValue)
                 {
                     animationTimer.Stop();
                     animationTimer.Dispose();
@@ -866,8 +895,8 @@ namespace SoundBoard
                 // Update the color (on the main thread)
                 this.Invoke(() =>
                 {
-                    val = (byte)Math.Min(255, val + 2); // Make sure we don't go over our target
-                    SolidColorBrush adjustedColor = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, val, val, val));
+                    val = (byte)Math.Min(byte.MaxValue, val + 2); // Make sure we don't go over our target
+                    SolidColorBrush adjustedColor = new SolidColorBrush(System.Windows.Media.Color.FromArgb(byte.MaxValue, val, val, val));
                     Resources[@"HighlightColor"] = adjustedColor;
                 });
 
@@ -897,6 +926,7 @@ namespace SoundBoard
             Content = Properties.Resources.DragASoundHere;
             Color = null;
             VolumeOffset = 0;
+            Loop = false;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -914,7 +944,14 @@ namespace SoundBoard
             // Hide the progress bar if the sound is done or has been stopped
             if (curSeconds > maxSeconds || _audioFileReader.Position == 0)
             {
-                SoundProgressBar.Visibility = Visibility.Hidden;
+                if (Loop && _player.PlaybackState != PlaybackState.Stopped)
+                {
+                    _stopWatch = Stopwatch.StartNew();
+                }
+                else
+                {
+                    SoundProgressBar.Visibility = Visibility.Hidden;
+                }
             }
         }
 
@@ -967,6 +1004,12 @@ namespace SoundBoard
             {
                 _setColorMenuItem = new MenuItem {Header = Properties.Resources.SetColor};
                 _setColorMenuItem.Click += SetColorMenuItem_Click;
+            }
+
+            if (_loopMenuItem is null)
+            {
+                _loopMenuItem = new MenuItem { Header = Properties.Resources.Loop };
+                _loopMenuItem.Click += LoopMenuItem_Click;
             }
 
             if (_adjustVolumeMenuItem is null)
@@ -1035,6 +1078,11 @@ namespace SoundBoard
                         ContextMenu.Items.Add(_setColorMenuItem);
                     }
 
+                    if (ContextMenu.Items.Contains(_loopMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_loopMenuItem);
+                    }
+
                     if (ContextMenu.Items.Contains(_adjustVolumeMenuItem) == false)
                     {
                         ContextMenu.Items.Add(_adjustVolumeMenuItem);
@@ -1080,6 +1128,11 @@ namespace SoundBoard
                     ContextMenu.Items.Remove(_setColorMenuItem);
                 }
 
+                if (ContextMenu.Items.Contains(_loopMenuItem))
+                {
+                    ContextMenu.Items.Remove(_loopMenuItem);
+                }
+
                 if (ContextMenu.Items.Contains(_adjustVolumeMenuItem))
                 {
                     ContextMenu.Items.Remove(_adjustVolumeMenuItem);
@@ -1091,6 +1144,9 @@ namespace SoundBoard
                     ContextMenu.Items.Remove(_viewSourceMenuItem);
                 }
             }
+
+            ContextMenu.Opened -= ContextMenu_Opened; // Unassign before re-assigning so we don't get double assignment
+            ContextMenu.Opened += ContextMenu_Opened;
         }
 
         /// <summary>
@@ -1237,6 +1293,8 @@ namespace SoundBoard
 
         public int VolumeOffset { get; private set; } = 0;
 
+        public bool Loop { get; private set; }
+
         /// <summary>
         /// Contains a list of child buttons
         /// </summary>
@@ -1270,6 +1328,7 @@ namespace SoundBoard
         private Separator _separatorMenuItem;
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
+        private MenuItem _loopMenuItem;
 
         private Point? _mouseDownPosition;
 
@@ -1294,7 +1353,8 @@ namespace SoundBoard
                 SoundPath = SoundPath,
                 SoundName = SoundName,
                 Color = Color,
-                VolumeOffset = VolumeOffset
+                VolumeOffset = VolumeOffset,
+                Loop = Loop
             };
         }
 
@@ -1306,6 +1366,7 @@ namespace SoundBoard
                 Content = SoundName = undoState.SoundName;
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
+                Loop = undoState.Loop;
             }
             else
             {

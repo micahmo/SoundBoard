@@ -983,6 +983,7 @@ namespace SoundBoard
             if (_chooseSoundMenuItem is null)
             {
                 _chooseSoundMenuItem = new MenuItem {Header = Properties.Resources.ChooseSound};
+                _chooseSoundMenuItem.SetSeparator(true);
                 _chooseSoundMenuItem.Click += ChooseSoundMenuItem_Click;
             }
 
@@ -997,6 +998,7 @@ namespace SoundBoard
             if (_clearMenuItem is null)
             {
                 _clearMenuItem = new MenuItem {Header = Properties.Resources.Clear};
+                _clearMenuItem.SetSeparator(true);
                 _clearMenuItem.Click += ClearMenuItem_Click;
             }
 
@@ -1008,13 +1010,14 @@ namespace SoundBoard
 
             if (_loopMenuItem is null)
             {
-                _loopMenuItem = new MenuItem { Header = Properties.Resources.Loop };
+                _loopMenuItem = new MenuItem {Header = Properties.Resources.Loop};
                 _loopMenuItem.Click += LoopMenuItem_Click;
             }
 
             if (_adjustVolumeMenuItem is null)
             {
                 _adjustVolumeMenuItem = new MenuItem {Header = Properties.Resources.AdjustVolume};
+                _adjustVolumeMenuItem.SetSeparator(true);
 
                 // Add a dummy item so that this item becomes a parent with a sub-menu
                 // The real items will be populated every time at run-time in the SubmenuOpened handler
@@ -1041,13 +1044,8 @@ namespace SoundBoard
             if (_goToSoundMenuItem is null)
             {
                 _goToSoundMenuItem = new MenuItem { Header = Properties.Resources.GoToSound };
+                _goToSoundMenuItem.SetSeparator(true);
                 _goToSoundMenuItem.Click += GoToSoundMenuItem_Click;
-            }
-
-            // If our separator menu item is null, create it
-            if (_separatorMenuItem is null)
-            {
-                _separatorMenuItem = new Separator();
             }
 
             // ----- Add our menu items to our context menu, depending on our current state ----- //
@@ -1106,7 +1104,6 @@ namespace SoundBoard
 
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem) == false)
                 {
-                    ContextMenu.Items.Add(_separatorMenuItem);
                     ContextMenu.Items.Add(_viewSourceMenuItem);
                 }
             }
@@ -1140,13 +1137,37 @@ namespace SoundBoard
 
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem))
                 {
-                    ContextMenu.Items.Remove(_separatorMenuItem);
                     ContextMenu.Items.Remove(_viewSourceMenuItem);
                 }
             }
 
+            AddSeparatorsToContextMenu();
+
             ContextMenu.Opened -= ContextMenu_Opened; // Unassign before re-assigning so we don't get double assignment
             ContextMenu.Opened += ContextMenu_Opened;
+        }
+
+        private void AddSeparatorsToContextMenu()
+        {
+            if (ContextMenu is null == false)
+            {
+                for (int i = ContextMenu.Items.Count - 1; i >= 0; --i)
+                {
+                    // Remove any existing separators
+                    if (ContextMenu.Items[i] is Separator)
+                    {
+                        ContextMenu.Items.RemoveAt(i);
+                    }
+                    // Now add any needed separators
+                    else if (ContextMenu.Items[i] is MenuItem menuItem
+                        && menuItem.GetSeparator() // We need a separator after this item
+                        && ContextMenu.Items.Count > i + 1 // There is at least one more item in the list (so the separator can separate something!)
+                        && ContextMenu.Items[i + 1] is Separator == false) // There isn't already a separator after this item
+                    {
+                        ContextMenu.Items.Insert(i + 1, new Separator());
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -1325,7 +1346,6 @@ namespace SoundBoard
         private MenuItem _soundPathMenuItem;
         private MenuItem _viewSourceMenuItem;
         private MenuItem _goToSoundMenuItem;
-        private Separator _separatorMenuItem;
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
         private MenuItem _loopMenuItem;

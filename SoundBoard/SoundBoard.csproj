@@ -89,6 +89,7 @@
     </ApplicationDefinition>
     <Compile Include="Buttons.cs" />
     <Compile Include="LoopStream.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="MyMetroTabItem.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />

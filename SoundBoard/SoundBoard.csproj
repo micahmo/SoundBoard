@@ -171,6 +171,10 @@
     <Resource Include="Images\menu_light.png" />
     <Resource Include="Images\check.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\loop.png" />
+    <Resource Include="Images\loop_light.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.1.1\build\Fody.targets" Condition="Exists('..\packages\Fody.5.1.1\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

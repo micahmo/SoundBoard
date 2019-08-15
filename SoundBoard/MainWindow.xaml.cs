@@ -330,6 +330,22 @@ namespace SoundBoard
                 parentGrid.Children.Add(stopButton);
                 soundButton.ChildButtons.Add(stopButton);
 
+                // Loop icon
+                LoopIconButton loopIconButton = new LoopIconButton(soundButton);
+
+                Grid.SetColumn(loopIconButton, 0);
+                Grid.SetRow(loopIconButton, i);
+                parentGrid.Children.Add(loopIconButton);
+                soundButton.ChildButtons.Add(loopIconButton);
+
+                // Volume offset icon
+                VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
+
+                Grid.SetColumn(volumeOffsetIconButton, 0);
+                Grid.SetRow(volumeOffsetIconButton, i);
+                parentGrid.Children.Add(volumeOffsetIconButton);
+                soundButton.ChildButtons.Add(volumeOffsetIconButton);
+
                 // Progress bar
                 SoundProgressBar progressBar = new SoundProgressBar();
 
@@ -379,6 +395,22 @@ namespace SoundBoard
                 Grid.SetRow(stopButton, i);
                 parentGrid.Children.Add(stopButton);
                 soundButton.ChildButtons.Add(stopButton);
+
+                // Loop icon
+                LoopIconButton loopIconButton = new LoopIconButton(soundButton);
+
+                Grid.SetColumn(loopIconButton, 1);
+                Grid.SetRow(loopIconButton, i);
+                parentGrid.Children.Add(loopIconButton);
+                soundButton.ChildButtons.Add(loopIconButton);
+
+                // Volume offset icon
+                VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
+
+                Grid.SetColumn(volumeOffsetIconButton, 1);
+                Grid.SetRow(volumeOffsetIconButton, i);
+                parentGrid.Children.Add(volumeOffsetIconButton);
+                soundButton.ChildButtons.Add(volumeOffsetIconButton);
 
                 // Progress bar
                 SoundProgressBar progressBar = new SoundProgressBar();

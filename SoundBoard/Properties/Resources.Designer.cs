@@ -340,6 +340,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This sound is set to loop.
+        /// </summary>
+        internal static string SoundSetToLoop {
+            get {
+                return ResourceManager.GetString("SoundSetToLoop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sound &apos;{0}&apos; was cleared..
         /// </summary>
         internal static string SoundWasCleared {
@@ -399,6 +408,15 @@ namespace SoundBoard.Properties {
         internal static string VersionNumber {
             get {
                 return ResourceManager.GetString("VersionNumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The volume of this sound is offset by {0}.
+        /// </summary>
+        internal static string VolumeOfSoundIsOffset {
+            get {
+                return ResourceManager.GetString("VolumeOfSoundIsOffset", resourceCulture);
             }
         }
         

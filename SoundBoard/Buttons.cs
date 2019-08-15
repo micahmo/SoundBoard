@@ -160,6 +160,15 @@ namespace SoundBoard
         }
 
         #endregion
+
+        #region Public properties
+
+        /// <summary>
+        /// Whether or not this button should participate in automatic showing/hiding in relation to sounds playing/stopping
+        /// </summary>
+        public bool ShowHideAutomatically { get; set; } = true;
+
+        #endregion
     }
 
     #endregion
@@ -341,6 +350,151 @@ namespace SoundBoard
 
     #endregion
 
+    #region IconButtonBase class
+
+    /// <summary>
+    /// Defines an icon "button" which can be used to display an icon
+    /// </summary>
+    internal abstract class IconButtonBase : HideableMenuButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        protected IconButtonBase(SoundButton parentButton) : base(parentButton)
+        {
+            ShowHideAutomatically = false;
+
+            HorizontalAlignment = HorizontalAlignment.Right;
+            VerticalAlignment = VerticalAlignment.Bottom;
+
+            BorderThickness = new Thickness(0);
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <summary>
+        /// Override and handle the left mouse button down.
+        /// This essentially makes the button unclickable (without disabling it),
+        ///  and prevents the click animation from running
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region LoopIconButton class
+
+    internal sealed class LoopIconButton : IconButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public LoopIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 25);
+            ToolTip = Properties.Resources.SoundSetToLoop;
+
+            if (ParentButton.Loop)
+            {
+                Show();
+            }
+            else
+            {
+                Hide();
+            }
+
+            SetUpStyle();
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.LoopIconPath, 13, 13, Mode == ColorMode.Dark);
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region VolumeOffsetIconButton class
+
+    internal sealed class VolumeOffsetIconButton : IconButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public VolumeOffsetIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 45);
+            FontWeight = FontWeights.SemiBold;
+
+            SetUpStyle();
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void SetUpStyle()
+        {
+            Update();
+        }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Updates the volume offset icon so that it reflects the current value, or hides if there is no offset
+        /// </summary>
+        public void Update()
+        {
+            if (ParentButton.VolumeOffset == 0)
+            {
+                Hide();
+            }
+            else
+            {
+                Show();
+
+                Foreground = Mode == ColorMode.Dark
+                    ? new SolidColorBrush(Colors.White)
+                    : new SolidColorBrush(Colors.Black);
+
+                string volumeOffset = ParentButton.VolumeOffset.ToString(@"+#;-#;0");
+                Content = volumeOffset;
+                ToolTip = string.Format(Properties.Resources.VolumeOfSoundIsOffset, volumeOffset);
+            }
+        }
+
+        #endregion
+    }
+
+    #endregion
+
     #region SoundProgressBar class
 
     /// <summary>
@@ -457,7 +611,9 @@ namespace SoundBoard
             _audioFileReader.Position = 0;
 
             // Hide the additional buttons
-            foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
+            foreach (HideableMenuButtonBase hideableButton in ChildButtons
+                                                              .OfType<HideableMenuButtonBase>()
+                                                              .Where(hideableButton => hideableButton.ShowHideAutomatically))
             {
                 hideableButton.Hide();
             }
@@ -503,9 +659,9 @@ namespace SoundBoard
 
             for (int i = -5; i <= 5; ++i)
             {
-                string header = (i > 0) ? $@"+{i}" : i.ToString();
+                string header = i.ToString(@"+#;-#;0");
 
-                MenuItem volumeAdjustmentMenuItem = new MenuItem { Header = header };
+                MenuItem volumeAdjustmentMenuItem = new MenuItem {Header = header};
 
                 if (i == VolumeOffset)
                 {
@@ -730,7 +886,9 @@ namespace SoundBoard
                 MainWindow.Instance.SoundPlayers.Add(_player);
 
                 // Show the additional buttons
-                foreach (HideableMenuButtonBase hideableButton in ChildButtons.OfType<HideableMenuButtonBase>())
+                foreach (HideableMenuButtonBase hideableButton in ChildButtons
+                                                                  .OfType<HideableMenuButtonBase>()
+                                                                  .Where(hideableButton => hideableButton.ShowHideAutomatically))
                 {
                     hideableButton.Show();
                 }
@@ -1312,9 +1470,38 @@ namespace SoundBoard
 
         private Color? _color = null; // Backing field. Need the "= null", even though it's the default.
 
-        public int VolumeOffset { get; private set; } = 0;
+        public int VolumeOffset
+        {
+            get => _volumeOffset;
+            private set
+            {
+                _volumeOffset = value;
 
-        public bool Loop { get; private set; }
+                ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+
+        private int _volumeOffset = 0; // Backing field
+
+        public bool Loop
+        {
+            get => _loop;
+            private set
+            {
+                _loop = value;
+
+                if (_loop)
+                {
+                    ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
+                }
+                else
+                {
+                    ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
+                }
+            }
+        }
+
+        private bool _loop; // Backing field
 
         /// <summary>
         /// Contains a list of child buttons

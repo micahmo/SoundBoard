@@ -1413,16 +1413,29 @@ namespace SoundBoard
                     if (soundButtonStyle.BackgroundColor is Color backgroundColor)
                     {
                         bool lightColor = backgroundColor.ToSystemDrawingColor().GetBrightness() > 0.5;
-
                         soundButtonStyle.ForegroundColor = lightColor ? Colors.Black : Colors.White;
 
-                        soundButtonStyle.BackgroundHoverColor = lightColor
+                        if (backgroundColor.IsWhite() || backgroundColor.IsBlack())
+                        {
+                            // If the background is completely black or white, use the hover color from the built in SquareButtonStyle
+                            Style defaultStyle = (Style) FindResource(@"SquareButtonStyle");
+                            Trigger mouseOverTrigger = defaultStyle.Triggers.OfType<Trigger>().FirstOrDefault(trigger =>
+                                trigger.Property == IsMouseOverProperty && trigger.Value as bool? == true);
+                            Setter backgroundPropertySetter = mouseOverTrigger?.Setters.OfType<Setter>()
+                                .FirstOrDefault(setter => setter.Property == BackgroundProperty);
+
+                            soundButtonStyle.BackgroundHoverColor = backgroundPropertySetter?.Value as Color?;
+                        }
+                        else
+                        {
+                            // For normal background colors, pick a hover color that is slightly lighter or slightly darker
+                            soundButtonStyle.BackgroundHoverColor = lightColor
                                 ? ControlPaint.Light(backgroundColor.ToSystemDrawingColor()).ToSystemWindowsMediaColor()
                                 : ControlPaint.Dark(backgroundColor.ToSystemDrawingColor(), 0.1f).ToSystemWindowsMediaColor();
+                        }
 
                         soundButtonStyle.BackgroundClickColor = Colors.Black;
                         soundButtonStyle.ForegroundClickColor = Colors.White;
-
                         soundButtonStyle.IsLightColor = lightColor;
                     }
                 }

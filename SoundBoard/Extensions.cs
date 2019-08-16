@@ -41,4 +41,34 @@ namespace SoundBoard
     }
 
     #endregion
+
+    #region ColorExtensions class
+
+    /// <summary>
+    /// Extensions on the <see cref="System.Windows.Media.Color"/> class.
+    /// </summary>
+    internal static class ColorExtensions
+    {
+        /// <summary>
+        /// Returns true if the R, G, and B values of the <paramref name="color"/> are full (ignores the A value).
+        /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public static bool IsWhite(this System.Windows.Media.Color color)
+        {
+            return color.R == byte.MaxValue && color.G == byte.MaxValue && color.B == byte.MaxValue;
+        }
+
+        /// <summary>
+        /// Returns true if the R, G, and B values of the <paramref name="color"/> are empty (ignores the A value).
+        /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
+        public static bool IsBlack(this System.Windows.Media.Color color)
+        {
+            return color.R == 0 && color.G == 0 && color.B == 0;
+        }
+    }
+
+    #endregion
 }

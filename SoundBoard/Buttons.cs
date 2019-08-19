@@ -608,6 +608,8 @@ namespace SoundBoard
 
         private void SoundStoppedHandler(object sender, StoppedEventArgs e)
         {
+            _progressBarCancellationToken?.Cancel();
+
             _audioFileReader.Position = 0;
 
             // Hide the additional buttons
@@ -922,8 +924,10 @@ namespace SoundBoard
                 _player.Play();
 
                 // Begin updating progress bar
-                CancellationTokenSource tokenSource = new CancellationTokenSource();
-                await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), tokenSource.Token);
+                _progressBarCancellationToken?.Cancel();
+                _progressBarCancellationToken?.Dispose();
+                _progressBarCancellationToken = new CancellationTokenSource();
+                UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), _progressBarCancellationToken.Token);
             }
             catch (Exception ex)
             {
@@ -1090,8 +1094,14 @@ namespace SoundBoard
             SetUpContextMenu();
         }
 
-        private void UpdateProgressAction()
+        /// <summary>
+        /// Returns false as long as there is still processing to perform.
+        /// Returns true when progress no longer needs to be updated.
+        /// </summary>
+        private bool UpdateProgressAction()
         {
+            bool result = false;
+
             double maxSeconds = _audioFileReader.TotalTime.TotalMilliseconds;
             double curSeconds = _stopWatch.Elapsed.TotalMilliseconds;
 
@@ -1109,16 +1119,21 @@ namespace SoundBoard
                 else
                 {
                     SoundProgressBar.Visibility = Visibility.Hidden;
+                    result = true;
                 }
             }
+
+            return result;
         }
 
-        private async Task UpdateProgressTask(Action action, TimeSpan interval, CancellationToken token)
+        private async void UpdateProgressTask(Func<bool> action, TimeSpan interval, CancellationToken token)
         {
-            while (true)
+            bool result = false;
+
+            while (token.IsCancellationRequested == false || result == false)
             {
-                action();
-                await Task.Delay(interval, token);
+                result = action();
+                await Task.Delay(interval);
             }
         }
 
@@ -1551,6 +1566,8 @@ namespace SoundBoard
         private MenuItem _loopMenuItem;
 
         private Point? _mouseDownPosition;
+
+        private CancellationTokenSource _progressBarCancellationToken;
 
         #endregion
 

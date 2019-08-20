@@ -1,7 +1,9 @@
 ﻿#region Usings
 
 using System.Collections.Generic;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 #endregion
 
@@ -67,6 +69,26 @@ namespace SoundBoard
         public static bool IsBlack(this System.Windows.Media.Color color)
         {
             return color.R == 0 && color.G == 0 && color.B == 0;
+        }
+    }
+
+    #endregion
+
+    #region TabItemExtensions class
+
+    /// <summary>
+    /// Extensions on the <see cref="TabItem"/> class.
+    /// </summary>
+    internal static class TabItemExtensions
+    {
+        /// <summary>
+        /// Returns <see langword="true"/> if the given <paramref name="tabItem"/> is the <see cref="Selector.SelectedItem"/> of its <see cref="FrameworkElement.Parent"/> <see cref="TabControl"/>.
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <returns></returns>
+        public static bool IsSelectedItem(this TabItem tabItem)
+        {
+            return tabItem == (tabItem.Parent as TabControl)?.SelectedItem;
         }
     }
 

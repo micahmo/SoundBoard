@@ -180,12 +180,20 @@ namespace SoundBoard
 
                     if (tabNodes != null)
                     {
+                        TabItem selectedTab = null;
+
                         foreach (XmlNode node in tabNodes)
                         {
                             string name = node["name"]?.InnerText;
 
                             MetroTabItem tab = new MyMetroTabItem {Header = name};
                             Tabs.Items.Add(tab);
+
+                            if (node.Attributes?["focused"]?.Value is string focusedString &&
+                                bool.TryParse(focusedString, out bool focused) && focused)
+                            {
+                                selectedTab = tab;
+                            }
 
                             List<SoundButtonUndoState> buttons = new List<SoundButtonUndoState>();
 
@@ -220,6 +228,11 @@ namespace SoundBoard
                             }
 
                             CreatePageContent(tab, buttons);
+                        }
+
+                        if (selectedTab is null == false)
+                        {
+                            Tabs.SelectedItem = selectedTab;
                         }
 
                         CreateTabContextMenus();
@@ -538,6 +551,7 @@ namespace SoundBoard
                     {
                         string name = tab.Header.ToString();
                         textWriter.WriteStartElement("tab");
+                        textWriter.WriteAttributeString("focused", tab.IsSelectedItem().ToString());
 
                         textWriter.WriteElementString("name", name);
 

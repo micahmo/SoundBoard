@@ -97,6 +97,24 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Button layout was changed..
+        /// </summary>
+        internal static string ButtonLayoutWasChanged {
+            get {
+                return ResourceManager.GetString("ButtonLayoutWasChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Change button grid....
+        /// </summary>
+        internal static string ChangeButtonGrid {
+            get {
+                return ResourceManager.GetString("ChangeButtonGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Choose sound.
         /// </summary>
         internal static string ChooseSound {

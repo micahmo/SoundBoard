@@ -252,4 +252,10 @@
     <value>The volume of this sound is offset by {0}</value>
     <comment>{0} is an offset (like -2 or +1)</comment>
   </data>
+  <data name="ButtonLayoutWasChanged" xml:space="preserve">
+    <value>Button layout was changed.</value>
+  </data>
+  <data name="ChangeButtonGrid" xml:space="preserve">
+    <value>Change button grid...</value>
+  </data>
 </root>

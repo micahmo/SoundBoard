@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using Gma.System.MouseKeyHook;
+using MahApps.Metro.SimpleChildWindow;
 using Microsoft.Win32;
 using Color = System.Windows.Media.Color;
 using Timer = System.Timers.Timer;
@@ -195,36 +196,66 @@ namespace SoundBoard
                                 selectedTab = tab;
                             }
 
-                            List<SoundButtonUndoState> buttons = new List<SoundButtonUndoState>();
+                            if (node.Attributes?["rows"]?.Value is string rowsString &&
+                                int.TryParse(rowsString, out int rows))
+                            {
+                                tab.SetRows(rows);
+                            }
+
+                            if (node.Attributes?["columns"]?.Value is string columnsString &&
+                                int.TryParse(columnsString, out int columns))
+                            {
+                                tab.SetColumns(columns);
+                            }
+
+                            TwoDimensionalList<SoundButtonUndoState> buttons = new TwoDimensionalList<SoundButtonUndoState>();
 
                             // Read the button data
-                            for (int i = 0; i < 10; ++i)
+                            int i = 0;
+                            for (int rowIndex = 0; rowIndex < tab.GetRows() || node["button" + (i + 1)] is null == false; ++rowIndex)
                             {
-                                SoundButtonUndoState soundButtonUndoState = new SoundButtonUndoState
+                                for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex, ++i)
                                 {
-                                    SoundName = node["button" + i]?.Attributes["name"].Value,
-                                    SoundPath = node["button" + i]?.Attributes["path"].Value,
-                                };
+                                    SoundButtonUndoState soundButtonUndoState = new SoundButtonUndoState
+                                    {
+                                        SoundName = node["button" + i]?.Attributes["name"].Value,
+                                        SoundPath = node["button" + i]?.Attributes["path"].Value,
+                                    };
 
-                                if (node["button" + i]?.Attributes["color"]?.Value is string colorString && string.IsNullOrEmpty(colorString) == false)
-                                {
-                                    var drawingColor = ColorTranslator.FromHtml(colorString);
-                                    soundButtonUndoState.Color = Color.FromArgb(drawingColor.A, drawingColor.R, drawingColor.G, drawingColor.B);
+                                    if (node["button" + i]?.Attributes["color"]?.Value is string colorString && string.IsNullOrEmpty(colorString) == false)
+                                    {
+                                        var drawingColor = ColorTranslator.FromHtml(colorString);
+                                        soundButtonUndoState.Color = Color.FromArgb(drawingColor.A, drawingColor.R, drawingColor.G, drawingColor.B);
+                                    }
+
+                                    if (node["button" + i]?.Attributes["volumeOffset"]?.Value is string volumeOffsetString &&
+                                        string.IsNullOrEmpty(volumeOffsetString) == false && int.TryParse(volumeOffsetString, out int volumeOffset))
+                                    {
+                                        soundButtonUndoState.VolumeOffset = volumeOffset;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["loop"]?.Value is string loopString &&
+                                        string.IsNullOrEmpty(loopString) == false && bool.TryParse(loopString, out bool loop))
+                                    {
+                                        soundButtonUndoState.Loop = loop;
+                                    }
+
+                                    int buttonRow = rowIndex;
+                                    if (node["button" + i]?.Attributes["row"]?.Value is string rowString &&
+                                        string.IsNullOrEmpty(rowString) == false && int.TryParse(rowString, out int row))
+                                    {
+                                        buttonRow = row;
+                                    }
+
+                                    int buttonColumn = columnIndex;
+                                    if (node["button" + i]?.Attributes["column"]?.Value is string columnString &&
+                                        string.IsNullOrEmpty(columnString) == false && int.TryParse(columnString, out int column))
+                                    {
+                                        buttonColumn = column;
+                                    }
+
+                                    buttons.Add(soundButtonUndoState, buttonRow, buttonColumn);
                                 }
-
-                                if (node["button" + i]?.Attributes["volumeOffset"]?.Value is string volumeOffsetString &&
-                                    string.IsNullOrEmpty(volumeOffsetString) == false && int.TryParse(volumeOffsetString, out int volumeOffset))
-                                {
-                                    soundButtonUndoState.VolumeOffset = volumeOffset;
-                                }
-
-                                if (node["button" + i]?.Attributes["loop"]?.Value is string loopString &&
-                                    string.IsNullOrEmpty(loopString) == false && bool.TryParse(loopString, out bool loop))
-                                {
-                                    soundButtonUndoState.Loop = loop;
-                                }
-
-                                buttons.Add(soundButtonUndoState);
                             }
 
                             CreatePageContent(tab, buttons);
@@ -272,6 +303,12 @@ namespace SoundBoard
                     MenuItem clearAllSoundsMenuItem = new MenuItem { Header = Properties.Resources.ClearAllSounds };
                     clearAllSoundsMenuItem.Click += ClearAllSoundsMenuItem_Click;
                     contextMenu.Items.Add(clearAllSoundsMenuItem);
+
+                    contextMenu.Items.Add(new Separator());
+
+                    MenuItem changeButtonGrid = new MenuItem {Header = Properties.Resources.ChangeButtonGrid};
+                    changeButtonGrid.Click += ChangeButtonGridMenuItem_Click;
+                    contextMenu.Items.Add(changeButtonGrid);
                 }
 
                 // Handle showing the context menu manually (instead of assigning it to the tab's ContextMenu property)
@@ -292,147 +329,90 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MetroTabItem tab, List<SoundButtonUndoState> buttons = null)
+        private void CreatePageContent(MetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
         {
             Grid parentGrid = new Grid();
 
-            ColumnDefinition col1 = new ColumnDefinition {Width = new GridLength(1, GridUnitType.Star)};
-            parentGrid.ColumnDefinitions.Add(col1);
-
-            ColumnDefinition col2 = new ColumnDefinition {Width = new GridLength(1, GridUnitType.Star)};
-            parentGrid.ColumnDefinitions.Add(col2);
-
-            for (int i = 0; i < 5; ++i)
+            // Add column definitions to the grid
+            for (int i = 0; i < tab.GetColumns(); ++i)
             {
-                RowDefinition row = new RowDefinition {Height = new GridLength(1, GridUnitType.Star)};
-                parentGrid.RowDefinitions.Add(row);
-
-                // Sound button
-                SoundButton soundButton = new SoundButton(parentTab: tab);
-
-                Grid.SetColumn(soundButton, 0);
-                Grid.SetRow(soundButton, i);
-                parentGrid.Children.Add(soundButton);
-
-                if (buttons is null == false)
-                {
-                    soundButton.LoadState(buttons[i]);
-                }
-
-                // Menu button
-                MenuButton menuButton = new MenuButton(soundButton);
-
-                Grid.SetColumn(menuButton, 0);
-                Grid.SetRow(menuButton, i);
-                parentGrid.Children.Add(menuButton);
-                soundButton.ChildButtons.Add(menuButton);
-
-                // Play/pause button
-                PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
-
-                Grid.SetColumn(playPauseButton, 0);
-                Grid.SetRow(playPauseButton, i);
-                parentGrid.Children.Add(playPauseButton);
-                soundButton.ChildButtons.Add(playPauseButton);
-
-                // Stop button
-                StopButton stopButton = new StopButton(soundButton);
-
-                Grid.SetColumn(stopButton, 0);
-                Grid.SetRow(stopButton, i);
-                parentGrid.Children.Add(stopButton);
-                soundButton.ChildButtons.Add(stopButton);
-
-                // Loop icon
-                LoopIconButton loopIconButton = new LoopIconButton(soundButton);
-
-                Grid.SetColumn(loopIconButton, 0);
-                Grid.SetRow(loopIconButton, i);
-                parentGrid.Children.Add(loopIconButton);
-                soundButton.ChildButtons.Add(loopIconButton);
-
-                // Volume offset icon
-                VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
-
-                Grid.SetColumn(volumeOffsetIconButton, 0);
-                Grid.SetRow(volumeOffsetIconButton, i);
-                parentGrid.Children.Add(volumeOffsetIconButton);
-                soundButton.ChildButtons.Add(volumeOffsetIconButton);
-
-                // Progress bar
-                SoundProgressBar progressBar = new SoundProgressBar();
-
-                Grid.SetColumn(progressBar, 0);
-                Grid.SetRow(progressBar, i);
-                parentGrid.Children.Add(progressBar);
-
-                soundButton.SoundProgressBar = progressBar;
+                ColumnDefinition col = new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) };
+                parentGrid.ColumnDefinitions.Add(col);
             }
 
-            for (int i = 0; i < 5; ++i)
+            // Add row definitions to the grid
+            for (int i = 0; i < tab.GetRows(); ++i)
             {
-                // Only have to add the rows once (above)
+                RowDefinition row = new RowDefinition { Height = new GridLength(1, GridUnitType.Star) };
+                parentGrid.RowDefinitions.Add(row);
+            }
 
-                // Sound button
-                SoundButton soundButton = new SoundButton(parentTab: tab);
-
-                Grid.SetColumn(soundButton, 1);
-                Grid.SetRow(soundButton, i);
-                parentGrid.Children.Add(soundButton);
-
-                if (buttons is null == false)
+            // Add the buttons to the grid
+            for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
+            {
+                for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex)
                 {
-                    soundButton.LoadState(buttons[i + 5]);
+                    // Sound button
+                    SoundButton soundButton = new SoundButton(parentTab: tab);
+
+                    if (buttons is null == false && buttons.TryGet(rowIndex, columnIndex, out var buttonState))
+                    {
+                        soundButton.LoadState(buttonState);
+                    }
+
+                    Grid.SetColumn(soundButton, columnIndex);
+                    Grid.SetRow(soundButton, rowIndex);
+                    parentGrid.Children.Add(soundButton);
+
+                    // Menu button
+                    MenuButton menuButton = new MenuButton(soundButton);
+
+                    Grid.SetColumn(menuButton, columnIndex);
+                    Grid.SetRow(menuButton, rowIndex);
+                    parentGrid.Children.Add(menuButton);
+                    soundButton.ChildButtons.Add(menuButton);
+
+                    // Play/pause button
+                    PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
+
+                    Grid.SetColumn(playPauseButton, columnIndex);
+                    Grid.SetRow(playPauseButton, rowIndex);
+                    parentGrid.Children.Add(playPauseButton);
+                    soundButton.ChildButtons.Add(playPauseButton);
+
+                    // Stop button
+                    StopButton stopButton = new StopButton(soundButton);
+
+                    Grid.SetColumn(stopButton, columnIndex);
+                    Grid.SetRow(stopButton, rowIndex);
+                    parentGrid.Children.Add(stopButton);
+                    soundButton.ChildButtons.Add(stopButton);
+
+                    // Loop icon
+                    LoopIconButton loopIconButton = new LoopIconButton(soundButton);
+
+                    Grid.SetColumn(loopIconButton, columnIndex);
+                    Grid.SetRow(loopIconButton, rowIndex);
+                    parentGrid.Children.Add(loopIconButton);
+                    soundButton.ChildButtons.Add(loopIconButton);
+
+                    // Volume offset icon
+                    VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
+
+                    Grid.SetColumn(volumeOffsetIconButton, columnIndex);
+                    Grid.SetRow(volumeOffsetIconButton, rowIndex);
+                    parentGrid.Children.Add(volumeOffsetIconButton);
+                    soundButton.ChildButtons.Add(volumeOffsetIconButton);
+
+                    // Progress bar
+                    SoundProgressBar progressBar = new SoundProgressBar();
+
+                    Grid.SetColumn(progressBar, columnIndex);
+                    Grid.SetRow(progressBar, rowIndex);
+                    parentGrid.Children.Add(progressBar);
+
+                    soundButton.SoundProgressBar = progressBar;
                 }
-
-                // Menu button
-                MenuButton menuButton = new MenuButton(soundButton);
-
-                Grid.SetColumn(menuButton, 1);
-                Grid.SetRow(menuButton, i);
-                parentGrid.Children.Add(menuButton);
-                soundButton.ChildButtons.Add(menuButton);
-
-                // Play/pause button
-                PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
-
-                Grid.SetColumn(playPauseButton, 1);
-                Grid.SetRow(playPauseButton, i);
-                parentGrid.Children.Add(playPauseButton);
-                soundButton.ChildButtons.Add(playPauseButton);
-
-                // Stop button
-                StopButton stopButton = new StopButton(soundButton);
-
-                Grid.SetColumn(stopButton, 1);
-                Grid.SetRow(stopButton, i);
-                parentGrid.Children.Add(stopButton);
-                soundButton.ChildButtons.Add(stopButton);
-
-                // Loop icon
-                LoopIconButton loopIconButton = new LoopIconButton(soundButton);
-
-                Grid.SetColumn(loopIconButton, 1);
-                Grid.SetRow(loopIconButton, i);
-                parentGrid.Children.Add(loopIconButton);
-                soundButton.ChildButtons.Add(loopIconButton);
-
-                // Volume offset icon
-                VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
-
-                Grid.SetColumn(volumeOffsetIconButton, 1);
-                Grid.SetRow(volumeOffsetIconButton, i);
-                parentGrid.Children.Add(volumeOffsetIconButton);
-                soundButton.ChildButtons.Add(volumeOffsetIconButton);
-
-                // Progress bar
-                SoundProgressBar progressBar = new SoundProgressBar();
-
-                Grid.SetColumn(progressBar, 1);
-                Grid.SetRow(progressBar, i);
-                parentGrid.Children.Add(progressBar);
-
-                soundButton.SoundProgressBar = progressBar;
             }
 
             tab.Content = parentGrid;
@@ -552,6 +532,8 @@ namespace SoundBoard
                         string name = tab.Header.ToString();
                         textWriter.WriteStartElement("tab");
                         textWriter.WriteAttributeString("focused", tab.IsSelectedItem().ToString());
+                        textWriter.WriteAttributeString("rows", tab.GetRows().ToString());
+                        textWriter.WriteAttributeString("columns", tab.GetColumns().ToString());
 
                         textWriter.WriteElementString("name", name);
 
@@ -566,6 +548,8 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
+                                textWriter.WriteAttributeString("row", button.GetRow().ToString());
+                                textWriter.WriteAttributeString("column", button.GetColumn().ToString());
                                 textWriter.WriteEndElement();
                             }
                         }
@@ -648,142 +632,179 @@ namespace SoundBoard
             }
         }
 
+        private async void ChangeButtonGridMenuItem_Click(object sender, EventArgs e)
+        {
+            ButtonGridDialog buttonGridDialog = new ButtonGridDialog(SelectedTab.GetRows(),SelectedTab.GetColumns());
+            await this.ShowChildWindowAsync(buttonGridDialog);
+
+            if (buttonGridDialog.DialogResult == System.Windows.Forms.DialogResult.OK)
+            {
+                using (new WaitCursor())
+                {
+                    // Stop all sounds
+                    foreach (SoundButton soundButton in GetSoundButtons())
+                    {
+                        soundButton.Stop();
+                    }
+
+                    ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                    // Set up our UndoAction
+                    SetUndoAction(() => { LoadState(configUndoState); });
+
+                    // Create and show a snackbar
+                    string message = Properties.Resources.ButtonLayoutWasChanged;
+                    string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
+                    ShowUndoSnackbar(truncatedMessage);
+
+                    // Do the change
+                    SelectedTab.SetRows(buttonGridDialog.RowCount);
+                    SelectedTab.SetColumns(buttonGridDialog.ColumnCount);
+                    SaveSettings();
+                    LoadSettings();
+                }
+            }
+        }
+
         private void RoutedKeyDownHandler(object sender, RoutedEventArgs args)
         {
-            if (args is KeyEventArgs e)
-            {
-                Mouse.Capture(null);
+            if (Utilities.AreAnyDialogsVisible() == false)
+            { 
+                if (args is KeyEventArgs e)
+                {
+                    Mouse.Capture(null);
 
-                char c = GetCharFromKey(e.Key);
-                if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
-                {
-                    _searchString += c;
-                }
-                else if (e.Key == Key.Space)
-                {
-                    _searchString += ' ';
-                }
-                else if (e.Key == Key.Back && _searchString.Length > 0)
-                {
-                    _searchString = _searchString.Substring(0, _searchString.Length - 1);
-                }
-                else if (e.Key == Key.Escape)
-                {
-                    // If the search bar is open, close it
-                    if (Search.IsOpen)
+                    char c = GetCharFromKey(e.Key);
+                    if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
                     {
-                        CloseSearch();
+                        _searchString += c;
                     }
-                    // Otherwise, stop any playing sounds
-                    else
+                    else if (e.Key == Key.Space)
                     {
-                        ButtonAutomationPeer peer = new ButtonAutomationPeer(Silence);
-                        IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
-                        invokeProv?.Invoke();
+                        _searchString += ' ';
                     }
-                    return;
-                }
-                else if (e.Key == Key.Down)
-                {
-                    bool foundFocused = false;
-                    
-                    // Loop through the buttons and focus the next one
-                    foreach (var child in ResultsPanel.Children)
+                    else if (e.Key == Key.Back && _searchString.Length > 0)
                     {
-                        if (child is SoundButton soundButton)
+                        _searchString = _searchString.Substring(0, _searchString.Length - 1);
+                    }
+                    else if (e.Key == Key.Escape)
+                    {
+                        // If the search bar is open, close it
+                        if (Search.IsOpen)
                         {
-                            if (foundFocused)
-                            {
-                                // We found the last focused button, so focus this one
-                                soundButton.Focus();
-                                _focusedButton = soundButton;
-                                break;
-                            }
-                            if (soundButton.IsFocused)
-                            {
-                                // We found the focused button! focus the next one
-                                foundFocused = true;
-                            }
+                            CloseSearch();
                         }
-                    }
-                    return;
-                }
-                else if (e.Key == Key.Up)
-                {
-                    SoundButton previousButton = null;
-                    
-                    // Loop through the buttons and focus the previous one
-                    foreach (var child in ResultsPanel.Children)
-                    {
-                        if (child is SoundButton soundButton)
+                        // Otherwise, stop any playing sounds
+                        else
                         {
-                            if (soundButton.IsFocused)
-                            {
-                                // Focus the previous one!
-                                if (previousButton != null)
-                                {
-                                    previousButton.Focus();
-                                    _focusedButton = previousButton;
-                                    break;
-                                }
-                            }
-                            previousButton = soundButton;
-                        }
-                    }
-                    return;
-                }
-                else if (e.Key == Key.Enter)
-                {
-                    // Play the sound!
-                    foreach (var child in ResultsPanel.Children)
-                    {
-                        if (child is SoundButton soundButton && soundButton.IsFocused)
-                        {
-                            ButtonAutomationPeer peer = new ButtonAutomationPeer(soundButton);
+                            ButtonAutomationPeer peer = new ButtonAutomationPeer(Silence);
                             IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
                             invokeProv?.Invoke();
                         }
+                        return;
                     }
-                    return;
-                }
-                else
-                {
-                    return;
-                }
-
-                Query.Text = _searchString;
-                Query.CaretIndex = Query.Text.Length;
-
-                Search.IsOpen = true;
-
-                // Get rid of any previous buttons (do reverse iteration to prevent collection modified errors)
-                for (int i = ResultsPanel.Children.Count - 1; i >= 0; --i)
-                {
-                    if (ResultsPanel.Children[i] is SoundButton soundButton)
+                    else if (e.Key == Key.Down)
                     {
-                        ResultsPanel.Children.Remove(soundButton);
-                    }
-                }
-
-                // Perform search
-                if (string.IsNullOrEmpty(_searchString) == false)
-                {
-                    foreach (SoundButton soundButton in GetSoundButtons())
-                    {
-                        if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
+                        bool foundFocused = false;
+                        
+                        // Loop through the buttons and focus the next one
+                        foreach (var child in ResultsPanel.Children)
                         {
-                            SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
-                            button.SetFile(soundButton.SoundPath, soundButton.SoundName);
+                            if (child is SoundButton soundButton)
+                            {
+                                if (foundFocused)
+                                {
+                                    // We found the last focused button, so focus this one
+                                    soundButton.Focus();
+                                    _focusedButton = soundButton;
+                                    break;
+                                }
+                                if (soundButton.IsFocused)
+                                {
+                                    // We found the focused button! focus the next one
+                                    foundFocused = true;
+                                }
+                            }
+                        }
+                        return;
+                    }
+                    else if (e.Key == Key.Up)
+                    {
+                        SoundButton previousButton = null;
+                        
+                        // Loop through the buttons and focus the previous one
+                        foreach (var child in ResultsPanel.Children)
+                        {
+                            if (child is SoundButton soundButton)
+                            {
+                                if (soundButton.IsFocused)
+                                {
+                                    // Focus the previous one!
+                                    if (previousButton != null)
+                                    {
+                                        previousButton.Focus();
+                                        _focusedButton = previousButton;
+                                        break;
+                                    }
+                                }
+                                previousButton = soundButton;
+                            }
+                        }
+                        return;
+                    }
+                    else if (e.Key == Key.Enter)
+                    {
+                        // Play the sound!
+                        foreach (var child in ResultsPanel.Children)
+                        {
+                            if (child is SoundButton soundButton && soundButton.IsFocused)
+                            {
+                                ButtonAutomationPeer peer = new ButtonAutomationPeer(soundButton);
+                                IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                                invokeProv?.Invoke();
+                            }
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        return;
+                    }
 
-                            ResultsPanel.Children.Add(button);
+                    Query.Text = _searchString;
+                    Query.CaretIndex = Query.Text.Length;
+
+                    Search.IsOpen = true;
+
+                    // Get rid of any previous buttons (do reverse iteration to prevent collection modified errors)
+                    for (int i = ResultsPanel.Children.Count - 1; i >= 0; --i)
+                    {
+                        if (ResultsPanel.Children[i] is SoundButton soundButton)
+                        {
+                            ResultsPanel.Children.Remove(soundButton);
                         }
                     }
 
-                    // If we've added at least one button, focus the first one
-                    if (ResultsPanel.Children.Count > 0)
+                    // Perform search
+                    if (string.IsNullOrEmpty(_searchString) == false)
                     {
-                        (ResultsPanel.Children[0] as SoundButton)?.Focus();
-                        _focusedButton = ResultsPanel.Children[0] as SoundButton;
+                        foreach (SoundButton soundButton in GetSoundButtons())
+                        {
+                            if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
+                            {
+                                SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
+                                button.SetFile(soundButton.SoundPath, soundButton.SoundName);
+
+                                ResultsPanel.Children.Add(button);
+                            }
+                        }
+
+                        // If we've added at least one button, focus the first one
+                        if (ResultsPanel.Children.Count > 0)
+                        {
+                            (ResultsPanel.Children[0] as SoundButton)?.Focus();
+                            _focusedButton = ResultsPanel.Children[0] as SoundButton;
+                        }
                     }
                 }
             }
@@ -974,9 +995,6 @@ namespace SoundBoard
 
                     // Immediately save the settings to overwrite our file
                     SaveSettings();
-
-                    // Select the first tab, if any
-                    if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
                 }
                 catch (Exception ex)
                 {
@@ -1139,6 +1157,8 @@ namespace SoundBoard
 
         private string ApplicationName => @"SoundBoard";
 
+        private MetroTabItem SelectedTab => Tabs.SelectedItem as MetroTabItem;
+
         #endregion
 
         #region Consts
@@ -1154,7 +1174,7 @@ namespace SoundBoard
         /// <inheritdoc />
         public TabPageUndoState SaveState()
         {
-            return new TabPageUndoState {MetroTabItem = Tabs.SelectedItem as MetroTabItem, Index = Tabs.SelectedIndex};
+            return new TabPageUndoState {MetroTabItem = SelectedTab, Index = Tabs.SelectedIndex};
         }
 
         /// <inheritdoc />
@@ -1184,7 +1204,6 @@ namespace SoundBoard
 
             LoadSettings(undoState.SavedConfigStatePath);
             SaveSettings();
-            if (Tabs.Items.Count >= 1) (Tabs.Items[0] as MetroTabItem)?.Focus();
         }
 
         /// <inheritdoc />
@@ -1193,7 +1212,7 @@ namespace SoundBoard
             var soundButtonUndoStates = new List<(SoundButtonUndoState, int)>();
 
             int index = 0;
-            foreach (SoundButton soundButton in GetSoundButtons(Tabs.SelectedItem as MetroTabItem))
+            foreach (SoundButton soundButton in GetSoundButtons(SelectedTab))
             {
                 soundButtonUndoStates.Add((soundButton.SaveState(), index));
                 ++index;
@@ -1205,7 +1224,7 @@ namespace SoundBoard
         /// <inheritdoc />
         public void LoadState(TabPageSoundsUndoState undoState)
         {
-            IList<SoundButton> soundButtons = GetSoundButtons(Tabs.SelectedItem as MetroTabItem).ToList();
+            IList<SoundButton> soundButtons = GetSoundButtons(SelectedTab).ToList();
 
             foreach (var soundButtonUndoState in undoState.SoundButtonUndoStates)
             {

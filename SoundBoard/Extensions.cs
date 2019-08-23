@@ -90,6 +90,85 @@ namespace SoundBoard
         {
             return tabItem == (tabItem.Parent as TabControl)?.SelectedItem;
         }
+
+        #region Rows property
+
+        /// <summary>
+        /// Get the Rows property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <returns></returns>
+        public static int GetRows(this TabItem tabItem)
+        {
+            if (_rows.TryGetValue(tabItem, out int result))
+            {
+                return result;
+            }
+            else return GetDefaultRows(tabItem);
+        }
+
+        /// <summary>
+        /// Set the Rows property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <param name="value"></param>
+        public static void SetRows(this TabItem tabItem, int value)
+        {
+            _rows[tabItem] = value;
+        }
+
+        /// <summary>
+        /// Get the default value for the Rows property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        public static int GetDefaultRows(this TabItem tabItem)
+        {
+            return 5;
+        }
+
+        private static readonly Dictionary<TabItem, int> _rows = new Dictionary<TabItem, int>();
+
+        #endregion
+
+        #region Columns property
+
+        /// <summary>
+        /// Get the Columns property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <returns></returns>
+        public static int GetColumns(this TabItem tabItem)
+        {
+            if (_columns.TryGetValue(tabItem, out int result))
+            {
+                return result;
+            }
+            else return GetDefaultColumns(tabItem);
+        }
+
+        /// <summary>
+        /// Set the Columns property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <param name="value"></param>
+        public static void SetColumns(this TabItem tabItem, int value)
+        {
+            _columns[tabItem] = value;
+        }
+
+        /// <summary>
+        /// Get the default value for the Columns property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <returns></returns>
+        public static int GetDefaultColumns(this TabItem tabItem)
+        {
+            return 2;
+        }
+
+        private static readonly Dictionary<TabItem, int> _columns = new Dictionary<TabItem, int>();
+
+        #endregion
     }
 
     #endregion

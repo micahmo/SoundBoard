@@ -1,8 +1,10 @@
 ﻿#region Usings
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using MahApps.Metro.SimpleChildWindow;
 using NAudio.CoreAudioApi;
 using Point = System.Windows.Point;
 
@@ -83,6 +85,15 @@ namespace SoundBoard
         public static System.Windows.Media.Color ToSystemWindowsMediaColor(this System.Drawing.Color color)
         {
             return System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if any instances of <see cref="ChildWindowBase"/> are currently visible.
+        /// </summary>
+        /// <returns></returns>
+        public static bool AreAnyDialogsVisible()
+        {
+            return ChildWindowBase.Instances.Any(childWindowBase => childWindowBase.IsOpen);
         }
 
         #endregion

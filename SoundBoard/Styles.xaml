@@ -1,5 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls">
 
     <SolidColorBrush x:Key="HighlightColor" Color="DarkGray"/>
 
@@ -7,6 +8,18 @@
            x:Key="MyHighlightedSquareButtonStyle" TargetType="{markup:Type ButtonBase}"
            BasedOn="{StaticResource SquareButtonStyle}">
         <Setter Property="Background" Value="{DynamicResource HighlightColor}"/>
+    </Style>
+
+    <Style xmlns:markup="http://schemas.microsoft.com/winfx/2006/xaml"
+           x:Key="MyAccentedSquareButtonStyle" TargetType="{markup:Type ButtonBase}"
+           BasedOn="{StaticResource AccentedSquareButtonStyle}">
+        <Setter Property="mah:ButtonHelper.PreserveTextCase" Value="True"/>
+    </Style>
+
+    <Style xmlns:markup="http://schemas.microsoft.com/winfx/2006/xaml"
+           x:Key="MySquareButtonStyle" TargetType="{markup:Type ButtonBase}"
+           BasedOn="{StaticResource SquareButtonStyle}">
+        <Setter Property="mah:ButtonHelper.PreserveTextCase" Value="True"/>
     </Style>
 
 </ResourceDictionary>

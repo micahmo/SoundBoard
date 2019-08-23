@@ -1,0 +1,84 @@
+﻿<soundBoard:ChildWindowBase x:Class="SoundBoard.ButtonGridDialog" x:ClassModifier="internal"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:simpleChildWindow="clr-namespace:MahApps.Metro.SimpleChildWindow;assembly=MahApps.Metro.SimpleChildWindow"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:soundBoard="clr-namespace:SoundBoard"
+             mc:Ignorable="d"
+             
+             Title="Change Button Grid"
+             IsModal="true"
+             Padding="100"
+             ShowCloseButton="true"
+             AllowMove="true"
+             CloseByEscape="true">
+
+    <simpleChildWindow:ChildWindow.OverlayBrush>
+        <SolidColorBrush Opacity="0.7" Color="{StaticResource BlackColor}" />
+    </simpleChildWindow:ChildWindow.OverlayBrush>
+
+    <!-- Content -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="100"/>
+            </Grid.ColumnDefinitions>
+
+            <xctk:IntegerUpDown x:Name="RowUpDown"
+                                Grid.Column="1"
+                                Minimum="1" 
+                                ValueChanged="RowUpDown_ValueChanged"
+                                DefaultValue="5"
+                                DisplayDefaultValueOnEmptyText="true"
+                                KeyUp="RowUpDown_KeyUp"/>
+            <Label Grid.Column="2" Content="Row(s)"/>
+            <Label Grid.Column="4" Content="✖"/>
+            <xctk:IntegerUpDown x:Name="ColumnUpDown"
+                                Grid.Column="6"
+                                Minimum="1" 
+                                ValueChanged="ColumnUpDown_ValueChanged"
+                                DefaultValue="2"
+                                DisplayDefaultValueOnEmptyText="true"
+                                KeyUp="ColumnUpDown_KeyUp"/>
+            <Label Grid.Column="7" Content="Column(s)"/>
+        </Grid>
+
+        <Label x:Name="WarningLabel" 
+               HorizontalAlignment="Center"
+               Grid.Row="4" Content="Warning! Removing row(s) or column(s) could result in losing sounds!" 
+               Foreground="Red" 
+               FontWeight="Medium"
+               Visibility="Hidden"/>
+
+        <Grid Grid.Row="5" Margin="20, 20, 20, 20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1" Content="OK" Style="{StaticResource MyAccentedSquareButtonStyle}" Width="80" Height="35" Click="OKButton_Click"/>
+            <Button Grid.Column="3" Content="Cancel" Style="{StaticResource MySquareButtonStyle}" Width="80" Height="35" Click="CancelButton_Click"/>
+        </Grid>
+    </Grid>
+</soundBoard:ChildWindowBase>

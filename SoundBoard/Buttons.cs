@@ -1077,6 +1077,24 @@ namespace SoundBoard
             };
         }
 
+        /// <summary>
+        /// Returns the row
+        /// </summary>
+        /// <returns></returns>
+        public int GetRow()
+        {
+            return Grid.GetRow(this);
+        }
+
+        /// <summary>
+        /// Returns the column
+        /// </summary>
+        /// <returns></returns>
+        public int GetColumn()
+        {
+            return Grid.GetColumn(this);
+        }
+
         #endregion
 
         #region Private methods

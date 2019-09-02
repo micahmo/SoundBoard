@@ -30,6 +30,9 @@ Features include...
 ###### Quickly search and play a sound just by typing
 ![alt text](https://i.postimg.cc/4NXvXwQD/2019-09-02-15-33-53-Glow-Window.png "Overview3")
 
+###### View and control playback of each sound individually
+![alt text](https://i.postimg.cc/4xPHBgCy/2019-09-02-15-39-46-Glow-Window.png "Overview")
+
 
 ## License
 

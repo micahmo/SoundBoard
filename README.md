@@ -4,30 +4,35 @@
 
 ## Synopsis
 
-SoundBoard is a simple, elegant application to save and play your favorite sounds at a moment's notice.
+SoundBoard is a elegant, easy-to-use application to save and play your favorite sounds.
 
 Features include...
-* unlimited pages of sounds
-* silent saving and loading of user configuration
-* instant searching
-* a clean, modern UI
+* highly customizable (create your perfect soundboard with multiple pages and color-coded sounds)
+* background saving/loading of sound configuration (so you don't lose your changes)
+* instant searching and playback of sounds from the keyboard (find the perfect sound at a moment's notice)
+* clean, modern UI
+* and more...
 
 ## Downloads
 
-* [Latest release: v1.5](https://github.com/micahmo/SoundBoard/releases/tag/v1.5)
-* [Previous release: v1.4](https://github.com/micahmo/SoundBoard/releases/tag/v1.4)
+* [Latest release: v1.6](https://github.com/micahmo/SoundBoard/releases/tag/v1.6)
+* [Previous release: v1.5](https://github.com/micahmo/SoundBoard/releases/tag/v1.5)
 
 
 ## Screenshots
 
-### Welcome Page
-![alt text](http://s15.postimg.cc/n0v4oc0or/2016_09_25_13_39_46_Sound_Board.png "Welcome Page")
+###### Create multiple pages with multiple sounds on each
+![alt text](https://i.postimg.cc/rwnDXNfN/2019-09-02-15-30-42-Glow-Window.png "Overview1")
 
-### Blank Sound Page
-![alt text](http://s9.postimg.cc/hkr1fw3tb/2016_09_25_13_40_32_Sound_Board.png "Blank Sound Page")
+###### Color-code and customize the number of sounds per page
+![alt text](https://i.postimg.cc/SR6GDv7r/2019-09-02-15-33-07-Glow-Window.png "Overview2")
 
-### Sound Playing
-![alt text](http://s11.postimg.cc/r56am4b37/2016_09_25_13_42_23_Clipboard.png "Sound Playing")
+###### Quickly search and play a sound just by typing
+![alt text](https://i.postimg.cc/4NXvXwQD/2019-09-02-15-33-53-Glow-Window.png "Overview3")
+
+###### View and control playback of each sound individually
+![alt text](https://i.postimg.cc/4xPHBgCy/2019-09-02-15-39-46-Glow-Window.png "Overview")
+
 
 ## License
 

@@ -4,7 +4,7 @@ using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using MahApps.Metro.SimpleChildWindow;
+using Microsoft.Win32;
 using NAudio.CoreAudioApi;
 using Point = System.Windows.Point;
 
@@ -94,6 +94,32 @@ namespace SoundBoard
         public static bool AreAnyDialogsVisible()
         {
             return ChildWindowBase.Instances.Any(childWindowBase => childWindowBase.IsOpen);
+        }
+
+        /// <summary>
+        /// Checks whether the required framework version is installed.
+        /// </summary>
+        /// <remarks>
+        /// Note: Update this if we update the target framework version.
+        /// More info here: https://docs.microsoft.com/en-us/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed
+        /// </remarks>
+        public static bool IsRequiredNetFrameworkInstalled()
+        {
+            bool result = false;
+
+            const string subkey = @"SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\";
+            using (var ndpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32).OpenSubKey(subkey))
+            {
+                if (ndpKey?.GetValue("Release") != null)
+                {
+                    if ((int)ndpKey.GetValue("Release") >= 461808)
+                    {
+                        result = true;
+                    }
+                }
+            }
+
+            return result;
         }
 
         #endregion

@@ -258,4 +258,10 @@
   <data name="ChangeButtonGrid" xml:space="preserve">
     <value>Change button grid...</value>
   </data>
+  <data name="TargetFrameworkNotInstalled" xml:space="preserve">
+    <value>The required .NET Framework Version ({0}) is not currently installed.</value>
+  </data>
+  <data name="NetFrameworkError" xml:space="preserve">
+    <value>.NET Framework Error</value>
+  </data>
 </root>

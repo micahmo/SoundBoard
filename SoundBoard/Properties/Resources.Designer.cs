@@ -259,6 +259,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to .NET Framework Error.
+        /// </summary>
+        internal static string NetFrameworkError {
+            get {
+                return ResourceManager.GetString("NetFrameworkError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to New Page.
         /// </summary>
         internal static string NewPage {
@@ -399,6 +408,15 @@ namespace SoundBoard.Properties {
         internal static string TabWasRemoved {
             get {
                 return ResourceManager.GetString("TabWasRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The required .NET Framework Version ({0}) is not currently installed..
+        /// </summary>
+        internal static string TargetFrameworkNotInstalled {
+            get {
+                return ResourceManager.GetString("TargetFrameworkNotInstalled", resourceCulture);
             }
         }
         

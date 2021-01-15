@@ -112,7 +112,7 @@ namespace SoundBoard
             {
                 if (ndpKey?.GetValue("Release") != null)
                 {
-                    if ((int)ndpKey.GetValue("Release") >= 461808)
+                    if ((int)ndpKey.GetValue("Release") >= 528040)
                     {
                         result = true;
                     }

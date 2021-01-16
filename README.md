@@ -15,8 +15,7 @@ Features include...
 
 ## Downloads
 
-* [Latest release: v1.6](https://github.com/micahmo/SoundBoard/releases/tag/v1.6)
-* [Previous release: v1.5](https://github.com/micahmo/SoundBoard/releases/tag/v1.5)
+Grab the latest version [here](https://github.com/micahmo/SoundBoard/releases/latest/download/SoundBoard.exe). This will download a portable SoundBoard.exe that can be run from anywhere. Use the Export Configuration function to bring your configuration to a different system.
 
 
 ## Screenshots

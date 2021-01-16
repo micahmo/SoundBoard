@@ -264,4 +264,10 @@
   <data name="NetFrameworkError" xml:space="preserve">
     <value>.NET Framework Error</value>
   </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
 </root>

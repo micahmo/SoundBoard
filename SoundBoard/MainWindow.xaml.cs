@@ -15,8 +15,10 @@ using System.Linq;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using Bluegrams.Application;
 using Gma.System.MouseKeyHook;
 using MahApps.Metro.SimpleChildWindow;
 using Microsoft.Win32;
@@ -123,6 +125,12 @@ namespace SoundBoard
             // Subscribe to any mouse down. We want any interaction with the application to close the snackbar
             _globalMouseEvents = Hook.AppEvents();
             _globalMouseEvents.MouseDown += Global_MouseDown;
+
+            _updateChecker = new MyUpdateChecker("https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/VersionInfo.xml")
+            {
+                Owner = this,
+                DownloadIdentifier = "portable"
+            };
         }
 
         #endregion
@@ -591,9 +599,31 @@ namespace SoundBoard
             }
         }
 
+        private async Task ShowAboutBox()
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string version = AssemblyName.GetAssemblyName(assembly.Location).Version.ToString();
+
+            var res = await this.ShowMessageAsync(Properties.Resources.AboutSoundBoard,
+                Properties.Resources.CreatedByMicahMorrison + Environment.NewLine +
+                string.Format(Properties.Resources.VersionNumber, version),
+                MessageDialogStyle.AffirmativeAndNegative,
+                new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.CheckForUpdates, NegativeButtonText = Properties.Resources.OK });
+
+            if (res == MessageDialogResult.Affirmative)
+            {
+                _updateChecker.CheckForUpdates(UpdateNotifyMode.Always);
+            }
+        }
+
         #endregion
 
         #region Event handlers
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            _updateChecker.CheckForUpdates();
+        }
 
         private void RenameMenuItem_Click(object sender, EventArgs e)
         {
@@ -842,12 +872,7 @@ namespace SoundBoard
 
         private async void about_Click(object sender, RoutedEventArgs e)
         {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            string version = AssemblyName.GetAssemblyName(assembly.Location).Version.ToString();
-
-            await this.ShowMessageAsync(Properties.Resources.AboutSoundBoard,
-                Properties.Resources.CreatedByMicahMorrison + Environment.NewLine +
-                string.Format(Properties.Resources.VersionNumber, version));
+            await ShowAboutBox();
         }
 
         private void overflow_Click(object sender, RoutedEventArgs e)
@@ -1057,6 +1082,11 @@ namespace SoundBoard
             }
         }
 
+        private async void AboutBoxCommand_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            await ShowAboutBox();
+        }
+
         #endregion
 
         #region Overrides
@@ -1144,6 +1174,7 @@ namespace SoundBoard
         private SoundButton _focusedButton;
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
+        private readonly WpfUpdateChecker _updateChecker;
 
         #endregion
 

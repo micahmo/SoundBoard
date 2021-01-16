@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<AppUpdate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/AppUpdate.xsd">
+  <Version>1.6</Version>
+  <ReleaseDate>2019-09-02</ReleaseDate>
+  <!-- Default download -->
+  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.6/SoundBoard.exe</DownloadLink>
+  <DownloadFileName>SoundBoard.exe</DownloadFileName>
+  <!-- All download options -->
+  <Downloads>
+    <Download key="portable">
+      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.6/SoundBoard.exe</Link>
+      <FileName>SoundBoard.exe</FileName>
+      <FileHash></FileHash>
+    </Download>
+  </Downloads>
+  <!-- Release notes -->
+  <VersionNotes></VersionNotes>
+  <ReleaseNotes></ReleaseNotes>
+</AppUpdate>

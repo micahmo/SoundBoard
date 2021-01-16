@@ -11,7 +11,8 @@
     
         BorderThickness="1" 
         GlowBrush="{DynamicResource AccentColorBrush}"
-        ResizeMode="CanResizeWithGrip">
+        ResizeMode="CanResizeWithGrip"
+        Loaded="Window_Loaded">
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>
@@ -81,6 +82,10 @@
             <Button Content="•••" Click="overflow_Click" Name="Overflow"/>
         </Controls:WindowCommands>
     </Controls:MetroWindow.RightWindowCommands>
+
+    <Controls:MetroWindow.CommandBindings>
+        <CommandBinding Command="{x:Static local:ShortcutCommands.AboutBoxCommand}" Executed="AboutBoxCommand_Executed"/>
+    </Controls:MetroWindow.CommandBindings>
 
     <Grid>
         <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs">

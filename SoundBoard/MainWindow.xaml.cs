@@ -886,7 +886,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.Welcome.ToLower()};
+            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.Welcome};
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -941,7 +941,7 @@ namespace SoundBoard
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.NewPage.ToLower()};
+            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.NewPage};
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();

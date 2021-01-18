@@ -8,6 +8,7 @@
            x:Key="MyHighlightedSquareButtonStyle" TargetType="{markup:Type ButtonBase}"
            BasedOn="{StaticResource SquareButtonStyle}">
         <Setter Property="Background" Value="{DynamicResource HighlightColor}"/>
+        <Setter Property="mah:ButtonHelper.PreserveTextCase" Value="True"/>
     </Style>
 
     <Style xmlns:markup="http://schemas.microsoft.com/winfx/2006/xaml"

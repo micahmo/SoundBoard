@@ -1338,7 +1338,7 @@ namespace SoundBoard
             SoundButtonStyle soundButtonStyle = SoundButtonStyle;
 
             // Create a new style based on the SquareButtonStyle
-            Style style = new Style(GetType(), (Style)FindResource(@"SquareButtonStyle"));
+            Style style = new Style(GetType(), (Style)FindResource(@"MySquareButtonStyle"));
 
             // Add the background color
             if (soundButtonStyle.BackgroundColor is Color backgroundColor)

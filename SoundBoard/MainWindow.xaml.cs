@@ -119,6 +119,8 @@ namespace SoundBoard
 
             LoadSettingsCompat();
 
+            Task.Run(CleanupBackups);
+
             CreateTabContextMenus();
 
             CloseSnackbarButton.Content = ImageHelper.GetImage(ImageHelper.CloseButtonPath, 11, 11);
@@ -640,6 +642,21 @@ namespace SoundBoard
         }
 
         private string GetDateTimeString() => DateTime.Now.ToString(@"s").Replace(@":", @".");
+
+        private void CleanupBackups()
+        {
+            // Check if there are any backup config files
+            string directory = Path.GetDirectoryName(ConfigFilePath);
+            if (Directory.Exists(directory))
+            {
+                var files = Directory.GetFiles(directory, "*.bak").OrderByDescending(File.GetCreationTime).ToList();
+                if (files.Count > MAX_BACKUP_FILES)
+                {
+                    // Delete all but the newest five
+                    files.Skip(MAX_BACKUP_FILES).ToList().ForEach(File.Delete);
+                }
+            }
+        }
 
         #endregion
 
@@ -1283,6 +1300,8 @@ namespace SoundBoard
         private const int TWO_MINUTES_IN_MILLISECONDS = 120000;
 
         private const string WELCOME_PAGE_TAG = nameof(WELCOME_PAGE_TAG);
+
+        private const int MAX_BACKUP_FILES = 5;
 
         #endregion
 

@@ -1,9 +1,11 @@
 ﻿#region Usings
 
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using NAudio.CoreAudioApi;
 
 #endregion
 
@@ -40,6 +42,43 @@ namespace SoundBoard
         private static readonly Dictionary<MenuItem, bool> _separator = new Dictionary<MenuItem, bool>();
 
         #endregion
+    }
+
+    #endregion
+
+    #region ContextMenuExtensions class
+
+    /// <summary>
+    /// Extensions on the <see cref="ContextMenu"/> class.
+    /// </summary>
+    internal static class ContextMenuExtensions
+    {
+        /// <summary>
+        /// Add separators to the given <paramref name="contextMenu"/>.
+        /// </summary>
+        /// <param name="contextMenu"></param>
+        public static void AddSeparators(this ContextMenu contextMenu)
+        {
+            if (contextMenu is null == false)
+            {
+                for (int i = contextMenu.Items.Count - 1; i >= 0; --i)
+                {
+                    // Remove any existing separators
+                    if (contextMenu.Items[i] is Separator)
+                    {
+                        contextMenu.Items.RemoveAt(i);
+                    }
+                    // Now add any needed separators
+                    else if (contextMenu.Items[i] is MenuItem menuItem
+                             && menuItem.GetSeparator() // We need a separator after this item
+                             && contextMenu.Items.Count > i + 1 // There is at least one more item in the list (so the separator can separate something!)
+                             && contextMenu.Items[i + 1] is Separator == false) // There isn't already a separator after this item
+                    {
+                        contextMenu.Items.Insert(i + 1, new Separator());
+                    }
+                }
+            }
+        }
     }
 
     #endregion
@@ -169,6 +208,37 @@ namespace SoundBoard
         private static readonly Dictionary<TabItem, int> _columns = new Dictionary<TabItem, int>();
 
         #endregion
+    }
+
+    #endregion
+
+    #region MMDevice extensions
+
+    /// <summary>
+    /// Extensions on <see cref="MMDevice"/>.
+    /// </summary>
+    public static class MMDeviceExtensions
+    {
+        /// <summary>
+        /// Converts the <see cref="MMDevice.ID"/> into a <see cref="Guid"/>.
+        /// </summary>
+        /// <param name="mmDevice"></param>
+        /// <returns></returns>
+        public static Guid GetGuid(this MMDevice mmDevice)
+        {
+            Guid result = Guid.Empty;
+
+            try
+            {
+                result = Guid.Parse(mmDevice.ID.Substring(mmDevice.ID.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length));
+            }
+            catch
+            {
+                // In case there's any exception parsing the guid, just return the empty guid.
+            }
+
+            return result;
+        }
     }
 
     #endregion

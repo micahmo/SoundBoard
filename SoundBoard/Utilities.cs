@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using Point = System.Windows.Point;
 
 #endregion
@@ -50,6 +51,50 @@ namespace SoundBoard
                 {
                     device.AudioEndpointVolume.Mute = false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Unmute the audio for a particular device. Pass <see cref="Guid.Empty"/> to unmute the default device.
+        /// Optionally, if a device ID is given but not found, the default device can be unmuted if <paramref name="unmuteDefaultIfGivenNotFound"/> is true.
+        /// </summary>
+        public static void UnmuteDeviceAudio(Guid deviceId, bool unmuteDefaultIfGivenNotFound, DataFlow dataFlow = DataFlow.Render, DeviceState deviceState = DeviceState.Active)
+        {
+            using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+            {
+                if (deviceId == Guid.Empty)
+                {
+                    // Empty ID given, so unmute the default device
+                    deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, Role.Multimedia).AudioEndpointVolume.Mute = false;
+                }
+                else
+                {
+                    // We got a device ID. Try to find it and unmute it.
+                    var device = deviceEnumerator.EnumerateAudioEndPoints(dataFlow, deviceState).FirstOrDefault(d => d.GetGuid() == deviceId);
+                    if (device != null)
+                    {
+                        device.AudioEndpointVolume.Mute = false;
+                    }
+                    else if (unmuteDefaultIfGivenNotFound)
+                    {
+                        // We were given an ID, but couldn't find it.
+                        // We were instructed to unmute the default device if we couldn't find the given device
+                        deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, Role.Multimedia).AudioEndpointVolume.Mute = false;
+                    }
+                }
+            }
+        }
+
+        public static bool DoesOutAudioDeviceExist(Guid deviceId)
+        {
+            return DirectSoundOut.Devices.Any(d => d.Guid == deviceId);
+        }
+
+        public static MMDevice GetDefaultDevice(DataFlow dataFlow = DataFlow.Render, Role role = Role.Multimedia)
+        {
+            using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+            {
+                return deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, role);
             }
         }
 

@@ -113,6 +113,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Buttons.cs" />
+    <Compile Include="GlobalSettings.cs" />
     <Compile Include="LoopStream.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="ChildWindowBase.cs" />

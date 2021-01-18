@@ -205,6 +205,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default (Current: {0}).
+        /// </summary>
+        internal static string DefaultDevice {
+            get {
+                return ResourceManager.GetString("DefaultDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Drag a sound here....
         /// </summary>
         internal static string DragASoundHere {
@@ -304,6 +313,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Output device.
+        /// </summary>
+        internal static string OutputDevice {
+            get {
+                return ResourceManager.GetString("OutputDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Remove.
         /// </summary>
         internal static string Remove {
@@ -327,6 +345,15 @@ namespace SoundBoard.Properties {
         internal static string SetColor {
             get {
                 return ResourceManager.GetString("SetColor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}.
+        /// </summary>
+        internal static string SingleSpecifier {
+            get {
+                return ResourceManager.GetString("SingleSpecifier", resourceCulture);
             }
         }
         

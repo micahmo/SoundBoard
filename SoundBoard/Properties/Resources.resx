@@ -270,4 +270,14 @@
   <data name="OK" xml:space="preserve">
     <value>OK</value>
   </data>
+  <data name="OutputDevice" xml:space="preserve">
+    <value>Output device</value>
+  </data>
+  <data name="DefaultDevice" xml:space="preserve">
+    <value>Default (Current: {0})</value>
+    <comment>{0} is the name of the device</comment>
+  </data>
+  <data name="SingleSpecifier" xml:space="preserve">
+    <value>{0}</value>
+  </data>
 </root>

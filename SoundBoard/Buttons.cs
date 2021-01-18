@@ -608,17 +608,7 @@ namespace SoundBoard
 
         private void SoundStoppedHandler(object sender, StoppedEventArgs e)
         {
-            _progressBarCancellationToken?.Cancel();
-
-            _audioFileReader.Position = 0;
-
-            // Hide the additional buttons
-            foreach (HideableMenuButtonBase hideableButton in ChildButtons
-                                                              .OfType<HideableMenuButtonBase>()
-                                                              .Where(hideableButton => hideableButton.ShowHideAutomatically))
-            {
-                hideableButton.Hide();
-            }
+            HandleSoundStopped();
         }
 
         private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -869,16 +859,18 @@ namespace SoundBoard
                 }
 
                 // Stop any previous sounds
+                _player.PlaybackStopped -= SoundStoppedHandler;
+                HandleSoundStopped();
                 Stop();
                 _player.Dispose();
 
                 // Reinitialize the player
-                _player = new WaveOut();
+                _player = new DirectSoundOut(Utilities.DoesOutAudioDeviceExist(GlobalSettings.OutputDeviceGuid) ? GlobalSettings.OutputDeviceGuid : Guid.Empty);
                 _audioFileReader = new AudioFileReader(SoundPath);
                 IWaveProvider waveProvider;
 
-                // Unmute the system audio for all active/render devices
-                Utilities.UnmuteSystemAudio();
+                // Unmute the selected device
+                Utilities.UnmuteDeviceAudio(GlobalSettings.OutputDeviceGuid, unmuteDefaultIfGivenNotFound: true);
 
                 // Handle stop
                 _player.PlaybackStopped += SoundStoppedHandler;
@@ -1332,33 +1324,10 @@ namespace SoundBoard
                 }
             }
 
-            AddSeparatorsToContextMenu();
+            ContextMenu.AddSeparators();
 
             ContextMenu.Opened -= ContextMenu_Opened; // Unassign before re-assigning so we don't get double assignment
             ContextMenu.Opened += ContextMenu_Opened;
-        }
-
-        private void AddSeparatorsToContextMenu()
-        {
-            if (ContextMenu is null == false)
-            {
-                for (int i = ContextMenu.Items.Count - 1; i >= 0; --i)
-                {
-                    // Remove any existing separators
-                    if (ContextMenu.Items[i] is Separator)
-                    {
-                        ContextMenu.Items.RemoveAt(i);
-                    }
-                    // Now add any needed separators
-                    else if (ContextMenu.Items[i] is MenuItem menuItem
-                        && menuItem.GetSeparator() // We need a separator after this item
-                        && ContextMenu.Items.Count > i + 1 // There is at least one more item in the list (so the separator can separate something!)
-                        && ContextMenu.Items[i + 1] is Separator == false) // There isn't already a separator after this item
-                    {
-                        ContextMenu.Items.Insert(i + 1, new Separator());
-                    }
-                }
-            }
         }
 
         /// <summary>
@@ -1419,6 +1388,24 @@ namespace SoundBoard
                 {
                     menuButtonBase.SetMode(MenuButtonBase.ColorMode.Light);
                 }
+            }
+        }
+
+        private void HandleSoundStopped()
+        {
+            _progressBarCancellationToken?.Cancel();
+
+            if (_audioFileReader != null)
+            {
+                _audioFileReader.Position = 0;
+            }
+
+            // Hide the additional buttons
+            foreach (HideableMenuButtonBase hideableButton in ChildButtons
+                .OfType<HideableMenuButtonBase>()
+                .Where(hideableButton => hideableButton.ShowHideAutomatically))
+            {
+                hideableButton.Hide();
             }
         }
 
@@ -1569,7 +1556,7 @@ namespace SoundBoard
 
         #region Private fields
 
-        private IWavePlayer _player = new WaveOut();
+        private IWavePlayer _player = new DirectSoundOut();
         private AudioFileReader _audioFileReader;
         private Stopwatch _stopWatch;
 

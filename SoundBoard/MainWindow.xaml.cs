@@ -22,6 +22,7 @@ using Bluegrams.Application;
 using Gma.System.MouseKeyHook;
 using MahApps.Metro.SimpleChildWindow;
 using Microsoft.Win32;
+using NAudio.CoreAudioApi;
 using Color = System.Windows.Media.Color;
 using Timer = System.Timers.Timer;
 using ContextMenu = System.Windows.Controls.ContextMenu;
@@ -182,6 +183,17 @@ namespace SoundBoard
                 XmlElement xelRoot = xmlDocument.DocumentElement;
                 if (xelRoot != null)
                 {
+                    // Get global settings
+                    if (xmlDocument.SelectSingleNode($"/tabs/{nameof(GlobalSettings)}") is XmlNode globalSettings)
+                    {
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.OutputDeviceGuid)] is XmlAttribute outputDeviceGuidAttribute &&
+                            Guid.TryParse(outputDeviceGuidAttribute.Value, out Guid outputDeviceGuid))
+                        {
+                            GlobalSettings.OutputDeviceGuid = outputDeviceGuid;
+                        }
+                    }
+
+                    // Get tabs
                     XmlNodeList tabNodes = xelRoot.SelectNodes("/tabs/tab");
 
                     // Remove default tabs
@@ -531,7 +543,12 @@ namespace SoundBoard
                 textWriter.Indentation = 4;
 
                 textWriter.WriteStartDocument();
-                textWriter.WriteStartElement("tabs");
+                textWriter.WriteStartElement("tabs"); // <tabs>
+
+                // Save global settings
+                textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
+                textWriter.WriteAttributeString(nameof(GlobalSettings.OutputDeviceGuid), GlobalSettings.OutputDeviceGuid.ToString());
+                textWriter.WriteEndElement();  // <GlobalSettings>
 
                 foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
                 {
@@ -570,7 +587,7 @@ namespace SoundBoard
                     }
                 }
 
-                textWriter.WriteEndElement();
+                textWriter.WriteEndElement(); // </tabs>
                 textWriter.WriteEndDocument();
             }
         }
@@ -890,11 +907,23 @@ namespace SoundBoard
                 exportConfig.Click += ExportConfig_Click;
 
                 MenuItem clearConfig = new MenuItem {Header = Properties.Resources.ClearConfiguration};
+                clearConfig.SetSeparator(true);
                 clearConfig.Click += ClearConfig_Click;
+
+                MenuItem outputDevice = new MenuItem {Header = Properties.Resources.OutputDevice};
+                outputDevice.SubmenuOpened += OutputDevice_Opened;
+
+                // Add a placeholder menu item so that "Output device" will have a submenu
+                // even before we have evaluated the audio devices to add to the menu
+                MenuItem placeholder = new MenuItem();
+                outputDevice.Items.Add(placeholder);
 
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
+                overflowMenu.Items.Add(outputDevice);
+
+                overflowMenu.AddSeparators();
 
                 Overflow.ContextMenu = overflowMenu;
             }
@@ -1056,6 +1085,55 @@ namespace SoundBoard
             {
                 await this.ShowMessageAsync(Properties.Resources.Oops,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
+
+        private void OutputDevice_Opened(object sender, RoutedEventArgs e)
+        {
+            // Re-evaluate the audio devices every time this sub-menu is opened
+            if (sender is MenuItem outputDeviceMenuItem)
+            {
+                // Clear the current items, whether they are the placeholder
+                // or the previously evaluated audio devices.
+                outputDeviceMenuItem.Items.Clear();
+
+                // Create a menu item for each output device
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    // First, add the default device
+                    var defaultDevice = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                    var defaultDeviceMenuItem = new MenuItem
+                    {
+                        Header = string.Format(Properties.Resources.DefaultDevice, defaultDevice.FriendlyName),
+                        Icon = GlobalSettings.OutputDeviceGuid == Guid.Empty ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
+                    };
+                    defaultDeviceMenuItem.Click += (_, __) =>
+                    {
+                        GlobalSettings.OutputDeviceGuid = Guid.Empty;
+                    };
+                    outputDeviceMenuItem.Items.Add(defaultDeviceMenuItem);
+
+                    // Now add the rest
+                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    {
+                        MenuItem menuItem = new MenuItem
+                        {
+                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
+                            Icon = GlobalSettings.OutputDeviceGuid == device.GetGuid() ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
+                        };
+                        menuItem.Click += (_, __) =>
+                        {
+                            GlobalSettings.OutputDeviceGuid = device.GetGuid();
+                        };
+                        outputDeviceMenuItem.Items.Add(menuItem);
+                    }
+
+                    // If, after adding all audio devices, none of them are selected, then select the default
+                    if (outputDeviceMenuItem.Items.OfType<MenuItem>().All(item => item.Icon is null))
+                    {
+                        defaultDeviceMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
+                    }
+                }
             }
         }
 

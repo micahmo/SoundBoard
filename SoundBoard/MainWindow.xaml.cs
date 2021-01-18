@@ -535,6 +535,12 @@ namespace SoundBoard
             }
             catch { /* Ignored */ }
 
+            // If a config file already exists, create a backup in case any part of the saving fails
+            if (File.Exists(configFilePath))
+            {
+                File.Copy(configFilePath, $"{configFilePath}.bak", true);
+            }
+
             using (FileStream fileStream = new FileStream(configFilePath, FileMode.Create))
             using (StreamWriter streamWriter = new StreamWriter(fileStream))
             using (XmlTextWriter textWriter = new XmlTextWriter(streamWriter))

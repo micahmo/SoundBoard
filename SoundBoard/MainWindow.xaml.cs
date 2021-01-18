@@ -538,7 +538,7 @@ namespace SoundBoard
             // If a config file already exists, create a backup in case any part of the saving fails
             if (File.Exists(configFilePath))
             {
-                File.Copy(configFilePath, $"{configFilePath}.bak", true);
+                File.Copy(configFilePath, $"{configFilePath}-{GetDateTimeString()}.bak", true);
             }
 
             using (FileStream fileStream = new FileStream(configFilePath, FileMode.Create))
@@ -638,6 +638,8 @@ namespace SoundBoard
                 _updateChecker.CheckForUpdates(UpdateNotifyMode.Always);
             }
         }
+
+        private string GetDateTimeString() => DateTime.Now.ToString(@"s").Replace(@":", @".");
 
         #endregion
 
@@ -1004,7 +1006,7 @@ namespace SoundBoard
             // Prompt the user to browse for where the file should be saved.
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                FileName = $@"SoundBoardConfiguration-{DateTime.Now.ToString(@"s").Replace(@":", @".")}",
+                FileName = $@"SoundBoardConfiguration-{GetDateTimeString()}",
                 Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
             };
 

@@ -1,10 +1,24 @@
 ﻿<Application x:Class="SoundBoard.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:SoundBoard"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <Storyboard x:Key="OverlayFastSemiFadeIn"
+                        AccelerationRatio="1"
+                        BeginTime="0:0:0"
+                        SpeedRatio="20"
+                        Storyboard.TargetProperty="Opacity">
+                <DoubleAnimation To=".7"/>
+            </Storyboard>
+            <Storyboard x:Key="OverlayFastSemiFadeOut"
+                        AccelerationRatio="1"
+                        BeginTime="0:0:0"
+                        SpeedRatio="20"
+                        Storyboard.TargetProperty="Opacity">
+                <DoubleAnimation To="0.0"/>
+            </Storyboard>
+
             <ResourceDictionary.MergedDictionaries>
                 <!-- MahApps.Metro resource dictionaries. Make sure that all file names are Case Sensitive! -->
                 <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />

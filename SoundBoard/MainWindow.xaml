@@ -12,7 +12,9 @@
         BorderThickness="1" 
         GlowBrush="{DynamicResource AccentColorBrush}"
         ResizeMode="CanResizeWithGrip"
-        Loaded="Window_Loaded">
+        Loaded="Window_Loaded"
+        OverlayFadeIn="{StaticResource OverlayFastSemiFadeIn}"
+        OverlayFadeOut="{StaticResource OverlayFastSemiFadeOut}">
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>

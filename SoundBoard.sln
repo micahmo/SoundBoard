@@ -1,13 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31911.196
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundBoard", "SoundBoard\SoundBoard.csproj", "{7775FBF0-62DA-4588-A591-B0D9CB1A2977}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A2D46C83-986F-4A6B-9BCD-67198EF134DE}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
+		SoundBoard\VersionInfo.xml = SoundBoard\VersionInfo.xml
 	EndProjectSection
 EndProject
 Global
@@ -23,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5DC552D4-66BA-480C-8D7B-126FAF817BAB}
 	EndGlobalSection
 EndGlobal

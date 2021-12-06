@@ -188,10 +188,15 @@ namespace SoundBoard
                     // Get global settings
                     if (xmlDocument.SelectSingleNode($"/tabs/{nameof(GlobalSettings)}") is XmlNode globalSettings)
                     {
-                        if (globalSettings.Attributes?[nameof(GlobalSettings.OutputDeviceGuid)] is XmlAttribute outputDeviceGuidAttribute &&
-                            Guid.TryParse(outputDeviceGuidAttribute.Value, out Guid outputDeviceGuid))
+                        if (globalSettings.Attributes?[GlobalSettings.OutputDeviceGuidSettingName] is XmlAttribute outputDeviceGuidAttribute)
                         {
-                            GlobalSettings.OutputDeviceGuid = outputDeviceGuid;
+                            outputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
+                            {
+                                if (Guid.TryParse(guid, out var outputDeviceGuid))
+                                {
+                                    GlobalSettings.AddOutputDeviceGuid(outputDeviceGuid);
+                                }
+                            });
                         }
                     }
 
@@ -555,7 +560,7 @@ namespace SoundBoard
 
                 // Save global settings
                 textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
-                textWriter.WriteAttributeString(nameof(GlobalSettings.OutputDeviceGuid), GlobalSettings.OutputDeviceGuid.ToString());
+                textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
                 textWriter.WriteEndElement();  // <GlobalSettings>
 
                 foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
@@ -935,18 +940,18 @@ namespace SoundBoard
                 clearConfig.SetSeparator(true);
                 clearConfig.Click += ClearConfig_Click;
 
-                MenuItem outputDevice = new MenuItem {Header = Properties.Resources.OutputDevice};
-                outputDevice.SubmenuOpened += OutputDevice_Opened;
+                _outputDeviceMenu = new MenuItem {Header = Properties.Resources.OutputDevice};
+                _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
 
                 // Add a placeholder menu item so that "Output device" will have a submenu
                 // even before we have evaluated the audio devices to add to the menu
                 MenuItem placeholder = new MenuItem();
-                outputDevice.Items.Add(placeholder);
+                _outputDeviceMenu.Items.Add(placeholder);
 
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
-                overflowMenu.Items.Add(outputDevice);
+                overflowMenu.Items.Add(_outputDeviceMenu);
 
                 overflowMenu.AddSeparators();
 
@@ -1113,45 +1118,54 @@ namespace SoundBoard
             }
         }
 
-        private void OutputDevice_Opened(object sender, RoutedEventArgs e)
+        private void OutputDeviceMenuOpened(object sender, RoutedEventArgs e)
         {
             // Re-evaluate the audio devices every time this sub-menu is opened
             if (sender is MenuItem outputDeviceMenuItem)
             {
                 // Clear the current items, whether they are the placeholder
                 // or the previously evaluated audio devices.
-                outputDeviceMenuItem.Items.Clear();
+                // We're marking them for removal instead of removing them immediately so that the 
+                // menu doesn't resize and decide to close because our mouse is no longer over it.
+                // Instead we'll add all the new items, then remove the old ones at the very end.
+                // Use Control istead of MenuItem to capture the Separator.
+                List<Control> itemsToRemove = outputDeviceMenuItem.Items.OfType<Control>().ToList();
 
                 // Create a menu item for each output device
                 using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
                 {
+                    // Note: We're going in reverse order to preserve the separator and "Close" item at the bottom
+
+                    // Now add the rest
+                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Reverse())
+                    {
+                        MenuItem menuItem = new MenuItem
+                        {
+                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
+                            Icon = GlobalSettings.GetOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true
+                        };
+                        menuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        outputDeviceMenuItem.Items.Insert(0, menuItem);
+                    }
+
                     // First, add the default device
                     var defaultDevice = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
                     var defaultDeviceMenuItem = new MenuItem
                     {
                         Header = string.Format(Properties.Resources.DefaultDevice, defaultDevice.FriendlyName),
-                        Icon = GlobalSettings.OutputDeviceGuid == Guid.Empty ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
+                        Icon = GlobalSettings.GetOutputDeviceGuids().Contains(Guid.Empty) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                        StaysOpenOnClick = true
                     };
-                    defaultDeviceMenuItem.Click += (_, __) =>
-                    {
-                        GlobalSettings.OutputDeviceGuid = Guid.Empty;
-                    };
-                    outputDeviceMenuItem.Items.Add(defaultDeviceMenuItem);
+                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(Guid.Empty, args.ChangedButton);
+                    outputDeviceMenuItem.Items.Insert(0, defaultDeviceMenuItem);
 
-                    // Now add the rest
-                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+                    MenuItem closeDeviceMenuMenuItem = new MenuItem
                     {
-                        MenuItem menuItem = new MenuItem
-                        {
-                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
-                            Icon = GlobalSettings.OutputDeviceGuid == device.GetGuid() ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
-                        };
-                        menuItem.Click += (_, __) =>
-                        {
-                            GlobalSettings.OutputDeviceGuid = device.GetGuid();
-                        };
-                        outputDeviceMenuItem.Items.Add(menuItem);
-                    }
+                        Header = Properties.Resources.Close
+                    };
+                    outputDeviceMenuItem.Items.Add(new Separator());
+                    outputDeviceMenuItem.Items.Add(closeDeviceMenuMenuItem);
 
                     // If, after adding all audio devices, none of them are selected, then select the default
                     if (outputDeviceMenuItem.Items.OfType<MenuItem>().All(item => item.Icon is null))
@@ -1159,7 +1173,47 @@ namespace SoundBoard
                         defaultDeviceMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                     }
                 }
+
+                // Finally, remove the items marked for removal
+                foreach (Control control in itemsToRemove)
+                {
+                    outputDeviceMenuItem.Items.Remove(control);
+                }
             }
+        }
+
+        private void HandleDeviceSelection(Guid deviceGuid, MouseButton mouseButton)
+        {
+            if (mouseButton == MouseButton.Right)
+            {
+                // This is a toggle. Do not clear the list, and add or removing depending on existence.
+                if (GlobalSettings.GetOutputDeviceGuids().Contains(deviceGuid))
+                {
+                    if (GlobalSettings.GetOutputDeviceGuids().All(g => g == deviceGuid))
+                    {
+                        // This is the only device in the list, so we can't really toggle it. Do nothing.
+                    }
+                    else
+                    {
+                        // This is in the list, and it's being toggled off, so remove it.
+                        GlobalSettings.RemoveOutputDeviceGuid(deviceGuid);
+                    }
+                }
+                else
+                {
+                    // This is not the list, and it's being togged on, so add it.
+                    GlobalSettings.AddOutputDeviceGuid(deviceGuid);
+                }
+            }
+            else
+            {
+                // Not a toggle, just a selection
+                GlobalSettings.RemoveAllOutputDeviceGuids();
+                GlobalSettings.AddOutputDeviceGuid(deviceGuid);
+            }
+
+            // Refresh the menu
+            OutputDeviceMenuOpened(_outputDeviceMenu, new RoutedEventArgs());
         }
 
         private void CloseSnackbarButton_Click(object sender, RoutedEventArgs e)
@@ -1278,6 +1332,7 @@ namespace SoundBoard
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
+        private MenuItem _outputDeviceMenu;
 
         #endregion
 

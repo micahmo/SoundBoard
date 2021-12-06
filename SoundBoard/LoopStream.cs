@@ -73,22 +73,29 @@ namespace SoundBoard
         {
             int totalBytesRead = 0;
 
-            while (totalBytesRead < count)
+            try
             {
-                int bytesRead = _sourceStream.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
-                if (bytesRead == 0)
+                while (totalBytesRead < count)
                 {
-                    if (_sourceStream.Position == 0 || !EnableLooping)
+                    int bytesRead = _sourceStream.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
+                    if (bytesRead == 0)
                     {
-                        // something wrong with the source stream
-                        break;
+                        if (_sourceStream.Position == 0 || !EnableLooping)
+                        {
+                            // something wrong with the source stream
+                            break;
+                        }
+
+                        // loop
+                        _sourceStream.Position = 0;
                     }
 
-                    // loop
-                    _sourceStream.Position = 0;
+                    totalBytesRead += bytesRead;
                 }
-
-                totalBytesRead += bytesRead;
+            }
+            catch
+            {
+                // Swallow
             }
 
             return totalBytesRead;

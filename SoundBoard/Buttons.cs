@@ -565,7 +565,7 @@ namespace SoundBoard
                 _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
             }
 
-            _loopMenuItem.IsEnabled = _player.PlaybackState != PlaybackState.Playing;
+            _loopMenuItem.IsEnabled = _players.All(p => p.PlaybackState != PlaybackState.Playing);
         }
 
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
@@ -608,7 +608,10 @@ namespace SoundBoard
 
         private void SoundStoppedHandler(object sender, StoppedEventArgs e)
         {
-            HandleSoundStopped();
+            if (sender is IWavePlayer player)
+            {
+                HandleSoundStopped(player);
+            }
         }
 
         private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -660,7 +663,7 @@ namespace SoundBoard
                     volumeAdjustmentMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                 }
 
-                if (_player.PlaybackState == PlaybackState.Playing)
+                if (_players.Any(p => p.PlaybackState == PlaybackState.Playing))
                 {
                     volumeAdjustmentMenuItem.IsEnabled = false;
                 }
@@ -859,61 +862,82 @@ namespace SoundBoard
                 }
 
                 // Stop any previous sounds
-                _player.PlaybackStopped -= SoundStoppedHandler;
-                HandleSoundStopped();
+                _players.ForEach(p => p.PlaybackStopped -= SoundStoppedHandler);
+                _players.ForEach(HandleSoundStopped);
                 Stop();
-                _player.Dispose();
+                _players.ForEach(p => p.Dispose());
+                MainWindow.Instance.SoundPlayers.RemoveAll(p => _players.Contains(p));
+
+                _players.Clear();
 
                 // Reinitialize the player
-                _player = new DirectSoundOut(Utilities.DoesOutAudioDeviceExist(GlobalSettings.OutputDeviceGuid) ? GlobalSettings.OutputDeviceGuid : Guid.Empty);
-                _audioFileReader = new AudioFileReader(SoundPath);
-                IWaveProvider waveProvider;
+                bool addedDefaultDevice = false;
+                GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
+                {
+                    if (Utilities.DoesOutAudioDeviceExist(d))
+                    {
+                        _players.Add(new DirectSoundOut(d));
+                    }
+                    else if (!addedDefaultDevice)
+                    {
+                        _players.Add(new DirectSoundOut(Guid.Empty));
+                        addedDefaultDevice = true;
+                    }
+                });
 
-                // Unmute the selected device
-                Utilities.UnmuteDeviceAudio(GlobalSettings.OutputDeviceGuid, unmuteDefaultIfGivenNotFound: true);
+                _waveProviders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
+                _waveProviders.Clear();
+
+                _audioFileReaders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
+
+                _audioFileReaders.Clear();
+                _players.ForEach(p => _audioFileReaders[p] = new AudioFileReader(SoundPath));
+
+                // Unmute the selected device(s)
+                GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
+                {
+                    Utilities.UnmuteDeviceAudio(d, unmuteDefaultIfGivenNotFound: true);
+                });
 
                 // Handle stop
-                _player.PlaybackStopped += SoundStoppedHandler;
+                _players.ForEach(p => p.PlaybackStopped += SoundStoppedHandler);
 
                 _stopWatch = Stopwatch.StartNew();
 
-                MainWindow.Instance.SoundPlayers.Add(_player);
+                MainWindow.Instance.SoundPlayers.AddRange(_players);
 
                 // Show the additional buttons
                 foreach (HideableMenuButtonBase hideableButton in ChildButtons
-                                                                  .OfType<HideableMenuButtonBase>()
-                                                                  .Where(hideableButton => hideableButton.ShowHideAutomatically))
+                    .OfType<HideableMenuButtonBase>()
+                    .Where(hideableButton => hideableButton.ShowHideAutomatically))
                 {
                     hideableButton.Show();
                 }
-                
+
                 // Handle looping
                 if (Loop)
                 {
-                    waveProvider = new LoopStream(_audioFileReader);
+                    _audioFileReaders.ToList().ForEach(kvp => _waveProviders[kvp.Key] = new LoopStream(kvp.Value));
                 }
                 else
                 {
-                    waveProvider = _audioFileReader;
+                    _audioFileReaders.ToList().ForEach(kvp => _waveProviders[kvp.Key] = kvp.Value);
                 }
 
                 // Set the volume
                 if (VolumeOffset == 0)
                 {
-                    _player.Init(waveProvider);
+                    _players.ForEach(p => p.Init(_waveProviders[p]));
                 }
                 else
                 {
                     float volume = VolumeOffset < 0 ? 1f / (VolumeOffset * VOLUME_OFFSET_MULTIPLIER) : (VolumeOffset * VOLUME_OFFSET_MULTIPLIER);
 
-                    _player.Init(new VolumeSampleProvider(waveProvider.ToSampleProvider())
-                    {
-                        Volume = volume
-                    });
+                    _players.ForEach(p => p.Init(new VolumeSampleProvider(_waveProviders[p].ToSampleProvider()) {Volume = volume}));
                 }
 
                 // Aaaaand play
-                _player.Play();
+                Parallel.ForEach(_players, p => p.Play());
 
                 // Begin updating progress bar
                 _progressBarCancellationToken?.Cancel();
@@ -927,6 +951,8 @@ namespace SoundBoard
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
         }
+
+        private object _lock = new object();
 
         /// <summary>
         /// Prompt the user to browse for and choose a sound for this button
@@ -987,7 +1013,7 @@ namespace SoundBoard
         /// </summary>
         public void Play()
         {
-            _player.Play();
+            Parallel.ForEach(_players, p => p.Play());
             _stopWatch.Start();
         }
 
@@ -996,7 +1022,7 @@ namespace SoundBoard
         /// </summary>
         public void Pause()
         {
-            _player.Pause();
+             Parallel.ForEach(_players, p => p.Pause());
             _stopWatch.Stop();
         }
 
@@ -1005,10 +1031,7 @@ namespace SoundBoard
         /// </summary>
         public void Stop()
         {
-            if (_player.PlaybackState != PlaybackState.Stopped)
-            {
-                _player.Stop();
-            }
+            Parallel.ForEach(_players.Where(p => p.PlaybackState != PlaybackState.Stopped), p => p.Stop());
         }
 
         /// <summary>
@@ -1112,24 +1135,27 @@ namespace SoundBoard
         {
             bool result = false;
 
-            double maxSeconds = _audioFileReader.TotalTime.TotalMilliseconds;
-            double curSeconds = _stopWatch.Elapsed.TotalMilliseconds;
-
-            SoundProgressBar.Visibility = Visibility.Visible;
-            SoundProgressBar.Maximum = maxSeconds;
-            SoundProgressBar.Value = curSeconds;
-
-            // Hide the progress bar if the sound is done or has been stopped
-            if (curSeconds > maxSeconds || _audioFileReader.Position == 0)
+            if (_audioFileReaders.Values.FirstOrDefault() is AudioFileReader audioFileReader)
             {
-                if (Loop && _player.PlaybackState != PlaybackState.Stopped)
+                double maxSeconds = audioFileReader.TotalTime.TotalMilliseconds;
+                double curSeconds = _stopWatch.Elapsed.TotalMilliseconds;
+
+                SoundProgressBar.Visibility = Visibility.Visible;
+                SoundProgressBar.Maximum = maxSeconds;
+                SoundProgressBar.Value = curSeconds;
+
+                // Hide the progress bar if the sound is done or has been stopped
+                if (curSeconds > maxSeconds || audioFileReader.Position == 0)
                 {
-                    _stopWatch = Stopwatch.StartNew();
-                }
-                else
-                {
-                    SoundProgressBar.Visibility = Visibility.Hidden;
-                    result = true;
+                    if (Loop && _players.All(p => p.PlaybackState != PlaybackState.Stopped))
+                    {
+                        _stopWatch = Stopwatch.StartNew();
+                    }
+                    else
+                    {
+                        SoundProgressBar.Visibility = Visibility.Hidden;
+                        result = true;
+                    }
                 }
             }
 
@@ -1391,13 +1417,15 @@ namespace SoundBoard
             }
         }
 
-        private void HandleSoundStopped()
+        private void HandleSoundStopped(IWavePlayer player)
         {
             _progressBarCancellationToken?.Cancel();
 
-            if (_audioFileReader != null)
+            if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
             {
-                _audioFileReader.Position = 0;
+                {
+                    audioFileReader.Position = 0;
+                }
             }
 
             // Hide the additional buttons
@@ -1556,8 +1584,14 @@ namespace SoundBoard
 
         #region Private fields
 
-        private IWavePlayer _player = new DirectSoundOut();
-        private AudioFileReader _audioFileReader;
+        #region Players
+
+        private readonly List<IWavePlayer> _players = new List<IWavePlayer>();
+        private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
+        private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
+
+        #endregion
+
         private Stopwatch _stopWatch;
 
         private MenuItem _chooseSoundMenuItem;

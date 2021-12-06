@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SoundBoard
 {
@@ -7,9 +9,41 @@ namespace SoundBoard
     /// </summary>
     public static class GlobalSettings
     {
+        #region Output device
+
         /// <summary>
-        /// Defines the ID of the audio output device to use when playing sounds
+        /// Add an output device to the current list
         /// </summary>
-        public static Guid OutputDeviceGuid { get; set; } = Guid.Empty;
+        public static void AddOutputDeviceGuid(Guid guid) => OutputDeviceGuids.Add(guid);
+
+        /// <summary>
+        /// Remove an output device from the current list
+        /// </summary>
+        public static void RemoveOutputDeviceGuid(Guid guid) => OutputDeviceGuids.Remove(guid);
+
+        /// <summary>
+        /// Removes all current output devices
+        /// </summary>
+        public static void RemoveAllOutputDeviceGuids() => OutputDeviceGuids.Clear();
+
+        /// <summary>
+        /// Get the current list of output devices
+        /// </summary>
+        public static List<Guid> GetOutputDeviceGuids() => OutputDeviceGuids.Any() ? OutputDeviceGuids : new List<Guid> {Guid.Empty};
+
+        /// <summary>
+        /// The name of the OutputDeviceGuid setting name. 
+        /// </summary>
+        /// <remarks>
+        /// This is for backwards compatibility with old settings files. We used to use nameof(OutputDeviceGuid),
+        /// but there is no property with that name any more.
+        /// </remarks>
+        public static string OutputDeviceGuidSettingName = "OutputDeviceGuid";
+        /// <summary>
+        /// Defines the ID(s) of the audio output device(s) to use when playing sounds
+        /// </summary>
+        private static List<Guid> OutputDeviceGuids { get; } = new List<Guid>();
+
+        #endregion
     }
 }

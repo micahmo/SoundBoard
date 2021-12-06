@@ -280,4 +280,7 @@
   <data name="SingleSpecifier" xml:space="preserve">
     <value>{0}</value>
   </data>
+  <data name="Close" xml:space="preserve">
+	  <value>Close</value>
+  </data>
 </root>

@@ -1125,14 +1125,11 @@ namespace SoundBoard
             {
                 // Clear the current items, whether they are the placeholder
                 // or the previously evaluated audio devices.
-                foreach (MenuItem menuItem in outputDeviceMenuItem.Items.OfType<MenuItem>().ToList())
-                {
-                    if (_closeDeviceMenuMenuItem is null || !ReferenceEquals(menuItem, _closeDeviceMenuMenuItem))
-                    {
-                        // Remove all but the "Close" item
-                        outputDeviceMenuItem.Items.Remove(menuItem);
-                    }
-                }
+                // We're marking them for removal instead of removing them immediately so that the 
+                // menu doesn't resize and decide to close because our mouse is no longer over it.
+                // Instead we'll add all the new items, then remove the old ones at the very end.
+                // Use Control istead of MenuItem to capture the Separator.
+                List<Control> itemsToRemove = outputDeviceMenuItem.Items.OfType<Control>().ToList();
 
                 // Create a menu item for each output device
                 using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
@@ -1163,21 +1160,24 @@ namespace SoundBoard
                     defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(Guid.Empty, args.ChangedButton);
                     outputDeviceMenuItem.Items.Insert(0, defaultDeviceMenuItem);
 
-                    if (_closeDeviceMenuMenuItem is null)
+                    MenuItem closeDeviceMenuMenuItem = new MenuItem
                     {
-                        _closeDeviceMenuMenuItem = new MenuItem
-                        {
-                            Header = Properties.Resources.Close
-                        };
-                        outputDeviceMenuItem.Items.Add(new Separator());
-                        outputDeviceMenuItem.Items.Add(_closeDeviceMenuMenuItem);
-                    }
+                        Header = Properties.Resources.Close
+                    };
+                    outputDeviceMenuItem.Items.Add(new Separator());
+                    outputDeviceMenuItem.Items.Add(closeDeviceMenuMenuItem);
 
                     // If, after adding all audio devices, none of them are selected, then select the default
                     if (outputDeviceMenuItem.Items.OfType<MenuItem>().All(item => item.Icon is null))
                     {
                         defaultDeviceMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                     }
+                }
+
+                // Finally, remove the items marked for removal
+                foreach (Control control in itemsToRemove)
+                {
+                    outputDeviceMenuItem.Items.Remove(control);
                 }
             }
         }
@@ -1333,7 +1333,6 @@ namespace SoundBoard
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
         private MenuItem _outputDeviceMenu;
-        private MenuItem _closeDeviceMenuMenuItem;
 
         #endregion
 

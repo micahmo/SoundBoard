@@ -1,4 +1,4 @@
-﻿![alt text](https://s9.postimg.cc/n3e4vsb5b/logo.png "SoundBoard Logo")
+![alt text](https://s9.postimg.cc/n3e4vsb5b/logo.png "SoundBoard Logo")
 
 # About SoundBoard
 
@@ -32,6 +32,17 @@ Grab the latest version [here](https://github.com/micahmo/SoundBoard/releases/la
 ###### View and control playback of each sound individually
 ![alt text](https://i.postimg.cc/4xPHBgCy/2019-09-02-15-39-46-Glow-Window.png "Overview")
 
+###### Select audio output device; allows you to route audio to a device that is not selected as the default in Windows
+
+![image](https://user-images.githubusercontent.com/7417301/144778976-d6fa375d-f291-4818-b5c4-07239c9524fc.png)
+
+###### Select multiple audio output devices
+
+![image](https://user-images.githubusercontent.com/7417301/144779044-9a198dae-d912-4ce8-ba74-df38a7c56d6d.png)
+
+> Left-click to select a single audio output device. Right-click to select or unselect additional devices.
+>  
+> Note that audio playback to multiple output devices is not guaranteed to be 100% synchronized. This functionality is not officially supported by Windows or [NAudio](https://github.com/naudio/NAudio), so SoundBoard is creating separate audio streams to each device which have the potential to drift.
 
 ## License
 

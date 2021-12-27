@@ -669,7 +669,7 @@ namespace SoundBoard
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            _updateChecker.CheckForUpdates();
+            _updateChecker.CheckForUpdates(UpdateNotifyMode.Auto);
         }
 
         private void RenameMenuItem_Click(object sender, EventArgs e)

@@ -2,7 +2,7 @@
 <AppUpdate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/AppUpdate.xsd">
   <Version>1.8.0.2</Version>
-  <ReleaseDate>2020-12-17</ReleaseDate>
+  <ReleaseDate>2021-12-17</ReleaseDate>
   <!-- Default download -->
   <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.8/SoundBoard.exe</DownloadLink>
   <DownloadFileName>SoundBoard.exe</DownloadFileName>

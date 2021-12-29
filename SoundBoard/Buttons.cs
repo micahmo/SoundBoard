@@ -632,6 +632,49 @@ namespace SoundBoard
             }
         }
 
+        private void ViewSourceMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            _viewSourceMenuItem.Items.Clear();
+
+            MenuItem soundPathMenuItem = new MenuItem();
+            soundPathMenuItem.Click += SoundPathMenuItem_Click;
+
+            // Put the path in the tooltip in case there is any truncation
+            soundPathMenuItem.ToolTip = SoundPath;
+
+            // Create a textblock to hold the sound path so that we can control truncation
+            TextBlock headerTextBlock = new TextBlock
+            {
+                Text = SoundPath,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            soundPathMenuItem.Header = headerTextBlock;
+
+            soundPathMenuItem.IsVisibleChanged += (_, args) =>
+            {
+                if (args.NewValue as bool? == true) // The menu item is becoming visible
+                {
+                    if (VisualTreeHelper.GetParent(soundPathMenuItem) is StackPanel stackPanel &&
+                        VisualTreeHelper.GetParent(stackPanel) is ItemsPresenter itemsPresenter &&
+                        VisualTreeHelper.GetParent(itemsPresenter) is ScrollContentPresenter scrollContentPresenter)
+                    {
+                        // We've navigated up the visual tree to find the parent with the ACTUAL width
+                        void ScrollContentPresenterLoaded(object __, EventArgs ___)
+                        {
+                            // When it loads, assign the ACTUAL width to the text block so we get proper truncation
+                            headerTextBlock.Width = scrollContentPresenter.ActualWidth - 50;
+                            scrollContentPresenter.Loaded -= ScrollContentPresenterLoaded;
+                        }
+                        scrollContentPresenter.Loaded += ScrollContentPresenterLoaded;
+                    }
+                }
+            };
+
+            // Add it to our submenu
+            _viewSourceMenuItem.Items.Add(soundPathMenuItem);
+        }
+
         private void SoundPathMenuItem_Click(object sender, RoutedEventArgs e)
         {
             // Open explorer with the current path selected
@@ -1235,18 +1278,12 @@ namespace SoundBoard
                 _adjustVolumeMenuItem.SubmenuOpened += AdjustVolumeMenuItem_SubmenuOpened;
             }
 
-            // If the path menu item is null, create it and hook up its handler
-            if (_soundPathMenuItem is null)
-            {
-                _soundPathMenuItem = new MenuItem();
-                _soundPathMenuItem.Click += SoundPathMenuItem_Click;
-            }
-
             // If the "Source" menu item is null, create it and hook up its handler
             if (_viewSourceMenuItem is null)
             {
                 _viewSourceMenuItem = new MenuItem {Header = Properties.Resources.Source};
-                _viewSourceMenuItem.Items.Add(_soundPathMenuItem);
+                _viewSourceMenuItem.Items.Add(new MenuItem()); // Add a dummy menu item so this item always has a submenu
+                _viewSourceMenuItem.SubmenuOpened += ViewSourceMenuItem_SubmenuOpened;
             }
 
             // If the "Go to sound" menu item is null, create it and hook up its handler
@@ -1309,8 +1346,6 @@ namespace SoundBoard
             // Add our menu items for either mode
             if (HasValidSound)
             {
-                _soundPathMenuItem.Header = SoundPath;
-
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem) == false)
                 {
                     ContextMenu.Items.Add(_viewSourceMenuItem);
@@ -1597,7 +1632,6 @@ namespace SoundBoard
         private MenuItem _chooseSoundMenuItem;
         private MenuItem _renameMenuItem;
         private MenuItem _clearMenuItem;
-        private MenuItem _soundPathMenuItem;
         private MenuItem _viewSourceMenuItem;
         private MenuItem _goToSoundMenuItem;
         private MenuItem _setColorMenuItem;

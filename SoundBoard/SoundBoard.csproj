@@ -126,6 +126,7 @@
     <Compile Include="TwoDimensionalList.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />
+    <Compile Include="ViewboxPanel.cs" />
     <Compile Include="WaitCursor.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

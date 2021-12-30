@@ -575,11 +575,11 @@ namespace SoundBoard
 
             string result = await MainWindow.Instance.ShowInputAsync(Properties.Resources.Rename,
                 Properties.Resources.WhatDoYouWantToCallIt,
-                new MetroDialogSettings {DefaultText = Content.ToString()});
+                new MetroDialogSettings {DefaultText = SoundName});
 
             if (!string.IsNullOrEmpty(result))
             {
-                Content = SoundName = result;
+                SetContent(SoundName = result);
             }
 
             // Rehandle keypresses in main window
@@ -638,9 +638,6 @@ namespace SoundBoard
 
             MenuItem soundPathMenuItem = new MenuItem();
             soundPathMenuItem.Click += SoundPathMenuItem_Click;
-
-            // Put the path in the tooltip in case there is any truncation
-            soundPathMenuItem.ToolTip = SoundPath;
 
             // Create a textblock to hold the sound path so that we can control truncation
             TextBlock headerTextBlock = new TextBlock
@@ -1045,7 +1042,7 @@ namespace SoundBoard
                 ? Path.GetFileNameWithoutExtension(soundPath).Replace(@"_", "")
                 : soundName.Replace(@"_", "");
 
-            Content = SoundName;
+            SetContent(SoundName);
 
             SetUpStyle();
             SetUpContextMenu();
@@ -1161,7 +1158,7 @@ namespace SoundBoard
         {
             SoundPath = string.Empty;
             SoundName = string.Empty;
-            Content = Properties.Resources.DragASoundHere;
+            SetContent(Properties.Resources.DragASoundHere);
             Color = null;
             VolumeOffset = 0;
             Loop = false;
@@ -1472,6 +1469,44 @@ namespace SoundBoard
             }
         }
 
+        private void SetContent(string text)
+        {
+            if (Mode == SoundButtonMode.Normal)
+            {
+                TextBlock textBlock = new TextBlock
+                {
+                    Text = text,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap
+                };
+
+                ViewboxPanel viewboxPanel = new ViewboxPanel
+                {
+                    Margin = new Thickness(30)
+                };
+                viewboxPanel.Children.Add(textBlock);
+
+                Content = viewboxPanel;
+            }
+            else if (Mode == SoundButtonMode.Search)
+            {
+                // Just do straight scaling with no wrapping
+                TextBlock textBlock = new TextBlock
+                {
+                    Text = text,
+                    TextAlignment = TextAlignment.Center
+                };
+
+                Viewbox viewbox = new Viewbox
+                {
+                    StretchDirection = StretchDirection.DownOnly
+                };
+                viewbox.Child = textBlock;
+
+                Content = viewbox;
+            }
+        }
+
         #endregion
 
         #region Private properties
@@ -1673,7 +1708,7 @@ namespace SoundBoard
             if (string.IsNullOrEmpty(undoState.SoundPath) == false)
             {
                 SetFile(undoState.SoundPath);
-                Content = SoundName = undoState.SoundName;
+                SetContent(SoundName = undoState.SoundName);
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;

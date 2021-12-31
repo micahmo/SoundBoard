@@ -40,10 +40,19 @@ namespace SoundBoard
         {
             try
             {
-                value = _list.First(item => item.row == row && item.column == column).item;
-                return true;
+                if (_list.FirstOrDefault(item => item.row == row && item.column == column).item is T foundValue)
+                {
+                    value = foundValue;
+                    return true;
+                }
+                else
+                {
+                    value = default;
+                    return false;
+                }
             }
-            // Catch the exceptions thrown by IEnumerable.First() when no item is found.
+            // This exception handler was present when we were using First instead of FirstOrDefault.
+            // It is probably safe to remove, but remains as a safety precaution.
             catch (Exception ex) when (ex is ArgumentNullException || ex is InvalidOperationException)
             {
                 value = default;

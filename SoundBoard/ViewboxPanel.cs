@@ -24,7 +24,13 @@ namespace SoundBoard
                 height += child.DesiredSize.Height;
             }
 
-            _scale = Math.Min(1, availableSize.Height / height);
+            // This prevents us from scaling UP, as a scale of 1 (100%) is our max
+            var scale = Math.Min(1, availableSize.Height / height);
+            
+            // This prevents us from going to 0, which breaks things later. (Epsilon is the smallest positive double.)
+            scale = Math.Max(double.Epsilon, scale);
+
+            _scale = scale;
 
             return new Size(Math.Min(availableSize.Width, double.MaxValue - 1), Math.Min(availableSize.Height, double.MaxValue - 1));
         }
@@ -39,7 +45,9 @@ namespace SoundBoard
                 child.RenderTransform = scaleTransform;
                 try
                 {
-                    child.Arrange(new Rect(new Point(0, Math.Max(0, finalSize.Height / 2 - child.DesiredSize.Height / 2)), new Size(finalSize.Width / _scale, child.DesiredSize.Height)));
+                    // This prevents us from going to double.Infinity, which occurs if we try to divide by Epsilon.
+                    var newWidth = Math.Min(finalSize.Width / _scale, double.MaxValue);
+                    child.Arrange(new Rect(new Point(0, Math.Max(0, finalSize.Height / 2 - child.DesiredSize.Height / 2)), new Size(newWidth, child.DesiredSize.Height)));
                 }
                 catch
                 {

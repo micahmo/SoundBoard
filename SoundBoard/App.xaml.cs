@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MahApps.Metro.Controls.Dialogs;
+using System;
 using System.Reflection;
 using System.Runtime.Versioning;
 using System.Windows;
@@ -27,6 +28,29 @@ namespace SoundBoard
                     // Exit gracefully
                     Environment.Exit(0);
                 }
+            };
+
+            // Handle global exceptions
+            DispatcherUnhandledException += (_, args) =>
+            {
+                Dispatcher.Invoke(async () =>
+                {
+                    var res = await SoundBoard.MainWindow.Instance.ShowMessageAsync(SoundBoard.Properties.Resources.Error,
+                        string.Join(Environment.NewLine, SoundBoard.Properties.Resources.UnexpectedError, string.Empty, args.Exception.Message),
+                        MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                        {
+                            AffirmativeButtonText = SoundBoard.Properties.Resources.CopyDetails,
+                            NegativeButtonText = SoundBoard.Properties.Resources.OK
+                        });
+
+                    if (res == MessageDialogResult.Affirmative)
+                    {
+                        Clipboard.SetText(args.Exception.ToString());
+                    }
+                });
+
+                // Don't crash.
+                args.Handled = true;
             };
 
             base.OnStartup(e);

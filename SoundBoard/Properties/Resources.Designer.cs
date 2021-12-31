@@ -205,6 +205,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copy details.
+        /// </summary>
+        internal static string CopyDetails {
+            get {
+                return ResourceManager.GetString("CopyDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Created by Micah Morrison.
         /// </summary>
         internal static string CreatedByMicahMorrison {
@@ -228,6 +237,15 @@ namespace SoundBoard.Properties {
         internal static string DragASoundHere {
             get {
                 return ResourceManager.GetString("DragASoundHere", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        internal static string Error {
+            get {
+                return ResourceManager.GetString("Error", resourceCulture);
             }
         }
         
@@ -489,6 +507,15 @@ namespace SoundBoard.Properties {
         internal static string UhOh {
             get {
                 return ResourceManager.GetString("UhOh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was an unexpected error..
+        /// </summary>
+        internal static string UnexpectedError {
+            get {
+                return ResourceManager.GetString("UnexpectedError", resourceCulture);
             }
         }
         

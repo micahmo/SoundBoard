@@ -283,4 +283,13 @@
   <data name="Close" xml:space="preserve">
 	  <value>Close</value>
   </data>
+  <data name="Error" xml:space="preserve">
+	  <value>Error</value>
+  </data>
+  <data name="UnexpectedError" xml:space="preserve">
+	  <value>There was an unexpected error.</value>
+  </data>
+  <data name="CopyDetails" xml:space="preserve">
+	  <value>Copy details</value>
+  </data>
 </root>

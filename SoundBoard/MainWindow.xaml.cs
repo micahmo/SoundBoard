@@ -716,29 +716,40 @@ namespace SoundBoard
 
             if (buttonGridDialog.DialogResult == System.Windows.Forms.DialogResult.OK)
             {
-                using (new WaitCursor())
+                bool proceed = true;
+
+                if (buttonGridDialog.RowCount * buttonGridDialog.ColumnCount > 300)
                 {
-                    // Stop all sounds
-                    foreach (SoundButton soundButton in GetSoundButtons())
+                    var res = await this.ShowMessageAsync(Properties.Resources.Warning, Properties.Resources.LargeButtonCountWarning, MessageDialogStyle.AffirmativeAndNegative);
+                    proceed = res == MessageDialogResult.Affirmative;
+                }
+
+                if (proceed)
+                {
+                    using (new WaitCursor())
                     {
-                        soundButton.Stop();
+                        // Stop all sounds
+                        foreach (SoundButton soundButton in GetSoundButtons())
+                        {
+                            soundButton.Stop();
+                        }
+
+                        ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                        // Set up our UndoAction
+                        SetUndoAction(() => { LoadState(configUndoState); });
+
+                        // Create and show a snackbar
+                        string message = Properties.Resources.ButtonLayoutWasChanged;
+                        string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
+                        ShowUndoSnackbar(truncatedMessage);
+
+                        // Do the change
+                        SelectedTab.SetRows(buttonGridDialog.RowCount);
+                        SelectedTab.SetColumns(buttonGridDialog.ColumnCount);
+                        SaveSettings();
+                        LoadSettings();
                     }
-
-                    ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
-
-                    // Set up our UndoAction
-                    SetUndoAction(() => { LoadState(configUndoState); });
-
-                    // Create and show a snackbar
-                    string message = Properties.Resources.ButtonLayoutWasChanged;
-                    string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
-                    ShowUndoSnackbar(truncatedMessage);
-
-                    // Do the change
-                    SelectedTab.SetRows(buttonGridDialog.RowCount);
-                    SelectedTab.SetColumns(buttonGridDialog.ColumnCount);
-                    SaveSettings();
-                    LoadSettings();
                 }
             }
         }

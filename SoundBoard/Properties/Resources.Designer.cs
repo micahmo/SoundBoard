@@ -295,6 +295,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A large button grid could cause the application to become slow or unresponsive. Are you sure you want to continue?.
+        /// </summary>
+        internal static string LargeButtonCountWarning {
+            get {
+                return ResourceManager.GetString("LargeButtonCountWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loop.
         /// </summary>
         internal static string Loop {
@@ -534,6 +543,15 @@ namespace SoundBoard.Properties {
         internal static string VolumeOfSoundIsOffset {
             get {
                 return ResourceManager.GetString("VolumeOfSoundIsOffset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning.
+        /// </summary>
+        internal static string Warning {
+            get {
+                return ResourceManager.GetString("Warning", resourceCulture);
             }
         }
         

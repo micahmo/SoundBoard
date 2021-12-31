@@ -292,4 +292,10 @@
   <data name="CopyDetails" xml:space="preserve">
 	  <value>Copy details</value>
   </data>
+  <data name="Warning" xml:space="preserve">
+	  <value>Warning</value>
+  </data>
+  <data name="LargeButtonCountWarning" xml:space="preserve">
+	  <value>A large button grid could cause the application to become slow or unresponsive. Are you sure you want to continue?</value>
+  </data>
 </root>

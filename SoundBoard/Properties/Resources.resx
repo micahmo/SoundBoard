@@ -176,11 +176,8 @@
     <value>Uh oh!</value>
   </data>
   <data name="FileDoesNotExist" xml:space="preserve">
-    <value>File '{0}' doesn't seem to exist!</value>
+    <value>File '{0}' doesn't seem to exist.</value>
     <comment>{0} is the name of a file</comment>
-  </data>
-  <data name="Oops" xml:space="preserve">
-    <value>Oops!</value>
   </data>
   <data name="ThereWasAProblem" xml:space="preserve">
     <value>There was a problem!</value>
@@ -300,5 +297,20 @@
   </data>
   <data name="FileNotFoundWarning" xml:space="preserve">
 	  <value>Warning: The file '{0}' could not be found.</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+	  <value>Browse</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+	  <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+	  <value>No</value>
+  </data>
+  <data name="FixLinksHeader" xml:space="preserve">
+	  <value>Fix broken links</value>
+  </data>
+  <data name="FixLinksMessage" xml:space="preserve">
+	  <value>{0} additional missing sounds were found in the selected directory. Relink them?</value>
   </data>
 </root>

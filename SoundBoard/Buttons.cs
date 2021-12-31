@@ -964,7 +964,62 @@ namespace SoundBoard
             {
                 if (!File.Exists(SoundPath))
                 {
-                    throw new Exception(string.Format(Properties.Resources.FileDoesNotExist, SoundPath));
+                    var res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.FileDoesNotExist, SoundPath),
+                        MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                        {
+                            AffirmativeButtonText = Properties.Resources.Browse,
+                            NegativeButtonText = Properties.Resources.OK
+                        });
+
+                    if (res == MessageDialogResult.Affirmative)
+                    {
+                        string originalSoundFileName = Path.GetFileName(SoundPath);
+                        if (BrowseForSound(initialFileName: originalSoundFileName))
+                        {
+                            // We selected a sound, check if it's an exact match
+                            if (Path.GetFileName(SoundPath) == originalSoundFileName && Path.GetDirectoryName(SoundPath) is string newDirectory)
+                            {
+                                Dictionary<SoundButton, string> potentialMatches = new Dictionary<SoundButton, string>();
+
+                                // This is a relinking, so check if there are any other missing sounds that can be relinked from this new directory.
+                                foreach (SoundButton soundButton in MainWindow.Instance.GetSoundButtons())
+                                {
+                                    originalSoundFileName = Path.GetFileName(soundButton.SoundPath);
+                                    string potentialNewSoundPath = Path.Combine(newDirectory, originalSoundFileName);
+
+                                    if (!File.Exists(soundButton.SoundPath) // The sound link is missing
+                                        && File.Exists(potentialNewSoundPath)) // The broken sound file is found in this new directory
+                                    {
+                                        potentialMatches[soundButton] = potentialNewSoundPath;
+                                    }
+                                }
+
+                                // If we found any matches, tell the user and let them decide
+                                if (potentialMatches.Any())
+                                {
+                                    res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.FixLinksHeader, string.Format(Properties.Resources.FixLinksMessage, potentialMatches.Count),
+                                        MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                                        {
+                                            AffirmativeButtonText = Properties.Resources.Yes,
+                                            NegativeButtonText = Properties.Resources.No
+                                        });
+
+                                    if (res == MessageDialogResult.Affirmative)
+                                    {
+                                        using (new WaitCursor())
+                                        {
+                                            foreach (var kvp in potentialMatches)
+                                            {
+                                                kvp.Key.SetFile(kvp.Value);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return;
                 }
 
                 // Stop any previous sounds
@@ -1053,7 +1108,7 @@ namespace SoundBoard
             }
             catch (Exception ex)
             {
-                await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Oops,
+                await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
         }
@@ -1063,12 +1118,13 @@ namespace SoundBoard
         /// <summary>
         /// Prompt the user to browse for and choose a sound for this button
         /// </summary>
-        public void BrowseForSound()
+        public bool BrowseForSound(string initialFileName = "")
         {
             // Show file dialog
             OpenFileDialog dialog = new OpenFileDialog
             {
                 // Set file type filters
+                FileName = initialFileName,
                 Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*"
             };
 
@@ -1078,7 +1134,11 @@ namespace SoundBoard
                 Stop();
 
                 SetFile(dialog.FileName);
+
+                return true;
             }
+
+            return false;
         }
 
         /// <summary>

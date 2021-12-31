@@ -617,7 +617,7 @@ namespace SoundBoard
         /// Returns all <see cref="SoundButton"/>s in the given <see cref="MainWindow"/>.
         /// If parameter <paramref name="metroTabItem"/> is passed, only <see cref="SoundButton"/>s which appear on the given <paramref name="metroTabItem"/> are returned.
         /// </summary>
-        private IEnumerable<SoundButton> GetSoundButtons(MetroTabItem metroTabItem = null)
+        internal IEnumerable<SoundButton> GetSoundButtons(MetroTabItem metroTabItem = null)
         {
             foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
             {
@@ -1059,7 +1059,7 @@ namespace SoundBoard
                 }
                 catch (Exception ex)
                 {
-                    await this.ShowMessageAsync(Properties.Resources.Oops,
+                    await this.ShowMessageAsync(Properties.Resources.Error,
                         Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
             }
@@ -1101,7 +1101,7 @@ namespace SoundBoard
                 }
                 catch (Exception ex)
                 {
-                    await this.ShowMessageAsync(Properties.Resources.Oops,
+                    await this.ShowMessageAsync(Properties.Resources.Error,
                         Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
             }
@@ -1132,7 +1132,7 @@ namespace SoundBoard
             }
             catch (Exception ex)
             {
-                await this.ShowMessageAsync(Properties.Resources.Oops,
+                await this.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
         }

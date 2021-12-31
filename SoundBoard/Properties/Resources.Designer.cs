@@ -97,6 +97,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Browse.
+        /// </summary>
+        internal static string Browse {
+            get {
+                return ResourceManager.GetString("Browse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Button layout was changed..
         /// </summary>
         internal static string ButtonLayoutWasChanged {
@@ -259,7 +268,7 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to File &apos;{0}&apos; doesn&apos;t seem to exist!.
+        ///   Looks up a localized string similar to File &apos;{0}&apos; doesn&apos;t seem to exist..
         /// </summary>
         internal static string FileDoesNotExist {
             get {
@@ -273,6 +282,24 @@ namespace SoundBoard.Properties {
         internal static string FileNotFoundWarning {
             get {
                 return ResourceManager.GetString("FileNotFoundWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fix broken links.
+        /// </summary>
+        internal static string FixLinksHeader {
+            get {
+                return ResourceManager.GetString("FixLinksHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} additional missing sounds were found in the selected directory. Relink them?.
+        /// </summary>
+        internal static string FixLinksMessage {
+            get {
+                return ResourceManager.GetString("FixLinksMessage", resourceCulture);
             }
         }
         
@@ -340,6 +367,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No.
+        /// </summary>
+        internal static string No {
+            get {
+                return ResourceManager.GetString("No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Warning: The file &apos;{0}&apos; does not appear to have an audio track. It may not play correctly..
         /// </summary>
         internal static string NoAudioTrackWarning {
@@ -354,15 +390,6 @@ namespace SoundBoard.Properties {
         internal static string OK {
             get {
                 return ResourceManager.GetString("OK", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Oops!.
-        /// </summary>
-        internal static string Oops {
-            get {
-                return ResourceManager.GetString("Oops", resourceCulture);
             }
         }
         
@@ -588,6 +615,15 @@ namespace SoundBoard.Properties {
         internal static string WhatDoYouWantToCallIt {
             get {
                 return ResourceManager.GetString("WhatDoYouWantToCallIt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yes.
+        /// </summary>
+        internal static string Yes {
+            get {
+                return ResourceManager.GetString("Yes", resourceCulture);
             }
         }
     }

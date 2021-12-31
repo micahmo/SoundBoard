@@ -29,7 +29,7 @@ namespace SoundBoard
         /// <summary>
         /// Get the current list of output devices
         /// </summary>
-        public static List<Guid> GetOutputDeviceGuids() => OutputDeviceGuids.Any() ? OutputDeviceGuids : new List<Guid> {Guid.Empty};
+        public static List<Guid> GetOutputDeviceGuids() => (OutputDeviceGuids.Any() ? OutputDeviceGuids : new HashSet<Guid> {Guid.Empty}).ToList();
 
         /// <summary>
         /// The name of the OutputDeviceGuid setting name. 
@@ -42,7 +42,10 @@ namespace SoundBoard
         /// <summary>
         /// Defines the ID(s) of the audio output device(s) to use when playing sounds
         /// </summary>
-        private static List<Guid> OutputDeviceGuids { get; } = new List<Guid>();
+        /// <remarks>
+        /// HashSet to prevent duplicate GUIDs.
+        /// </remarks>
+        private static HashSet<Guid> OutputDeviceGuids { get; } = new HashSet<Guid>();
 
         #endregion
     }

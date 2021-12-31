@@ -88,11 +88,11 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Audio Files.
+        ///   Looks up a localized string similar to Audio and Video Files.
         /// </summary>
-        internal static string AudioFiles {
+        internal static string AudioVideoFiles {
             get {
-                return ResourceManager.GetString("AudioFiles", resourceCulture);
+                return ResourceManager.GetString("AudioVideoFiles", resourceCulture);
             }
         }
         
@@ -268,6 +268,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Warning: The file &apos;{0}&apos; could not be found..
+        /// </summary>
+        internal static string FileNotFoundWarning {
+            get {
+                return ResourceManager.GetString("FileNotFoundWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Go to sound.
         /// </summary>
         internal static string GoToSound {
@@ -327,6 +336,15 @@ namespace SoundBoard.Properties {
         internal static string NewPage {
             get {
                 return ResourceManager.GetString("NewPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warning: The file &apos;{0}&apos; does not appear to have an audio track. It may not play correctly..
+        /// </summary>
+        internal static string NoAudioTrackWarning {
+            get {
+                return ResourceManager.GetString("NoAudioTrackWarning", resourceCulture);
             }
         }
         
@@ -471,15 +489,6 @@ namespace SoundBoard.Properties {
         internal static string Source {
             get {
                 return ResourceManager.GetString("Source", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Only .wav and .mp3 files supported..
-        /// </summary>
-        internal static string SupportedFileTypes {
-            get {
-                return ResourceManager.GetString("SupportedFileTypes", resourceCulture);
             }
         }
         

@@ -495,6 +495,76 @@ namespace SoundBoard
 
     #endregion
 
+    #region SoundWarningIconButton class
+
+    internal sealed class SoundWarningIconButton : IconButtonBase
+    {
+        public SoundWarningIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Top;
+            FontWeight = FontWeights.SemiBold;
+            ToolTipService.SetShowDuration(this, (int)TimeSpan.FromSeconds(10).TotalMilliseconds);
+            
+            SetUpStyle();
+        }
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.WarningIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Updates the warning depending on whether or not an audio track is detected in the current file
+        /// </summary>
+        public void Update()
+        {
+            if (string.IsNullOrEmpty(ParentButton.SoundPath))
+            {
+                Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                if (!File.Exists(ParentButton.SoundPath))
+                {
+                    ToolTip = string.Format(Properties.Resources.FileNotFoundWarning, ParentButton.SoundPath);
+                    Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    try
+                    {
+                        // Try to instantiate a new reader for this audio file.
+                        using (new AudioFileReader(ParentButton.SoundPath))
+                        {
+                            // If we get here, it's a good sound! Hide the warning.
+                            Visibility = Visibility.Collapsed;
+                        }
+
+                        // Don't do anything else. Let it get disposed immediately.
+                    }
+                    catch
+                    {
+                        // AudioFileReader will throw an exception if the file doesn't contain audio.
+                        ToolTip = string.Format(Properties.Resources.NoAudioTrackWarning, Path.GetFileName(ParentButton.SoundPath));
+                        Visibility = Visibility.Visible;
+                    }
+                }
+            }
+        }
+
+        #endregion
+    }
+
+    #endregion
+
     #region SoundProgressBar class
 
     /// <summary>
@@ -834,7 +904,7 @@ namespace SoundBoard
         }
 
         /// <inheritdoc />
-        protected override async void OnDrop(DragEventArgs e)
+        protected override void OnDrop(DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
@@ -846,14 +916,7 @@ namespace SoundBoard
 
                 if (string.IsNullOrEmpty(file) == false)
                 {
-                    // Can only have .mp3 and .wav
-                    if (Path.GetExtension(file) != @".mp3" && Path.GetExtension(file) != @".wav")
-                    {
-                        await MainWindow.Instance.ShowMessageAsync(Properties.Resources.UhOh, Properties.Resources.SupportedFileTypes);
-                        return;
-                    }
-
-                    // Stop any current recording
+                    // Stop any current playback
                     Stop();
 
                     // Set it
@@ -894,6 +957,9 @@ namespace SoundBoard
         /// </summary>
         public async void StartSound()
         {
+            // Every time the sound is started, update the warning status
+            ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
+
             try
             {
                 if (!File.Exists(SoundPath))
@@ -1003,12 +1069,14 @@ namespace SoundBoard
             OpenFileDialog dialog = new OpenFileDialog
             {
                 // Set file type filters
-                DefaultExt = @".wav",
-                Filter = Properties.Resources.AudioFiles + @" (*.wav, *.mp3)|*.wav;*.mp3"
+                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*"
             };
 
             if (dialog.ShowDialog() == true)
             {
+                // Stop any current playback
+                Stop();
+
                 SetFile(dialog.FileName);
             }
         }
@@ -1579,7 +1647,16 @@ namespace SoundBoard
         /// <summary>
         /// Defines the path of the underlying sound file
         /// </summary>
-        public string SoundPath { get; private set; }
+        public string SoundPath
+        {
+            get => _soundPath;
+            private set
+            {
+                _soundPath = value;
+                ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private string _soundPath;
 
         /// <summary>
         /// Defines the name of the sound file as displayed on the button

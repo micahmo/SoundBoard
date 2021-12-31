@@ -175,9 +175,6 @@
   <data name="UhOh" xml:space="preserve">
     <value>Uh oh!</value>
   </data>
-  <data name="SupportedFileTypes" xml:space="preserve">
-    <value>Only .wav and .mp3 files supported.</value>
-  </data>
   <data name="FileDoesNotExist" xml:space="preserve">
     <value>File '{0}' doesn't seem to exist!</value>
     <comment>{0} is the name of a file</comment>
@@ -188,8 +185,8 @@
   <data name="ThereWasAProblem" xml:space="preserve">
     <value>There was a problem!</value>
   </data>
-  <data name="AudioFiles" xml:space="preserve">
-    <value>Audio Files</value>
+  <data name="AudioVideoFiles" xml:space="preserve">
+    <value>Audio and Video Files</value>
   </data>
   <data name="DragASoundHere" xml:space="preserve">
     <value>Drag a sound here...</value>
@@ -297,5 +294,11 @@
   </data>
   <data name="LargeButtonCountWarning" xml:space="preserve">
 	  <value>A large button grid could cause the application to become slow or unresponsive. Are you sure you want to continue?</value>
+  </data>
+  <data name="NoAudioTrackWarning" xml:space="preserve">
+	  <value>Warning: The file '{0}' does not appear to have an audio track. It may not play correctly.</value>
+  </data>
+  <data name="FileNotFoundWarning" xml:space="preserve">
+	  <value>Warning: The file '{0}' could not be found.</value>
   </data>
 </root>

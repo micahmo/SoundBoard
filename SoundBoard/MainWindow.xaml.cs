@@ -431,6 +431,14 @@ namespace SoundBoard
                     parentGrid.Children.Add(volumeOffsetIconButton);
                     soundButton.ChildButtons.Add(volumeOffsetIconButton);
 
+                    // Warning icon
+                    SoundWarningIconButton soundWarningIconButton = new SoundWarningIconButton(soundButton);
+
+                    Grid.SetColumn(soundWarningIconButton, columnIndex);
+                    Grid.SetRow(soundWarningIconButton, rowIndex);
+                    parentGrid.Children.Add(soundWarningIconButton);
+                    soundButton.ChildButtons.Add(soundWarningIconButton);
+
                     // Progress bar
                     SoundProgressBar progressBar = new SoundProgressBar();
 

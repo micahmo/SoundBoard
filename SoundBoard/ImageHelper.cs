@@ -62,6 +62,8 @@ namespace SoundBoard
 
         public static string LoopIconPath = @"pack://application:,,,/Images/loop";
 
+        public static string WarningIconPath = @"pack://application:,,,/Images/warning";
+
         #endregion
 
         #region Private static consts

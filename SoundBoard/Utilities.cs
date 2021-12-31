@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using MimeMapping;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Point = System.Windows.Point;
@@ -166,6 +167,15 @@ namespace SoundBoard
 
             return result;
         }
+
+        public static string SupportedAudioFileTypes => _supportedAudioFileTypes ?? (_supportedAudioFileTypes =
+                    $@"{string.Join(@"; ", // Join with semicolon
+                        MimeUtility.TypeMap
+                            .Where(kvp => kvp.Value.StartsWith(@"audio/") || kvp.Value.StartsWith(@"video/")) // Find all MIME types that are audio or video
+                            .Select(kvp => $@"*.{kvp.Key}") // Select the extension and prefix with *.
+                            .OrderBy(v => v).ToList())}" // Sort alphabetically
+            );
+        private static string _supportedAudioFileTypes;
 
         #endregion
 

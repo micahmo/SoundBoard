@@ -14,7 +14,9 @@
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded"
         OverlayFadeIn="{StaticResource OverlayFastSemiFadeIn}"
-        OverlayFadeOut="{StaticResource OverlayFastSemiFadeOut}">
+        OverlayFadeOut="{StaticResource OverlayFastSemiFadeOut}"
+        UseLayoutRounding="True">
+    <!-- UseLayoutRounding dramatically improves the appearance of small images. -->
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>

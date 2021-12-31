@@ -34,11 +34,11 @@ Grab the latest version [here](https://github.com/micahmo/SoundBoard/releases/la
 
 ###### Select audio output device; allows you to route audio to a device that is not selected as the default in Windows
 
-![image](https://user-images.githubusercontent.com/7417301/144778976-d6fa375d-f291-4818-b5c4-07239c9524fc.png)
+https://user-images.githubusercontent.com/7417301/147796828-5dacc1a5-9056-4437-8210-1154a5098920.png
 
 ###### Select multiple audio output devices
 
-![image](https://user-images.githubusercontent.com/7417301/144779044-9a198dae-d912-4ce8-ba74-df38a7c56d6d.png)
+https://user-images.githubusercontent.com/7417301/147796839-bb8d0abc-88a0-42e1-9c3a-b4b510c3e9d6.png
 
 > Left-click to select a single audio output device. Right-click to select or unselect additional devices.
 >  

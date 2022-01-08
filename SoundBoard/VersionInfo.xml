@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <AppUpdate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/AppUpdate.xsd">
-  <Version>1.8.0.2</Version>
-  <ReleaseDate>2021-12-17</ReleaseDate>
+  <Version>1.9.0.2</Version>
+  <ReleaseDate>2022-1-8</ReleaseDate>
   <!-- Default download -->
-  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.8/SoundBoard.exe</DownloadLink>
+  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.9/SoundBoard.exe</DownloadLink>
   <DownloadFileName>SoundBoard.exe</DownloadFileName>
   <!-- All download options -->
   <Downloads>
     <Download key="portable">
-      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.8/SoundBoard.exe</Link>
+      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.9/SoundBoard.exe</Link>
       <FileName>SoundBoard.exe</FileName>
       <FileHash></FileHash>
     </Download>
   </Downloads>
   <!-- Release notes -->
-  <VersionNotes> - Add multiple output devices
- - Fix small application icon</VersionNotes>
+  <VersionNotes> - Allow updates to be skipped
+ - Handle long sound paths and names
+ - Expand list of supported audio/video file types
+ - Add missing/unsupported file warnings
+ - Allow restoring broken file links
+ - General error handling and bug fixes</VersionNotes>
   <ReleaseNotes></ReleaseNotes>
 </AppUpdate>

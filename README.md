@@ -44,6 +44,10 @@ Grab the latest version [here](https://github.com/micahmo/SoundBoard/releases/la
 >  
 > Note that audio playback to multiple output devices is not guaranteed to be 100% synchronized. This functionality is not officially supported by Windows or [NAudio](https://github.com/naudio/NAudio), so SoundBoard is creating separate audio streams to each device which have the potential to drift.
 
+###### Pass through an audio input device
+
+You may also select an input to pipe to your output(s). This is essentially an audio passthrough, and should be roughly equivalent listen feature in the Windows sound properties. You may optionally tweak the desired latency in the configuration file. A too-low latency may result in choppy audio.
+
 ## License
 
 This code is licenced under the [MIT License](https://opensource.org/licenses/MIT).

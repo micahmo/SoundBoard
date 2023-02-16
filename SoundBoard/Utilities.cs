@@ -41,6 +41,8 @@ namespace SoundBoard
             return input + (truncated ? ELLIPSES : string.Empty);
         }
 
+        #region Audio utilities
+
         /// <summary>
         /// Unmute the system audio device(s), with optional parameters to specify the <see cref="DataFlow"/> and <see cref="DeviceState"/>.
         /// </summary>
@@ -98,6 +100,23 @@ namespace SoundBoard
                 return deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, role);
             }
         }
+
+        public static MMDevice GetDevice(Guid deviceId, DataFlow dataFlow, Role role = Role.Multimedia)
+        {
+            if (deviceId == Guid.Empty)
+            {
+                return (GetDefaultDevice(dataFlow, role));
+            }
+            else
+            {
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    return deviceEnumerator.EnumerateAudioEndPoints(dataFlow, DeviceState.Active).FirstOrDefault(d => d.GetGuid() == deviceId);
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Returns true if the distance (absolute value) between both <paramref name="firstPoint"/>.X and <paramref name="secondPoint"/>.X

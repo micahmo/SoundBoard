@@ -264,6 +264,9 @@
   <data name="OK" xml:space="preserve">
     <value>OK</value>
   </data>
+  <data name="InputDevice" xml:space="preserve">
+    <value>Input device</value>
+  </data>
   <data name="OutputDevice" xml:space="preserve">
     <value>Output device</value>
   </data>

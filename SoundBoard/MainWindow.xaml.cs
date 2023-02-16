@@ -134,6 +134,8 @@ namespace SoundBoard
                 Owner = this,
                 DownloadIdentifier = "portable"
             };
+
+            HandleInputOutputChange();
         }
 
         #endregion
@@ -197,6 +199,23 @@ namespace SoundBoard
                                     GlobalSettings.AddOutputDeviceGuid(outputDeviceGuid);
                                 }
                             });
+                        }
+
+                        if (globalSettings.Attributes?[GlobalSettings.InputDeviceGuidSettingName] is XmlAttribute inputDeviceGuidAttribute)
+                        {
+                            inputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
+                            {
+                                if (Guid.TryParse(guid, out var inputDeviceGuid))
+                                {
+                                    GlobalSettings.AddInputDeviceGuid(inputDeviceGuid);
+                                }
+                            });
+                        }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.AudioPassthroughLatency)] is XmlAttribute audioPassthroughLatencyAttribute
+                            && int.TryParse(audioPassthroughLatencyAttribute.Value, out int audioPassthroughLatency))
+                        {
+                            GlobalSettings.AudioPassthroughLatency = audioPassthroughLatency;
                         }
                     }
 
@@ -569,6 +588,8 @@ namespace SoundBoard
                 // Save global settings
                 textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
                 textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
+                textWriter.WriteAttributeString(GlobalSettings.InputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetInputDeviceGuids()));
+                textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
                 textWriter.WriteEndElement();  // <GlobalSettings>
 
                 foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
@@ -959,6 +980,9 @@ namespace SoundBoard
                 clearConfig.SetSeparator(true);
                 clearConfig.Click += ClearConfig_Click;
 
+                _inputDeviceMenu = new MenuItem { Header = Properties.Resources.InputDevice };
+                _inputDeviceMenu.SubmenuOpened += InputDeviceMenuOpened;
+
                 _outputDeviceMenu = new MenuItem {Header = Properties.Resources.OutputDevice};
                 _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
 
@@ -967,9 +991,15 @@ namespace SoundBoard
                 MenuItem placeholder = new MenuItem();
                 _outputDeviceMenu.Items.Add(placeholder);
 
+                // Add a placeholder menu item so that "Input device" will have a submenu
+                // even before we have evaluated the audio devices to add to the menu
+                placeholder = new MenuItem();
+                _inputDeviceMenu.Items.Add(placeholder);
+
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
+                overflowMenu.Items.Add(_inputDeviceMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
 
                 overflowMenu.AddSeparators();
@@ -1137,6 +1167,59 @@ namespace SoundBoard
             }
         }
 
+        private void InputDeviceMenuOpened(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem inputDeviceMenu)
+            {
+                // Clear the current items, whether they are the placeholder
+                // or the previously evaluated audio devices.
+                // We're marking them for removal instead of removing them immediately so that the 
+                // menu doesn't resize and decide to close because our mouse is no longer over it.
+                // Instead we'll add all the new items, then remove the old ones at the very end.
+                // Use Control istead of MenuItem to capture the Separator.
+                List<Control> itemsToRemove = inputDeviceMenu.Items.OfType<Control>().ToList();
+
+                // Create a menu item for each output device
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    // Note: We're going in reverse order to preserve the separator and "Close" item at the bottom
+
+                    // Now add the rest
+                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).Reverse())
+                    {
+                        MenuItem menuItem = new MenuItem
+                        {
+                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
+                            Icon = GlobalSettings.GetInputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true
+                        };
+                        menuItem.PreviewMouseUp += (_, args) => HandleInputDeviceSelection(device.GetGuid());
+                        inputDeviceMenu.Items.Insert(0, menuItem);
+                    }
+
+                    MenuItem closeDeviceMenuMenuItem = new MenuItem
+                    {
+                        Header = Properties.Resources.Close
+                    };
+                    inputDeviceMenu.Items.Add(new Separator());
+                    inputDeviceMenu.Items.Add(closeDeviceMenuMenuItem);
+                }
+
+                // Finally, remove the items marked for removal
+                foreach (Control control in itemsToRemove)
+                {
+                    inputDeviceMenu.Items.Remove(control);
+                }
+
+                // We only have close and separator, which looks funny, so remove the separator
+                if (inputDeviceMenu.Items.Count == 2
+                    && inputDeviceMenu.Items.OfType<Separator>().FirstOrDefault() is Separator separator)
+                {
+                    inputDeviceMenu.Items.Remove(separator);
+                }
+            }
+        }
+
         private void OutputDeviceMenuOpened(object sender, RoutedEventArgs e)
         {
             // Re-evaluate the audio devices every time this sub-menu is opened
@@ -1164,7 +1247,7 @@ namespace SoundBoard
                             Icon = GlobalSettings.GetOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
                             StaysOpenOnClick = true
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(device.GetGuid(), args.ChangedButton);
                         outputDeviceMenuItem.Items.Insert(0, menuItem);
                     }
 
@@ -1176,7 +1259,7 @@ namespace SoundBoard
                         Icon = GlobalSettings.GetOutputDeviceGuids().Contains(Guid.Empty) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
                         StaysOpenOnClick = true
                     };
-                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(Guid.Empty, args.ChangedButton);
+                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(Guid.Empty, args.ChangedButton);
                     outputDeviceMenuItem.Items.Insert(0, defaultDeviceMenuItem);
 
                     MenuItem closeDeviceMenuMenuItem = new MenuItem
@@ -1198,10 +1281,129 @@ namespace SoundBoard
                 {
                     outputDeviceMenuItem.Items.Remove(control);
                 }
+
+                // We only have close and separator, which looks funny, so remove the separator
+                if (outputDeviceMenuItem.Items.Count == 2
+                    && outputDeviceMenuItem.Items.OfType<Separator>().FirstOrDefault() is Separator separator)
+                {
+                    outputDeviceMenuItem.Items.Remove(separator);
+                }
             }
         }
 
-        private void HandleDeviceSelection(Guid deviceGuid, MouseButton mouseButton)
+        // This behavior is different from the output devices in that we can only select one.
+        // However, all of the pieces are in place to allow multiple selection if needed.
+        private void HandleInputDeviceSelection(Guid deviceGuid)
+        {
+            if (GlobalSettings.GetInputDeviceGuids().Contains(deviceGuid))
+            {
+                // Toggle it off
+                GlobalSettings.RemoveInputDeviceGuid(deviceGuid);
+            }
+            else
+            {
+                // Toggle it on and remove others
+                GlobalSettings.RemoveAllInputDeviceGuids();
+                GlobalSettings.AddInputDeviceGuid(deviceGuid);
+            }
+
+            // Refresh the menu
+            InputDeviceMenuOpened(_inputDeviceMenu, new RoutedEventArgs());
+
+            HandleInputOutputChange();
+        }
+
+        private void HandleInputOutputChange()
+        {
+            // Clear any existing chaining
+            CleanUpAudioPassthrough();
+
+            if (GlobalSettings.GetInputDeviceGuids().Any())
+            {
+                foreach (var outputDeviceId in GlobalSettings.GetOutputDeviceGuids())
+                {
+                    // Create the input
+                    Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
+                    MMDevice inputDevice = Utilities.GetDevice(inputDeviceId, DataFlow.Capture);
+                    WasapiCapture inputCapture = new WasapiCapture(inputDevice);
+                    inputCapture.RecordingStopped += HandleRecordingStopped;
+                    _inputCaptures.Add(inputCapture);
+
+                    // Create the buffer
+                    BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(inputDevice.AudioClient.MixFormat)
+                    {
+                        DiscardOnBufferOverflow = true
+                    };
+                    _bufferedWaveProviders.Add(bufferedWaveProvider);
+
+                    inputCapture.DataAvailable += (_, args) =>
+                    {
+                        bufferedWaveProvider.AddSamples(args.Buffer, 0, args.BytesRecorded);
+                    };
+
+                    // Create the outputs
+                    WasapiOut output = new WasapiOut(Utilities.GetDevice(outputDeviceId, DataFlow.Render), AudioClientShareMode.Shared, true, GlobalSettings.AudioPassthroughLatency);
+                    _outputCaptures.Add(output);
+
+                    output.Init(bufferedWaveProvider);
+                    output.Play();
+
+                    inputCapture.StartRecording();
+                }
+            }
+        }
+
+        private void HandleRecordingStopped(object sender, StoppedEventArgs args)
+        {
+            // Handle the device being disabled/disconnected/etc.
+            GlobalSettings.RemoveAllInputDeviceGuids();
+            CleanUpAudioPassthrough();
+        }
+
+        private void CleanUpAudioPassthrough()
+        {
+            try
+            {
+                _inputCaptures.ForEach(ic =>
+                {
+                    ic.RecordingStopped -= HandleRecordingStopped;
+                    ic.StopRecording();
+                    ic.Dispose();
+                });
+            }
+            finally
+            {
+                _inputCaptures.Clear();
+            }
+
+            try
+            {
+                _outputCaptures.ForEach(oc =>
+                {
+                    oc.Stop();
+                    oc.Dispose();
+                });
+            }
+            finally
+            {
+                _outputCaptures.Clear();
+            }
+
+            try
+            {
+                _bufferedWaveProviders.ForEach(bwp => bwp.ClearBuffer());
+            }
+            finally
+            {
+                _bufferedWaveProviders.Clear();
+            }
+        }
+
+        private readonly List<WasapiCapture> _inputCaptures = new List<WasapiCapture>();
+        private readonly List<WasapiOut> _outputCaptures = new List<WasapiOut>();
+        private readonly List<BufferedWaveProvider> _bufferedWaveProviders = new List<BufferedWaveProvider>();
+
+        private void HandleOutputDeviceSelection(Guid deviceGuid, MouseButton mouseButton)
         {
             if (mouseButton == MouseButton.Right)
             {
@@ -1233,6 +1435,8 @@ namespace SoundBoard
 
             // Refresh the menu
             OutputDeviceMenuOpened(_outputDeviceMenu, new RoutedEventArgs());
+            
+            HandleInputOutputChange();
         }
 
         private void CloseSnackbarButton_Click(object sender, RoutedEventArgs e)
@@ -1273,6 +1477,8 @@ namespace SoundBoard
             // Do cleanup
             _globalMouseEvents.MouseDown -= Global_MouseDown;
             _globalMouseEvents.Dispose();
+
+            CleanUpAudioPassthrough();
 
             base.OnClosed(e);
         }
@@ -1351,6 +1557,7 @@ namespace SoundBoard
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
+        private MenuItem _inputDeviceMenu;
         private MenuItem _outputDeviceMenu;
 
         #endregion

@@ -341,6 +341,6 @@ Global Hotkey: {1}</value>
   <data name="HotkeyRegistrationFailedOnLoad" xml:space="preserve">
     <value>The following hotkeys could not be registered. They may be in use by other applications.
 
-{2}</value>
+{0}</value>
   </data>
 </root>

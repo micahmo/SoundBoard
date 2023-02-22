@@ -343,7 +343,7 @@ namespace SoundBoard.Properties {
         /// <summary>
         ///   Looks up a localized string similar to The following hotkeys could not be registered. They may be in use by other applications.
         ///
-        ///{2}.
+        ///{0}.
         /// </summary>
         internal static string HotkeyRegistrationFailedOnLoad {
             get {

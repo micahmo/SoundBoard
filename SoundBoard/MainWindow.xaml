@@ -20,14 +20,16 @@
 
     <Controls:MetroWindow.Flyouts>
         <Controls:FlyoutsControl>
-            
+
             <Controls:Flyout x:Name="Search" Header="Search" ClosingFinished="FlyoutCloseHandler" Position="Left" Width="300" >
-                <StackPanel x:Name="SearchPanel">
-                    <TextBox x:Name="Query" IsReadOnly="True" FontSize="20" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
-                    <StackPanel x:Name="ResultsPanel" />
-                </StackPanel>
+                <DockPanel x:Name="SearchPanel" >
+                    <TextBox DockPanel.Dock="Top" x:Name="Query" IsReadOnly="True" FontSize="20" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                    <ScrollViewer VerticalAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="ResultsPanel" />
+                    </ScrollViewer>
+                </DockPanel>
             </Controls:Flyout>
-            
+
             <Controls:Flyout x:Name="Snackbar" Position="Bottom" IsAutoCloseEnabled="true" CloseButtonVisibility="Collapsed">
                 <Grid x:Name="SnackbarGrid" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="15, 10, 50, 10">
                     <Grid.ColumnDefinitions>

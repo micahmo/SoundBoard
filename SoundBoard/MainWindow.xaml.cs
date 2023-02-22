@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using System.Windows.Threading;
 using Bluegrams.Application;
 using Gma.System.MouseKeyHook;
 using MahApps.Metro.SimpleChildWindow;
@@ -1023,7 +1024,8 @@ namespace SoundBoard
                         // If we've added at least one button, focus the first one
                         if (ResultsPanel.Children.Count > 0)
                         {
-                            (ResultsPanel.Children[0] as SoundButton)?.Focus();
+                            Dispatcher.BeginInvoke(new Action(() => { (ResultsPanel.Children[0] as SoundButton)?.Focus(); }),
+                                DispatcherPriority.ApplicationIdle);
                             _focusedButton = ResultsPanel.Children[0] as SoundButton;
                         }
                     }

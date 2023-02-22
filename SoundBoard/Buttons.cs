@@ -956,18 +956,7 @@ namespace SoundBoard
             {
                 // Get the dropped file(s)
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                // Only care about the first file
-                string file = files?[0];
-
-                if (string.IsNullOrEmpty(file) == false)
-                {
-                    // Stop any current playback
-                    Stop();
-
-                    // Set it
-                    SetFile(file);
-                }
+                LoadFiles(files);
             }
             else
             {
@@ -1171,16 +1160,13 @@ namespace SoundBoard
             {
                 // Set file type filters
                 FileName = initialFileName,
-                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*"
+                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*",
+                Multiselect = true
             };
 
             if (dialog.ShowDialog() == true)
             {
-                // Stop any current playback
-                Stop();
-
-                SetFile(dialog.FileName);
-
+                LoadFiles(dialog.FileNames);
                 return true;
             }
 
@@ -1330,7 +1316,15 @@ namespace SoundBoard
             {
                 if (existingLocalHotKey.Name == Utilities.SanitizeId(Id))
                 {
-                    MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
+                    try
+                    {
+                        MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
                     break;
                 }
             }
@@ -1342,7 +1336,15 @@ namespace SoundBoard
             {
                 if (existingGlobalHotKey.Name == Utilities.SanitizeId(Id))
                 {
-                    MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
+                    try
+                    {
+                        MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
                     break;
                 }
             }
@@ -1760,6 +1762,88 @@ namespace SoundBoard
                 viewbox.Child = textBlock;
 
                 Content = viewbox;
+            }
+        }
+
+        private void LoadFiles(params string[] files)
+        {
+            List<string> multiFileDrop = new List<string>();
+
+            if (files?.Length > 1)
+            {
+                multiFileDrop.AddRange(files);
+            }
+            else if (!string.IsNullOrEmpty(files?[0]) && Directory.Exists(files[0]))
+            {
+                multiFileDrop.AddRange(Directory.GetFiles(files[0]));
+            }
+
+            if (multiFileDrop.Any())
+            {
+                // This is a multi-file drop!
+
+                // Since this is a big operation, make it undoable
+                ConfigUndoState configUndoState = (MainWindow.Instance as IUndoable<ConfigUndoState>).SaveState();
+                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(configUndoState); });
+
+                // Set our grid size to exactly match the number
+                int rows = ParentTab.GetRows();
+                int columns = ParentTab.GetColumns();
+                bool? lastOperation = false; // False means added column, true means added first row, null means added second row
+                while (rows * columns < multiFileDrop.Count)
+                {
+                    if (lastOperation == false)
+                    {
+                        ++rows;
+                        lastOperation = true;
+                    }
+                    else if (lastOperation == true)
+                    {
+                        ++rows;
+                        lastOperation = null;
+                    }
+                    else if (lastOperation == null)
+                    {
+                        ++columns;
+                        lastOperation = false;
+                    }
+                }
+
+                // Get starting index before potentially changing grid, since that recreates all buttons
+                var startingIndex = MainWindow.Instance.GetSoundButtons(ParentTab).ToList().IndexOf(this);
+
+                if (rows != ParentTab.GetRows() || columns != ParentTab.GetColumns())
+                {
+                    MainWindow.Instance.ChangeButtonGrid(rows, columns);
+                }
+
+                // Start populating the buttons
+                var buttons = MainWindow.Instance.GetSoundButtons(MainWindow.Instance.SelectedTab).ToList();
+                buttons = buttons.GetRange(startingIndex, buttons.Count - startingIndex).Concat(buttons.GetRange(0, startingIndex)).ToList();
+                for (int i = 0; i < multiFileDrop.Count; ++i)
+                {
+                    buttons[i].Stop();
+                    buttons[i].SetFile(multiFileDrop[i]);
+                }
+
+                // Finally, make it undoable
+                string message = Properties.Resources.MultipleSoundsAdded;
+                string truncatedMessage = Utilities.Truncate(message, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50);
+                MainWindow.Instance.ShowUndoSnackbar(truncatedMessage);
+            }
+            else
+            {
+                // Only care about the first file
+                string file = files?[0];
+
+                if (string.IsNullOrEmpty(file) == false)
+                {
+                    // Stop any current playback
+                    Stop();
+
+                    // Set it
+                    SetFile(file);
+                }
             }
         }
 

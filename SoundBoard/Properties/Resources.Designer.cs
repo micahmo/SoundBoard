@@ -415,6 +415,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Multiple sounds were added..
+        /// </summary>
+        internal static string MultipleSoundsAdded {
+            get {
+                return ResourceManager.GetString("MultipleSoundsAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .NET Framework Error.
         /// </summary>
         internal static string NetFrameworkError {

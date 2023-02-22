@@ -477,9 +477,9 @@ namespace SoundBoard
             }
 
             // Add the buttons to the grid
-            for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
+            for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex) 
             {
-                for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex)
+                for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
                 {
                     // Sound button
                     SoundButton soundButton = new SoundButton(parentTab: tab);
@@ -849,33 +849,41 @@ namespace SoundBoard
 
                 if (proceed)
                 {
-                    using (new WaitCursor())
-                    {
-                        // Stop all sounds
-                        foreach (SoundButton soundButton in GetSoundButtons())
-                        {
-                            soundButton.Stop();
-                            soundButton.UnregisterLocalHotkey();
-                            soundButton.UnregisterGlobalHotkey();
-                        }
-
-                        ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
-
-                        // Set up our UndoAction
-                        SetUndoAction(() => { LoadState(configUndoState); });
-
-                        // Create and show a snackbar
-                        string message = Properties.Resources.ButtonLayoutWasChanged;
-                        string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
-                        ShowUndoSnackbar(truncatedMessage);
-
-                        // Do the change
-                        SelectedTab.SetRows(buttonGridDialog.RowCount);
-                        SelectedTab.SetColumns(buttonGridDialog.ColumnCount);
-                        SaveSettings();
-                        LoadSettings();
-                    }
+                    ChangeButtonGrid(buttonGridDialog.RowCount, buttonGridDialog.ColumnCount);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Change the button grid
+        /// </summary>
+        public void ChangeButtonGrid(int rowCount, int columnCount)
+        {
+            using (new WaitCursor())
+            {
+                // Stop all sounds
+                foreach (SoundButton soundButton in GetSoundButtons())
+                {
+                    soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
+                }
+
+                ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                // Set up our UndoAction
+                SetUndoAction(() => { LoadState(configUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.ButtonLayoutWasChanged;
+                string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
+                ShowUndoSnackbar(truncatedMessage);
+
+                // Do the change
+                SelectedTab.SetRows(rowCount);
+                SelectedTab.SetColumns(columnCount);
+                SaveSettings();
+                LoadSettings();
             }
         }
 
@@ -1624,6 +1632,11 @@ namespace SoundBoard
         /// </summary>
         public bool IsHotkeyPickerOpen { get; set; }
 
+        /// <summary>
+        /// The currently selected tab
+        /// </summary>
+        public MetroTabItem SelectedTab => Tabs.SelectedItem as MetroTabItem;
+
         #endregion
 
         #region Public methods
@@ -1683,8 +1696,6 @@ namespace SoundBoard
         private string LegacyConfigFilePath => @"soundboard.config";
 
         private string ApplicationName => @"SoundBoard";
-
-        private MetroTabItem SelectedTab => Tabs.SelectedItem as MetroTabItem;
 
         #endregion
 

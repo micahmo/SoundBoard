@@ -343,4 +343,7 @@ Global Hotkey: {1}</value>
 
 {0}</value>
   </data>
+  <data name="MultipleSoundsAdded" xml:space="preserve">
+    <value>Multiple sounds were added.</value>
+  </data>
 </root>

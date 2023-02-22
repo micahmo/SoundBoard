@@ -9,6 +9,8 @@ using MimeMapping;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Point = System.Windows.Point;
+using WpfKey = System.Windows.Input.Key;
+using HotKey = BondTech.HotKeyManagement.WPF._4.Keys;
 
 #endregion
 
@@ -209,6 +211,31 @@ namespace SoundBoard
         {
             public int X;
             public int Y;
+        }
+
+        #endregion
+
+        #region Hotkey stuff
+
+        /// <summary>
+        /// This method removes leading digits from GUIDs, which are invalid identifiers for the hotkey manager
+        /// </summary>
+        public static string SanitizeId(string id)
+        {
+            if (!string.IsNullOrEmpty(id) && char.IsDigit(id.FirstOrDefault()))
+            {
+                return new string(id.Skip(1).ToArray());
+            }
+
+            return id;
+        }
+
+        /// <summary>
+        /// Maps a key from the hotkey manager to the built-in key enum
+        /// </summary>
+        public static HotKey MapKey(WpfKey key)
+        {
+            return Enum.TryParse(Enum.GetName(typeof(WpfKey), key), true, out HotKey hotKey) ? hotKey : HotKey.None;
         }
 
         #endregion

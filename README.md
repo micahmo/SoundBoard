@@ -48,6 +48,16 @@ Grab the latest version [here](https://github.com/micahmo/SoundBoard/releases/la
 
 You may also select an input to pipe to your output(s). This is essentially an audio passthrough, and should be roughly equivalent listen feature in the Windows sound properties. You may optionally tweak the desired latency in the configuration file. A too-low latency may result in choppy audio.
 
+###### Assign Hotkeys
+
+You may assign local and global hotkeys to sounds. Pressing a local hotkey will play the corresponding sound when the application is active. Pressing a global hotkey will play the sound regardless of the active window.
+
+* Some shortcuts may be reserved by other apps or by Windows itself.
+* Using single letters/number/character hotkeys may conflict with the quick search feature.
+* Using standard Windows shortcuts may also produce unintended behavior (e.g., Tab or Win).
+
+![image](https://user-images.githubusercontent.com/7417301/220511617-d7378e5c-1e01-4076-afcc-0a51ef6c51e1.png)
+
 ## License
 
 This code is licenced under the [MIT License](https://opensource.org/licenses/MIT).

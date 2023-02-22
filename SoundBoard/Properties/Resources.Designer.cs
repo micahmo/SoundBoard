@@ -304,6 +304,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Global hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;..
+        /// </summary>
+        internal static string GlobalHotkeyInuse {
+            get {
+                return ResourceManager.GetString("GlobalHotkeyInuse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Go to sound.
         /// </summary>
         internal static string GoToSound {
@@ -313,11 +322,50 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Local Hotkey: {0}
+        ///Global Hotkey: {1}.
+        /// </summary>
+        internal static string HotkeyIndicatorToolTip {
+            get {
+                return ResourceManager.GetString("HotkeyIndicatorToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The hotkey &apos;{0}&apos; could not be registered. It may be in use by another application or it may be reserved by Windows..
+        /// </summary>
+        internal static string HotkeyRegistrationFailed {
+            get {
+                return ResourceManager.GetString("HotkeyRegistrationFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The following hotkeys could not be registered. They may be in use by other applications.
+        ///
+        ///{2}.
+        /// </summary>
+        internal static string HotkeyRegistrationFailedOnLoad {
+            get {
+                return ResourceManager.GetString("HotkeyRegistrationFailedOnLoad", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to How does it work?.
         /// </summary>
         internal static string HowDoesItWork {
             get {
                 return ResourceManager.GetString("HowDoesItWork", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local and global hotkey cannot be identical. .
+        /// </summary>
+        internal static string IdenticalHotkeyWarning {
+            get {
+                return ResourceManager.GetString("IdenticalHotkeyWarning", resourceCulture);
             }
         }
         
@@ -345,6 +393,15 @@ namespace SoundBoard.Properties {
         internal static string LargeButtonCountWarning {
             get {
                 return ResourceManager.GetString("LargeButtonCountWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;. .
+        /// </summary>
+        internal static string LocalHotkeyInUse {
+            get {
+                return ResourceManager.GetString("LocalHotkeyInUse", resourceCulture);
             }
         }
         
@@ -394,6 +451,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to none.
+        /// </summary>
+        internal static string None {
+            get {
+                return ResourceManager.GetString("None", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to OK.
         /// </summary>
         internal static string OK {
@@ -435,6 +501,15 @@ namespace SoundBoard.Properties {
         internal static string SetColor {
             get {
                 return ResourceManager.GetString("SetColor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set Hotkeys.
+        /// </summary>
+        internal static string SetHotkeys {
+            get {
+                return ResourceManager.GetString("SetHotkeys", resourceCulture);
             }
         }
         

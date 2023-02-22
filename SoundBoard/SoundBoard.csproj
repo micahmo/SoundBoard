@@ -59,6 +59,9 @@
     <Reference Include="Gma.System.MouseKeyHook, Version=5.6.130.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MouseKeyHook.5.6.0\lib\net40\Gma.System.MouseKeyHook.dll</HintPath>
     </Reference>
+    <Reference Include="HotKeyManagement.WPF.4">
+      <HintPath>lib\HotKeyManagement.WPF.4.dll</HintPath>
+    </Reference>
     <Reference Include="MahApps.Metro, Version=1.6.5.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.1.6.5\lib\net47\MahApps.Metro.dll</HintPath>
     </Reference>
@@ -117,6 +120,15 @@
     </ApplicationDefinition>
     <Compile Include="Buttons.cs" />
     <Compile Include="GlobalSettings.cs" />
+    <Compile Include="HotkeyDialog.xaml.cs">
+      <DependentUpon>HotkeyDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Hotkeys\Hotkey.cs">
+      <Generator>MSBuild:Compile</Generator>
+    </Compile>
+    <Compile Include="Hotkeys\HotkeyEditorControl.xaml.cs">
+      <DependentUpon>HotkeyEditorControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="LoopStream.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="ChildWindowBase.cs" />
@@ -131,6 +143,14 @@
     <Compile Include="Utilities.cs" />
     <Compile Include="ViewboxPanel.cs" />
     <Compile Include="WaitCursor.cs" />
+    <Page Include="HotkeyDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Hotkeys\HotkeyEditorControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -226,6 +246,10 @@
   <ItemGroup>
     <Resource Include="Images\warning.png" />
     <Resource Include="Images\warning_light.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\keyboard.png" />
+    <Resource Include="Images\keyboard_light.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.1.1\build\Fody.targets" Condition="Exists('..\packages\Fody.5.1.1\build\Fody.targets')" />

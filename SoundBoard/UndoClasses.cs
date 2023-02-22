@@ -56,6 +56,21 @@
         /// Loop
         /// </summary>
         public bool Loop { get; set; }
+
+        /// <summary>
+        /// Id
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// LocalHotkey
+        /// </summary>
+        public Hotkey LocalHotkey { get; set; }
+
+        /// <summary>
+        /// GlobalHotkey
+        /// </summary>
+        public Hotkey GlobalHotkey { get; set; }
     }
 
     /// <summary>

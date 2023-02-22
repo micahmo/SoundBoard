@@ -16,9 +16,11 @@ using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
 using Dsafa.WpfColorPicker;
+using MahApps.Metro.SimpleChildWindow;
 using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
+using BondTech.HotKeyManagement.WPF._4;
 
 #endregion
 
@@ -563,6 +565,38 @@ namespace SoundBoard
         #endregion
     }
 
+    internal sealed class HotkeyIndicatorButton : IconButtonBase
+    {
+        public HotkeyIndicatorButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.KeyboardIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            if (ParentButton.LocalHotkey != null || ParentButton.GlobalHotkey != null)
+            {
+                Visibility = Visibility.Visible;
+                ToolTip = string.Format(Properties.Resources.HotkeyIndicatorToolTip, ParentButton.LocalHotkey?.ToString() ?? Properties.Resources.None, ParentButton.GlobalHotkey?.ToString() ?? Properties.Resources.None);
+            }
+            else
+            {
+                Visibility = Visibility.Collapsed;
+                ToolTip = default;
+            }
+        }
+    }
+
     #endregion
 
     #region SoundProgressBar class
@@ -788,6 +822,18 @@ namespace SoundBoard
         private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
         {
             Loop = !Loop;
+        }
+
+        private async void HotkeysMenuItemClick(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance.IsHotkeyPickerOpen = true;
+            HotkeyDialog hotkeyDialog = new HotkeyDialog(this)
+            {
+                LocalHotkey = LocalHotkey,
+                GlobalHotkey = GlobalHotkey
+            };
+            await MainWindow.Instance.ShowChildWindowAsync(hotkeyDialog);
+            MainWindow.Instance.IsHotkeyPickerOpen = false;
         }
 
         #endregion
@@ -1278,6 +1324,64 @@ namespace SoundBoard
             return Grid.GetColumn(this);
         }
 
+        public void UnregisterLocalHotkey()
+        {
+            foreach (var existingLocalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateLocalHotKeys.OfType<LocalHotKey>() ?? Enumerable.Empty<LocalHotKey>())
+            {
+                if (existingLocalHotKey.Name == Utilities.SanitizeId(Id))
+                {
+                    MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
+                    break;
+                }
+            }
+        }
+
+        public void UnregisterGlobalHotkey()
+        {
+            foreach (var existingGlobalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateGlobalHotKeys.OfType<GlobalHotKey>() ?? Enumerable.Empty<GlobalHotKey>())
+            {
+                if (existingGlobalHotKey.Name == Utilities.SanitizeId(Id))
+                {
+                    MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Always wrap this in a try/catch
+        /// </summary>
+        public void ReregisterLocalHotkey()
+        {
+            Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
+
+            // The mapping failed
+            if (mappedKey == default)
+            {
+                throw new Exception();
+            }
+
+            LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
+            MainWindow.Instance.HotKeyManager.AddLocalHotKey(localHotKey);
+        }
+
+        /// <summary>
+        /// Always wrap this in a try/catch
+        /// </summary>
+        public void ReregisterGlobalHotkey()
+        {
+            Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
+
+            // The mapping failed
+            if (mappedKey == default)
+            {
+                throw new Exception();
+            }
+
+            GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
+            MainWindow.Instance.HotKeyManager.AddGlobalHotKey(globalHotKey);
+        }
+
         #endregion
 
         #region Private methods
@@ -1290,6 +1394,14 @@ namespace SoundBoard
             Color = null;
             VolumeOffset = 0;
             Loop = false;
+            LocalHotkey = null;
+            GlobalHotkey = null;
+
+            // Clear any hotkeys
+            UnregisterLocalHotkey();
+            UnregisterGlobalHotkey();
+
+            Id = Guid.NewGuid().ToString();
 
             SetUpStyle();
             SetUpContextMenu();
@@ -1394,13 +1506,19 @@ namespace SoundBoard
             if (_adjustVolumeMenuItem is null)
             {
                 _adjustVolumeMenuItem = new MenuItem {Header = Properties.Resources.AdjustVolume};
-                _adjustVolumeMenuItem.SetSeparator(true);
 
                 // Add a dummy item so that this item becomes a parent with a sub-menu
                 // The real items will be populated every time at run-time in the SubmenuOpened handler
                 _adjustVolumeMenuItem.Items.Add(new MenuItem());
 
                 _adjustVolumeMenuItem.SubmenuOpened += AdjustVolumeMenuItem_SubmenuOpened;
+            }
+
+            if (_hotkeysMenuItem is null)
+            {
+                _hotkeysMenuItem = new MenuItem { Header = Properties.Resources.SetHotkeys };
+                _hotkeysMenuItem.SetSeparator(true);
+                _hotkeysMenuItem.Click += HotkeysMenuItemClick;
             }
 
             // If the "Source" menu item is null, create it and hook up its handler
@@ -1456,6 +1574,11 @@ namespace SoundBoard
                     {
                         ContextMenu.Items.Add(_adjustVolumeMenuItem);
                     }
+
+                    if (ContextMenu.Items.Contains(_hotkeysMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_hotkeysMenuItem);
+                    }
                 }
             }
             else if (Mode == SoundButtonMode.Search)
@@ -1507,6 +1630,11 @@ namespace SoundBoard
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem))
                 {
                     ContextMenu.Items.Remove(_viewSourceMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_hotkeysMenuItem))
+                {
+                    ContextMenu.Items.Remove(_hotkeysMenuItem);
                 }
             }
 
@@ -1771,6 +1899,30 @@ namespace SoundBoard
 
         private bool _loop; // Backing field
 
+        public string Id { get; set; }
+
+        public Hotkey LocalHotkey
+        {
+            get => _localHotkey;
+            set
+            {
+                _localHotkey = value;
+                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private Hotkey _localHotkey;
+
+        public Hotkey GlobalHotkey
+        {
+            get => _globalHotkey;
+            set
+            {
+                _globalHotkey = value;
+                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private Hotkey _globalHotkey;
+
         /// <summary>
         /// Contains a list of child buttons
         /// </summary>
@@ -1809,6 +1961,7 @@ namespace SoundBoard
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
         private MenuItem _loopMenuItem;
+        private MenuItem _hotkeysMenuItem;
 
         private Point? _mouseDownPosition;
 
@@ -1836,7 +1989,10 @@ namespace SoundBoard
                 SoundName = SoundName,
                 Color = Color,
                 VolumeOffset = VolumeOffset,
-                Loop = Loop
+                Loop = Loop,
+                Id = Id,
+                LocalHotkey = LocalHotkey,
+                GlobalHotkey = GlobalHotkey
             };
         }
 
@@ -1849,6 +2005,32 @@ namespace SoundBoard
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;
+
+                if (!string.IsNullOrEmpty(undoState.Id))
+                {
+                    Id = undoState.Id;
+                }
+
+                LocalHotkey = undoState.LocalHotkey;
+                GlobalHotkey = undoState.GlobalHotkey;
+
+                try
+                {
+                    ReregisterLocalHotkey();
+                }
+                catch
+                {
+                    // Swallow
+                }
+
+                try
+                {
+                    ReregisterGlobalHotkey();
+                }
+                catch
+                {
+                    // Swallow
+                }
             }
             else
             {

@@ -28,6 +28,7 @@ using Timer = System.Timers.Timer;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
+using BondTech.HotKeyManagement.WPF._4;
 
 #endregion
 
@@ -136,6 +137,70 @@ namespace SoundBoard
             };
 
             HandleInputOutputChange();
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc/>
+        protected override async void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            HotKeyManager = new HotKeyManager(this);
+            HotKeyManager.GlobalHotKeyPressed += (_, args) =>
+            {
+                if (!IsHotkeyPickerOpen)
+                {
+                    GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name)?.StartSound();
+                }
+            };
+            HotKeyManager.LocalHotKeyPressed += (_, args) =>
+            {
+                if (!IsHotkeyPickerOpen)
+                {
+                    GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name)?.StartSound();
+                }
+            };
+
+            // Load existing hotkeys
+            List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
+            GetSoundButtons().ToList().ForEach(sb =>
+            {
+                if (sb.LocalHotkey != null)
+                {
+                    try
+                    {
+                        sb.ReregisterLocalHotkey();
+                    }
+                    catch
+                    {
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
+                    }
+                }
+
+                if (sb.GlobalHotkey != null)
+                {
+                    try
+                    {
+                        sb.ReregisterGlobalHotkey();
+                    }
+                    catch
+                    {
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
+                    }
+                }
+            });
+
+            if (badHotkeys.Any())
+            {
+                await this.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.HotkeyRegistrationFailedOnLoad, string.Join(Environment.NewLine, badHotkeys.Select(tup => $"{tup.Item2} ({tup.Item1})"))),
+                    MessageDialogStyle.Affirmative, new MetroDialogSettings
+                    {
+                        AffirmativeButtonText = Properties.Resources.OK
+                    });
+            }
         }
 
         #endregion
@@ -284,6 +349,24 @@ namespace SoundBoard
                                         string.IsNullOrEmpty(loopString) == false && bool.TryParse(loopString, out bool loop))
                                     {
                                         soundButtonUndoState.Loop = loop;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["id"]?.Value is string id &&
+                                        string.IsNullOrEmpty(id) == false)
+                                    {
+                                        soundButtonUndoState.Id = id;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["localHotkey"]?.Value is string localHotKeyStr
+                                        && !string.IsNullOrEmpty(localHotKeyStr))
+                                    {
+                                        soundButtonUndoState.LocalHotkey = Hotkey.FromString(localHotKeyStr);
+                                    }
+
+                                    if (node["button" + i]?.Attributes["globalHotkey"]?.Value is string globalHotKeyStr
+                                        && !string.IsNullOrEmpty(globalHotKeyStr))
+                                    {
+                                        soundButtonUndoState.GlobalHotkey = Hotkey.FromString(globalHotKeyStr);
                                     }
 
                                     int buttonRow = rowIndex;
@@ -458,6 +541,14 @@ namespace SoundBoard
                     parentGrid.Children.Add(soundWarningIconButton);
                     soundButton.ChildButtons.Add(soundWarningIconButton);
 
+                    // Hotkey indicator
+                    HotkeyIndicatorButton hotkeyIndicatorButton = new HotkeyIndicatorButton(soundButton);
+
+                    Grid.SetColumn(hotkeyIndicatorButton, columnIndex);
+                    Grid.SetRow(hotkeyIndicatorButton, rowIndex);
+                    parentGrid.Children.Add(hotkeyIndicatorButton);
+                    soundButton.ChildButtons.Add(hotkeyIndicatorButton);
+
                     // Progress bar
                     SoundProgressBar progressBar = new SoundProgressBar();
 
@@ -615,6 +706,9 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
+                                textWriter.WriteAttributeString("id", button.Id);
+                                textWriter.WriteAttributeString("localHotkey", button.LocalHotkey?.ToString() ?? string.Empty);
+                                textWriter.WriteAttributeString("globalHotkey", button.GlobalHotkey?.ToString() ?? string.Empty);
                                 textWriter.WriteAttributeString("row", button.GetRow().ToString());
                                 textWriter.WriteAttributeString("column", button.GetColumn().ToString());
                                 textWriter.WriteEndElement();
@@ -761,6 +855,8 @@ namespace SoundBoard
                         foreach (SoundButton soundButton in GetSoundButtons())
                         {
                             soundButton.Stop();
+                            soundButton.UnregisterLocalHotkey();
+                            soundButton.UnregisterGlobalHotkey();
                         }
 
                         ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -1057,6 +1153,8 @@ namespace SoundBoard
                 foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
                 {
                     soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
                 }
 
                 // Remove the page
@@ -1111,6 +1209,8 @@ namespace SoundBoard
                     foreach (SoundButton soundButton in GetSoundButtons())
                     {
                         soundButton.Stop();
+                        soundButton.UnregisterLocalHotkey();
+                        soundButton.UnregisterGlobalHotkey();
                     }
 
                     ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -1145,6 +1245,8 @@ namespace SoundBoard
                 foreach (SoundButton soundButton in GetSoundButtons())
                 {
                     soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
                 }
 
                 ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -1512,6 +1614,16 @@ namespace SoundBoard
         /// </summary>
         public Font SnackbarMessageFont => new Font(SnackbarMessage.FontFamily.ToString(), (float) SnackbarMessage.FontSize);
 
+        /// <summary>
+        /// The hot key manager for the application
+        /// </summary>
+        public HotKeyManager HotKeyManager { get; private set; }
+
+        /// <summary>
+        /// Whether or not any instance of the hotkey picker dialog is open
+        /// </summary>
+        public bool IsHotkeyPickerOpen { get; set; }
+
         #endregion
 
         #region Public methods
@@ -1599,6 +1711,30 @@ namespace SoundBoard
         {
             Tabs.Items.Insert(undoState.Index, undoState.MetroTabItem);
             Tabs.SelectedIndex = undoState.Index;
+
+            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            {
+                foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
+                {
+                    try
+                    {
+                        soundButton.ReregisterLocalHotkey();
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
+                    try
+                    {
+                        soundButton.ReregisterGlobalHotkey();
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+                }
+            }
         }
 
 
@@ -1617,6 +1753,8 @@ namespace SoundBoard
             foreach (SoundButton soundButton in GetSoundButtons())
             {
                 soundButton.Stop();
+                soundButton.UnregisterLocalHotkey();
+                soundButton.UnregisterGlobalHotkey();
             }
 
             LoadSettings(undoState.SavedConfigStatePath);

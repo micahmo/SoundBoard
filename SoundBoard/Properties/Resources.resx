@@ -316,4 +316,31 @@
   <data name="FixLinksMessage" xml:space="preserve">
 	  <value>{0} additional missing sounds were found in the selected directory. Relink them?</value>
   </data>
+  <data name="HotkeyIndicatorToolTip" xml:space="preserve">
+    <value>Local Hotkey: {0}
+Global Hotkey: {1}</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="SetHotkeys" xml:space="preserve">
+    <value>Set Hotkeys</value>
+  </data>
+  <data name="IdenticalHotkeyWarning" xml:space="preserve">
+    <value>Local and global hotkey cannot be identical. </value>
+  </data>
+  <data name="LocalHotkeyInUse" xml:space="preserve">
+    <value>Local hotkey '{0}' already in use by sound '{1}'. </value>
+  </data>
+  <data name="GlobalHotkeyInuse" xml:space="preserve">
+    <value>Global hotkey '{0}' already in use by sound '{1}'.</value>
+  </data>
+  <data name="HotkeyRegistrationFailed" xml:space="preserve">
+    <value>The hotkey '{0}' could not be registered. It may be in use by another application or it may be reserved by Windows.</value>
+  </data>
+  <data name="HotkeyRegistrationFailedOnLoad" xml:space="preserve">
+    <value>The following hotkeys could not be registered. They may be in use by other applications.
+
+{2}</value>
+  </data>
 </root>

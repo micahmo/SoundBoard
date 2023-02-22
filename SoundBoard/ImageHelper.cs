@@ -64,6 +64,8 @@ namespace SoundBoard
 
         public static string WarningIconPath = @"pack://application:,,,/Images/warning";
 
+        public static string KeyboardIconPath = @"pack://application:,,,/Images/keyboard";
+
         #endregion
 
         #region Private static consts

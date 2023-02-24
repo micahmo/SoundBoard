@@ -138,6 +138,11 @@ namespace SoundBoard
             };
 
             HandleInputOutputChange();
+
+            Tabs.SelectionChanged += (_, __) =>
+            {
+                GetSoundButtons().Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
+            };
         }
 
         #endregion
@@ -201,6 +206,17 @@ namespace SoundBoard
                     {
                         AffirmativeButtonText = Properties.Resources.OK
                     });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                GetSoundButtons().ToList().ForEach(sb => sb.IsSelected = false);
             }
         }
 
@@ -916,6 +932,11 @@ namespace SoundBoard
                         {
                             CloseSearch();
                         }
+                        // If there are any selected sounds, unselect them
+                        else if (GetSoundButtons().Any(sb => sb.IsSelected))
+                        {
+                            GetSoundButtons().ToList().ForEach(sb => sb.IsSelected = false);
+                        }
                         // Otherwise, stop any playing sounds
                         else
                         {
@@ -927,65 +948,14 @@ namespace SoundBoard
                     }
                     else if (e.Key == Key.Down)
                     {
-                        bool foundFocused = false;
-                        
-                        // Loop through the buttons and focus the next one
-                        foreach (var child in ResultsPanel.Children)
+                        // If the texbox is focused, we want to focus the first button.
+                        // Then we'll let Windows handle the navigation and pressing
+
+                        if (Query.IsFocused)
                         {
-                            if (child is SoundButton soundButton)
-                            {
-                                if (foundFocused)
-                                {
-                                    // We found the last focused button, so focus this one
-                                    soundButton.Focus();
-                                    _focusedButton = soundButton;
-                                    break;
-                                }
-                                if (soundButton.IsFocused)
-                                {
-                                    // We found the focused button! focus the next one
-                                    foundFocused = true;
-                                }
-                            }
+                            ResultsPanel.Children.OfType<SoundButton>().FirstOrDefault()?.Focus();
                         }
-                        return;
-                    }
-                    else if (e.Key == Key.Up)
-                    {
-                        SoundButton previousButton = null;
-                        
-                        // Loop through the buttons and focus the previous one
-                        foreach (var child in ResultsPanel.Children)
-                        {
-                            if (child is SoundButton soundButton)
-                            {
-                                if (soundButton.IsFocused)
-                                {
-                                    // Focus the previous one!
-                                    if (previousButton != null)
-                                    {
-                                        previousButton.Focus();
-                                        _focusedButton = previousButton;
-                                        break;
-                                    }
-                                }
-                                previousButton = soundButton;
-                            }
-                        }
-                        return;
-                    }
-                    else if (e.Key == Key.Enter)
-                    {
-                        // Play the sound!
-                        foreach (var child in ResultsPanel.Children)
-                        {
-                            if (child is SoundButton soundButton && soundButton.IsFocused)
-                            {
-                                ButtonAutomationPeer peer = new ButtonAutomationPeer(soundButton);
-                                IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
-                                invokeProv?.Invoke();
-                            }
-                        }
+
                         return;
                     }
                     else
@@ -1024,9 +994,7 @@ namespace SoundBoard
                         // If we've added at least one button, focus the first one
                         if (ResultsPanel.Children.Count > 0)
                         {
-                            Dispatcher.BeginInvoke(new Action(() => { (ResultsPanel.Children[0] as SoundButton)?.Focus(); }),
-                                DispatcherPriority.ApplicationIdle);
-                            _focusedButton = ResultsPanel.Children[0] as SoundButton;
+                            Dispatcher.BeginInvoke(new Action(() => ResultsPanel.Children.OfType<SoundButton>().FirstOrDefault()?.Focus()), DispatcherPriority.ApplicationIdle);
                         }
                     }
                 }
@@ -1035,8 +1003,6 @@ namespace SoundBoard
 
         private void RoutedKeyUpHandler(object sender, RoutedEventArgs args)
         {
-            // If a focus gets messed up, re-focus it here
-            _focusedButton?.Focus();
         }
 
         private void FlyoutCloseHandler(object sender, RoutedEventArgs e)
@@ -1680,7 +1646,6 @@ namespace SoundBoard
 
         private readonly IKeyboardMouseEvents _globalMouseEvents;
         private string _searchString = string.Empty;
-        private SoundButton _focusedButton;
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;

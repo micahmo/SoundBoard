@@ -666,10 +666,33 @@ namespace SoundBoard
         {
             if (ContextMenu?.Items.Contains(_loopMenuItem) == true)
             {
-                _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                if (IsSelected)
+                {
+                    bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+                    _loopMenuItem.Icon = !anyNotLooped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+                else
+                {
+                    _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
             }
 
             _loopMenuItem.IsEnabled = _players.All(p => p.PlaybackState != PlaybackState.Playing);
+
+            // Make everything visible
+            ContextMenu?.Items.OfType<Control>().ToList().ForEach(i => i.Visibility = Visibility.Visible);
+
+            // If there is a multi-selection in progress and this is one of the selected buttons,
+            // hide things that are not multi applicable.
+            if (IsSelected)
+            {
+                _chooseSoundMenuItem.Visibility = Visibility.Collapsed;
+                _renameMenuItem.Visibility = Visibility.Collapsed;
+                _viewSourceMenuItem.Visibility = Visibility.Collapsed;
+                _hotkeysMenuItem.Visibility = Visibility.Collapsed;
+
+                ContextMenu?.Items.OfType<Separator>().ToList().ForEach(s => s.Visibility = Visibility.Collapsed);
+            }
         }
 
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
@@ -692,17 +715,34 @@ namespace SoundBoard
 
         private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SoundButtonUndoState soundButtonUndoState = SaveState();
+            if (IsSelected)
+            {
+                TabPageSoundsUndoState tabPageSoundsUndoState = (MainWindow.Instance as IUndoable<TabPageSoundsUndoState>).SaveState();
 
-            // Set up our UndoAction
-            MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+                // Set up our UndoAction
+                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(tabPageSoundsUndoState); });
 
-            // Create and show a snackbar
-            string message = Properties.Resources.SoundWasCleared;
-            string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
-            MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+                // Create and show a snackbar
+                string message = Properties.Resources.MultipleSoundsClearedFromTab;
+                string truncatedTabName = Utilities.Truncate(ParentTab.Header.ToString(), MainWindow.Instance.SnackbarMessageFont, (int)Width - 50, message);
+                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
-            ClearButton();
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
+            }
+            else
+            {
+                SoundButtonUndoState soundButtonUndoState = SaveState();
+
+                // Set up our UndoAction
+                MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.SoundWasCleared;
+                string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
+                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+
+                ClearButton();
+            }
         }
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -788,7 +828,14 @@ namespace SoundBoard
 
             if (colorPickerDialog.ShowDialog() == true)
             {
-                Color = colorPickerDialog.Color;
+                if (IsSelected)
+                {
+                    MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Color = colorPickerDialog.Color);
+                }
+                else
+                {
+                    Color = colorPickerDialog.Color;
+                }
             }
         }
 
@@ -796,13 +843,29 @@ namespace SoundBoard
         {
             _adjustVolumeMenuItem.Items.Clear();
 
+            // See if this is a multi-selection and if so, whether all selected sounds have the same volume
+            int? volume = null;
+            bool multiSelectSameVolume = true;
+            foreach (var sb in MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected))
+            {
+                if (volume == null)
+                {
+                    volume = sb.VolumeOffset;
+                }
+                else if (volume != sb.VolumeOffset)
+                {
+                    multiSelectSameVolume = false;
+                    break;
+                }
+            }
+
             for (int i = -5; i <= 5; ++i)
             {
                 string header = i.ToString(@"+#;-#;0");
 
                 MenuItem volumeAdjustmentMenuItem = new MenuItem {Header = header};
 
-                if (i == VolumeOffset)
+                if (i == VolumeOffset && multiSelectSameVolume)
                 {
                     volumeAdjustmentMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                 }
@@ -813,7 +876,17 @@ namespace SoundBoard
                 }
 
                 int offset = i; // Copy i so we're not accessing modified closure
-                volumeAdjustmentMenuItem.Click += (_, __) => { VolumeOffset = offset; };
+                volumeAdjustmentMenuItem.Click += (_, __) =>
+                {
+                    if (IsSelected)
+                    {
+                        MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.VolumeOffset = offset);
+                    }
+                    else
+                    {
+                        VolumeOffset = offset;
+                    }
+                };
 
                 _adjustVolumeMenuItem.Items.Add(volumeAdjustmentMenuItem);
             }
@@ -821,7 +894,16 @@ namespace SoundBoard
 
         private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            Loop = !Loop;
+            if (IsSelected)
+            {
+                bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
+            }
+            else
+            {
+                Loop = !Loop;
+            }
         }
 
         private async void HotkeysMenuItemClick(object sender, RoutedEventArgs e)
@@ -840,26 +922,72 @@ namespace SoundBoard
 
         #region Overrides
 
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+        {
+            if (Mode == SoundButtonMode.Normal && HasValidSound)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                {
+                    IsSelected = !IsSelected;
+
+                    LastSelected = this;
+                }
+                else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    IsSelected = true;
+
+                    // We also want to select everything between any prior selected button and this one.
+
+                    // Make sure LastSelected is still in the collection
+                    if (LastSelected != null && LastSelected != this && LastSelected.IsSelected)
+                    {
+                        var buttons = MainWindow.Instance.GetSoundButtons(ParentTab).ToList();
+                        if (buttons.Contains(LastSelected))
+                        {
+                            int indexOfThis = buttons.IndexOf(this);
+                            int indexOfLastSelected = buttons.IndexOf(LastSelected);
+                            for (int i = Math.Min(indexOfThis, indexOfLastSelected); i < Math.Max(indexOfThis, indexOfLastSelected); ++i)
+                            {
+                                if (buttons[i].HasValidSound)
+                                {
+                                    buttons[i].IsSelected = true;
+                                }
+                            }
+                        }
+                    }
+
+                    LastSelected = this;
+                }
+            }
+        }
+
         /// <inheritdoc />
         protected override void OnClick()
         {
             base.OnClick();
 
-            if (string.IsNullOrEmpty(SoundPath))
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
             {
-                // If this button doesn't have a sound yet, browse for it now
-                BrowseForSound();
+                // Don't play the sound. This will be handled by OnPreviewMouseDown.
             }
             else
             {
-                if (Mode == SoundButtonMode.Normal)
+                if (string.IsNullOrEmpty(SoundPath))
                 {
-                    StartSound();
+                    // If this button doesn't have a sound yet, browse for it now
+                    BrowseForSound();
                 }
-                else if (Mode == SoundButtonMode.Search && 
-                         SourceTabAndButton.SourceButton is SoundButton sourceButton)
+                else
                 {
-                    sourceButton.StartSound();
+                    if (Mode == SoundButtonMode.Normal)
+                    {
+                        StartSound();
+                    }
+                    else if (Mode == SoundButtonMode.Search &&
+                             SourceTabAndButton.SourceButton is SoundButton sourceButton)
+                    {
+                        sourceButton.StartSound();
+                    }
                 }
             }
         }
@@ -895,6 +1023,8 @@ namespace SoundBoard
                 Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)) &&
                 Mode != SoundButtonMode.Search)
             {
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
+                
                 _mouseDownPosition = Mouse.GetPosition(this);
                 DragDrop.DoDragDrop(this, new SoundDragData(this), DragDropEffects.Link);
             }
@@ -1404,6 +1534,7 @@ namespace SoundBoard
             UnregisterGlobalHotkey();
 
             Id = Guid.NewGuid().ToString();
+            IsSelected = false;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -1686,6 +1817,18 @@ namespace SoundBoard
                 trigger.Setters.Add(new Setter(ForegroundProperty, new SolidColorBrush(foregroundClickColor)));
                 style.Triggers.Add(trigger);
             }
+
+            // Add focused colors
+            if (Mode == SoundButtonMode.Search)
+            {
+                Trigger focusTrigger = new Trigger { Property = IsFocusedProperty, Value = true };
+                focusTrigger.Setters.Add(new Setter(BorderThicknessProperty, new Thickness(5)));
+                focusTrigger.Setters.Add(new Setter(BorderBrushProperty, new SolidColorBrush(Colors.SlateGray)));
+                style.Triggers.Add(focusTrigger);
+            }
+
+            // Don't show the ugly dotted line around focused elements
+            FocusVisualStyle = null;
 
             // Assign the style!
             Style = style;
@@ -2022,6 +2165,33 @@ namespace SoundBoard
         /// Specifies the <see cref="MetroTabItem"/> on which this sound lives. Will be null when in <see cref="SoundButtonMode.Search"/>.
         /// </summary>
         public MetroTabItem ParentTab { get; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+
+                if (_isSelected)
+                {
+                    BorderThickness = new Thickness(5);
+                    BorderBrush = new SolidColorBrush(Colors.SlateGray);
+                }
+                else
+                {
+                    BorderThickness = new Thickness(2);
+                    BorderBrush = new SolidColorBrush(Colors.Black);
+                }
+            }
+        }
+        private bool _isSelected;
+
+        #endregion
+
+        #region Public static properties
+
+        public static SoundButton LastSelected { get; set; }
 
         #endregion
 

@@ -424,6 +424,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Selected sound(s) were cleared from &apos;{0}&apos;..
+        /// </summary>
+        internal static string MultipleSoundsClearedFromTab {
+            get {
+                return ResourceManager.GetString("MultipleSoundsClearedFromTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .NET Framework Error.
         /// </summary>
         internal static string NetFrameworkError {

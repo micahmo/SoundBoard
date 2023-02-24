@@ -56,7 +56,7 @@ You may assign local and global hotkeys to sounds. Pressing a local hotkey will 
 * Using single letters/number/character hotkeys may conflict with the quick search feature.
 * Using standard Windows shortcuts may also produce unintended behavior (e.g., Tab or Win).
 
-![image](https://user-images.githubusercontent.com/7417301/220511617-d7378e5c-1e01-4076-afcc-0a51ef6c51e1.png)
+![image](https://user-images.githubusercontent.com/7417301/221188183-e1a320ff-9561-4722-887a-91e76560235a.png)
 
 ## License
 

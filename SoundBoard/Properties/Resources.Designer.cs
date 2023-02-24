@@ -622,6 +622,24 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Stop other sounds.
+        /// </summary>
+        internal static string StopAllSounds {
+            get {
+                return ResourceManager.GetString("StopAllSounds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When this sound is played, all others will be stopped..
+        /// </summary>
+        internal static string StopAllSoundsToolTip {
+            get {
+                return ResourceManager.GetString("StopAllSoundsToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Page &apos;{0}&apos; was removed..
         /// </summary>
         internal static string TabWasRemoved {

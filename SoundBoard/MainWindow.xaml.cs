@@ -368,6 +368,12 @@ namespace SoundBoard
                                         soundButtonUndoState.Loop = loop;
                                     }
 
+                                    if (node["button" + i]?.Attributes["stopAllSounds"]?.Value is string stopAllSoundsString &&
+                                        string.IsNullOrEmpty(stopAllSoundsString) == false && bool.TryParse(stopAllSoundsString, out bool stopAllSounds))
+                                    {
+                                        soundButtonUndoState.StopAllSounds = stopAllSounds;
+                                    }
+
                                     if (node["button" + i]?.Attributes["id"]?.Value is string id &&
                                         string.IsNullOrEmpty(id) == false)
                                     {
@@ -723,6 +729,7 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
+                                textWriter.WriteAttributeString("stopAllSounds", button.StopAllSounds.ToString());
                                 textWriter.WriteAttributeString("id", button.Id);
                                 textWriter.WriteAttributeString("localHotkey", button.LocalHotkey?.ToString() ?? string.Empty);
                                 textWriter.WriteAttributeString("globalHotkey", button.GlobalHotkey?.ToString() ?? string.Empty);

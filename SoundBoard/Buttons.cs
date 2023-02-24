@@ -21,6 +21,7 @@ using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
 using BondTech.HotKeyManagement.WPF._4;
+using System.Media;
 
 #endregion
 
@@ -679,6 +680,19 @@ namespace SoundBoard
 
             _loopMenuItem.IsEnabled = _players.All(p => p.PlaybackState != PlaybackState.Playing);
 
+            if (ContextMenu?.Items.Contains(_stopAllSoundsMenuItem) == true)
+            {
+                if (IsSelected)
+                {
+                    bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+                    _stopAllSoundsMenuItem.Icon = !anyNotStopped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+                else
+                {
+                    _stopAllSoundsMenuItem.Icon = StopAllSounds ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+            }
+
             // Make everything visible
             ContextMenu?.Items.OfType<Control>().ToList().ForEach(i => i.Visibility = Visibility.Visible);
 
@@ -903,6 +917,20 @@ namespace SoundBoard
             else
             {
                 Loop = !Loop;
+            }
+        }
+
+        private void StopAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsSelected)
+            {
+                bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StopAllSounds = anyNotStopped);
+            }
+            else
+            {
+                StopAllSounds = !StopAllSounds;
             }
         }
 
@@ -1195,6 +1223,14 @@ namespace SoundBoard
                 MainWindow.Instance.SoundPlayers.RemoveAll(p => _players.Contains(p));
 
                 _players.Clear();
+
+                if (StopAllSounds)
+                {
+                    foreach (IWavePlayer player in MainWindow.Instance.SoundPlayers)
+                    {
+                        player.Stop();
+                    }
+                }
 
                 // Reinitialize the player
                 bool addedDefaultDevice = false;
@@ -1526,6 +1562,7 @@ namespace SoundBoard
             Color = null;
             VolumeOffset = 0;
             Loop = false;
+            StopAllSounds = false;
             LocalHotkey = null;
             GlobalHotkey = null;
 
@@ -1636,6 +1673,12 @@ namespace SoundBoard
                 _loopMenuItem.Click += LoopMenuItem_Click;
             }
 
+            if (_stopAllSoundsMenuItem is null)
+            {
+                _stopAllSoundsMenuItem = new MenuItem { Header = Properties.Resources.StopAllSounds, ToolTip = Properties.Resources.StopAllSoundsToolTip };
+                _stopAllSoundsMenuItem.Click += StopAllSoundsMenuItem_Click;
+            }
+
             if (_adjustVolumeMenuItem is null)
             {
                 _adjustVolumeMenuItem = new MenuItem {Header = Properties.Resources.AdjustVolume};
@@ -1703,6 +1746,11 @@ namespace SoundBoard
                         ContextMenu.Items.Add(_loopMenuItem);
                     }
 
+                    if (ContextMenu.Items.Contains(_stopAllSoundsMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_stopAllSoundsMenuItem);
+                    }
+
                     if (ContextMenu.Items.Contains(_adjustVolumeMenuItem) == false)
                     {
                         ContextMenu.Items.Add(_adjustVolumeMenuItem);
@@ -1753,6 +1801,11 @@ namespace SoundBoard
                 if (ContextMenu.Items.Contains(_loopMenuItem))
                 {
                     ContextMenu.Items.Remove(_loopMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_stopAllSoundsMenuItem))
+                {
+                    ContextMenu.Items.Remove(_stopAllSoundsMenuItem);
                 }
 
                 if (ContextMenu.Items.Contains(_adjustVolumeMenuItem))
@@ -2126,6 +2179,8 @@ namespace SoundBoard
 
         private bool _loop; // Backing field
 
+        public bool StopAllSounds { get; set; }
+
         public string Id { get; set; }
 
         public Hotkey LocalHotkey
@@ -2215,6 +2270,7 @@ namespace SoundBoard
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
         private MenuItem _loopMenuItem;
+        private MenuItem _stopAllSoundsMenuItem;
         private MenuItem _hotkeysMenuItem;
 
         private Point? _mouseDownPosition;
@@ -2244,6 +2300,7 @@ namespace SoundBoard
                 Color = Color,
                 VolumeOffset = VolumeOffset,
                 Loop = Loop,
+                StopAllSounds = StopAllSounds,
                 Id = Id,
                 LocalHotkey = LocalHotkey,
                 GlobalHotkey = GlobalHotkey
@@ -2259,6 +2316,7 @@ namespace SoundBoard
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;
+                StopAllSounds = undoState.StopAllSounds;
 
                 if (!string.IsNullOrEmpty(undoState.Id))
                 {

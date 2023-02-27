@@ -22,6 +22,7 @@ using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
 using BondTech.HotKeyManagement.WPF._4;
 using System.Media;
+using System.Windows.Media.Animation;
 
 #endregion
 
@@ -1276,6 +1277,24 @@ namespace SoundBoard
                     hideableButton.Show();
                 }
 
+                if (_viewboxPanel?.ActualHeight - _textBlock?.ActualHeight < 50)
+                {
+                    _textMarginStoryboard.Stop();
+                    _textMarginStoryboard.Children.Clear();
+
+                    ThicknessAnimation animation = new ThicknessAnimation
+                    {
+                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                        To = new Thickness(30, 0, 30, 30),
+                        Duration = TimeSpan.FromSeconds(.1)
+                    };
+
+                    Storyboard.SetTarget(animation, _viewboxPanel);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                    _textMarginStoryboard.Children.Add(animation);
+                    _textMarginStoryboard.Begin();
+                }
+
                 // Handle looping
                 if (Loop)
                 {
@@ -1921,26 +1940,44 @@ namespace SoundBoard
             {
                 hideableButton.Hide();
             }
+
+            if (_viewboxPanel?.Margin.Bottom > 0)
+            {
+                _textMarginStoryboard.Stop();
+                _textMarginStoryboard.Children.Clear();
+
+                ThicknessAnimation animation = new ThicknessAnimation
+                {
+                    From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                    To = new Thickness(30, 0, 30, 0),
+                    Duration = TimeSpan.FromSeconds(.1)
+                };
+
+                Storyboard.SetTarget(animation, _viewboxPanel);
+                Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                _textMarginStoryboard.Children.Add(animation);
+                _textMarginStoryboard.Begin();
+            }
         }
 
         private void SetContent(string text)
         {
             if (Mode == SoundButtonMode.Normal)
             {
-                TextBlock textBlock = new TextBlock
+                _textBlock = new TextBlock
                 {
                     Text = text,
                     TextAlignment = TextAlignment.Center,
                     TextWrapping = TextWrapping.Wrap
                 };
 
-                ViewboxPanel viewboxPanel = new ViewboxPanel
+                _viewboxPanel = new ViewboxPanel
                 {
-                    Margin = new Thickness(30)
+                    Margin = new Thickness(30, 0, 30, 0)
                 };
-                viewboxPanel.Children.Add(textBlock);
+                _viewboxPanel.Children.Add(_textBlock);
 
-                Content = viewboxPanel;
+                Content = _viewboxPanel;
             }
             else if (Mode == SoundButtonMode.Search)
             {
@@ -2276,6 +2313,11 @@ namespace SoundBoard
         private Point? _mouseDownPosition;
 
         private CancellationTokenSource _progressBarCancellationToken;
+
+        // Related to text resizing
+        private ViewboxPanel _viewboxPanel;
+        private TextBlock _textBlock;
+        private readonly Storyboard _textMarginStoryboard = new Storyboard();
 
         #endregion
 

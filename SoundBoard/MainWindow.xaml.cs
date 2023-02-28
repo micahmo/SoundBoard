@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reactive.Linq;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
@@ -143,6 +144,14 @@ namespace SoundBoard
             {
                 GetSoundButtons().Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
             };
+
+            Observable.FromEventPattern<SizeChangedEventHandler, SizeChangedEventArgs>(e => SizeChanged += e, e => SizeChanged -= e)
+                .Throttle(TimeSpan.FromSeconds(.5))
+                .ObserveOn(this)
+                .Subscribe(args =>
+                {
+                    GetSoundButtons().ToList().ForEach(sb => sb.CalculateTextMargin());
+                });
         }
 
         #endregion

@@ -1277,24 +1277,6 @@ namespace SoundBoard
                     hideableButton.Show();
                 }
 
-                if (_viewboxPanel?.ActualHeight - _textBlock?.ActualHeight < 50)
-                {
-                    _textMarginStoryboard.Stop();
-                    _textMarginStoryboard.Children.Clear();
-
-                    ThicknessAnimation animation = new ThicknessAnimation
-                    {
-                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
-                        To = new Thickness(30, 0, 30, 30),
-                        Duration = TimeSpan.FromSeconds(.1)
-                    };
-
-                    Storyboard.SetTarget(animation, _viewboxPanel);
-                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
-                    _textMarginStoryboard.Children.Add(animation);
-                    _textMarginStoryboard.Begin();
-                }
-
                 // Handle looping
                 if (Loop)
                 {
@@ -1319,6 +1301,8 @@ namespace SoundBoard
 
                 // Aaaaand play
                 Parallel.ForEach(_players, p => p.Play());
+
+                CalculateTextMargin();
 
                 MainWindow.Instance.OnAnySoundStarted(this);
 
@@ -1569,6 +1553,50 @@ namespace SoundBoard
 
             GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
             MainWindow.Instance.HotKeyManager.AddGlobalHotKey(globalHotKey);
+        }
+
+        public void CalculateTextMargin()
+        {
+            if (_viewboxPanel != null && _textBlock != null)
+            {
+                if (AreTransportControlsVisible // We only shrink when playing
+                    && _viewboxPanel.ActualHeight - _textBlock.ActualHeight < 50 // There's not enough room to comfortable display everything
+                    && _viewboxPanel.Margin.Bottom < 30) // We haven't done this yet
+                {
+                    _textMarginStoryboard.Stop();
+                    _textMarginStoryboard.Children.Clear();
+
+                    ThicknessAnimation animation = new ThicknessAnimation
+                    {
+                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                        To = new Thickness(30, 0, 30, 30),
+                        Duration = TimeSpan.FromSeconds(.1)
+                    };
+
+                    Storyboard.SetTarget(animation, _viewboxPanel);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                    _textMarginStoryboard.Children.Add(animation);
+                    _textMarginStoryboard.Begin();
+                }
+                else if (!AreTransportControlsVisible // Always reset when not playing
+                         || (_viewboxPanel.Margin.Bottom > 0 && ((_viewboxPanel.ActualHeight + _viewboxPanel.Margin.Bottom) - _textBlock.ActualHeight) >= 50)) // The bottom margin is set, but the height that it would be without it set is sufficient
+                {
+                    _textMarginStoryboard.Stop();
+                    _textMarginStoryboard.Children.Clear();
+
+                    ThicknessAnimation animation = new ThicknessAnimation
+                    {
+                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                        To = new Thickness(30, 0, 30, 0),
+                        Duration = TimeSpan.FromSeconds(.1)
+                    };
+
+                    Storyboard.SetTarget(animation, _viewboxPanel);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                    _textMarginStoryboard.Children.Add(animation);
+                    _textMarginStoryboard.Begin();
+                }
+            }
         }
 
         #endregion
@@ -1943,23 +1971,7 @@ namespace SoundBoard
                 hideableButton.Hide();
             }
 
-            if (_viewboxPanel?.Margin.Bottom > 0)
-            {
-                _textMarginStoryboard.Stop();
-                _textMarginStoryboard.Children.Clear();
-
-                ThicknessAnimation animation = new ThicknessAnimation
-                {
-                    From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
-                    To = new Thickness(30, 0, 30, 0),
-                    Duration = TimeSpan.FromSeconds(.1)
-                };
-
-                Storyboard.SetTarget(animation, _viewboxPanel);
-                Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
-                _textMarginStoryboard.Children.Add(animation);
-                _textMarginStoryboard.Begin();
-            }
+            CalculateTextMargin();
 
             MainWindow.Instance.OnAnySoundStopped(this);
         }
@@ -2284,6 +2296,8 @@ namespace SoundBoard
         private bool _isSelected;
 
         public bool IsPlaying => !_players.All(p => p.PlaybackState != PlaybackState.Playing); // Do not let ReSharper refactor this as !All is different than Any
+
+        public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
 
         #endregion
 

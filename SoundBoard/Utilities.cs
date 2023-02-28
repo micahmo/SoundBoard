@@ -222,9 +222,9 @@ namespace SoundBoard
         /// </summary>
         public static string SanitizeId(string id)
         {
-            if (!string.IsNullOrEmpty(id) && char.IsDigit(id.FirstOrDefault()))
+            if (!string.IsNullOrEmpty(id))
             {
-                return new string(id.Skip(1).ToArray());
+                return new string(id.SkipWhile(char.IsDigit).ToArray());
             }
 
             return id;

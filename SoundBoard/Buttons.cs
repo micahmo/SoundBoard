@@ -1010,7 +1010,14 @@ namespace SoundBoard
                 {
                     if (Mode == SoundButtonMode.Normal)
                     {
-                        StartSound();
+                        if (IsSelected)
+                        {
+                            MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StartSound());
+                        }
+                        else
+                        {
+                            StartSound();
+                        }
                     }
                     else if (Mode == SoundButtonMode.Search &&
                              SourceTabAndButton.SourceButton is SoundButton sourceButton)
@@ -2100,7 +2107,7 @@ namespace SoundBoard
 
         #region Private properties
 
-        private bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
+        internal bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
 
         internal SoundButtonStyle SoundButtonStyle
         {

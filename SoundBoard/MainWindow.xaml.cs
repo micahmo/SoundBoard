@@ -967,6 +967,12 @@ namespace SoundBoard
                 {
                     Mouse.Capture(null);
 
+                    if (e.Key == Key.A && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                    {
+                        GetSoundButtons(SelectedTab).Where(sb => sb.HasValidSound).ToList().ForEach(sb => sb.IsSelected = true);
+                        return;
+                    }
+
                     char c = GetCharFromKey(e.Key);
                     if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
                     {

@@ -83,7 +83,7 @@
             <Button Content="rename page" Click="renamePage_Click" Name="Rename"/>
             <Button Content="remove page" Click="removePage_Click" Name="Remove"/>
             <Button Content="add page" Click="addPage_Click"/>
-            <Button Content="help" Click="help_Click"/>
+            <Button Content="help" Click="help_Click" Name="Help"/>
             <Button Content="about" Click="about_Click"/>
             <Button Content="•••" Click="overflow_Click" Name="Overflow"/>
         </Controls:WindowCommands>
@@ -95,7 +95,7 @@
 
     <Grid>
         <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs">
-            <Controls:MetroTabItem Header="welcome">
+            <Controls:MetroTabItem>
             </Controls:MetroTabItem>
         </TabControl>
 

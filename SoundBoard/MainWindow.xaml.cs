@@ -259,6 +259,19 @@ namespace SoundBoard
         /// </summary>
         private void LoadSettings(string configFilePath)
         {
+            if (!File.Exists(configFilePath) && Tabs.Items.Count == 1)
+            {
+                // Populate content for "welcome"
+                CreateHelpContent((MetroTabItem)Tabs.Items[0]);
+                return;
+            }
+
+            // If we get here, we can remove the default tab.
+            if (Tabs.Items.Count == 1)
+            {
+                Tabs.Items.RemoveAt(0);
+            }
+
             try
             {
                 // try to load settings
@@ -422,11 +435,35 @@ namespace SoundBoard
                     }
                 }
             }
-            // If anything failed, add the startup page
-            catch
+            catch (Exception ex)
             {
-                // Populate content for "welcome"
-                CreateHelpContent((MetroTabItem)Tabs.Items[0]);
+                // Immediately back up the config
+                File.Copy(ConfigFilePath, TempConfigFilePath, overwrite: true);
+
+                // Do better error handling
+                Dispatcher.Invoke(async () =>
+                {
+                    var res = await this.ShowMessageAsync(Properties.Resources.Error,
+                        string.Join(Environment.NewLine, string.Format(Properties.Resources.ConfigLoadError, TempConfigFilePath), string.Empty, ex.Message),
+                        MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                        {
+                            AffirmativeButtonText = Properties.Resources.CopyDetails,
+                            NegativeButtonText = Properties.Resources.OK
+                        });
+
+                    if (res == MessageDialogResult.Affirmative)
+                    {
+                        Clipboard.SetText(string.Join(Environment.NewLine, TempConfigFilePath, string.Empty, ex.ToString()));
+                    }
+                });
+            }
+
+            // If there are no tabs after we load, show the help screen
+            if (Tabs.Items.Count == 0)
+            {
+                ButtonAutomationPeer peer = new ButtonAutomationPeer(Help);
+                IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                invokeProv?.Invoke();
             }
         }
 
@@ -588,6 +625,8 @@ namespace SoundBoard
 
         private void CreateHelpContent(MetroTabItem tab)
         {
+            tab.Header = Properties.Resources.Welcome;
+
             tab.Tag = WELCOME_PAGE_TAG;
 
             StackPanel stackPanel = new StackPanel();
@@ -1027,7 +1066,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.Welcome};
+            MetroTabItem tab = new MyMetroTabItem();
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();

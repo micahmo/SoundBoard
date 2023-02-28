@@ -178,6 +178,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to There was an error loading the SoundBoard configuration. A backup has been made at &apos;{0}&apos;.
+        /// </summary>
+        internal static string ConfigLoadError {
+            get {
+                return ResourceManager.GetString("ConfigLoadError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Configuration Files.
         /// </summary>
         internal static string ConfigurationFiles {

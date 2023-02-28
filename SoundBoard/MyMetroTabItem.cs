@@ -133,6 +133,31 @@ namespace SoundBoard
 
         #endregion
 
+        #region Public properties
+
+        public string HeaderText
+        {
+            get => _headerText;
+            set
+            {
+                _headerText = value;
+                Header = MainWindow.Instance.IsAnySoundPlayingOnTab(this) ? $"{_headerText}\uD83D\uDD69" : _headerText;
+            }
+        }
+        private string _headerText;
+
+        internal void IndicateSoundPlaying()
+        {
+            Header = $"{_headerText}\uD83D\uDD69";
+        }
+
+        internal void RemoveSoundPlaying()
+        {
+            Header = _headerText;
+        }
+
+        #endregion
+
         #region Private properties
 
         private TabControl ParentTabControl => _parentTabControl ?? 

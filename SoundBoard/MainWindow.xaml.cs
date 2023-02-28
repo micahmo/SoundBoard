@@ -262,7 +262,7 @@ namespace SoundBoard
             if (!File.Exists(configFilePath) && Tabs.Items.Count == 1)
             {
                 // Populate content for "welcome"
-                CreateHelpContent((MetroTabItem)Tabs.Items[0]);
+                CreateHelpContent((MyMetroTabItem)Tabs.Items[0]);
                 return;
             }
 
@@ -328,7 +328,7 @@ namespace SoundBoard
                         {
                             string name = node["name"]?.InnerText;
 
-                            MetroTabItem tab = new MyMetroTabItem {Header = name};
+                            MyMetroTabItem tab = new MyMetroTabItem {HeaderText = name};
                             Tabs.Items.Add(tab);
 
                             if (node.Attributes?["focused"]?.Value is string focusedString &&
@@ -518,7 +518,7 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
+        private void CreatePageContent(MyMetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
         {
             Grid parentGrid = new Grid();
 
@@ -623,9 +623,9 @@ namespace SoundBoard
             tab.Content = parentGrid;
         }
 
-        private void CreateHelpContent(MetroTabItem tab)
+        private void CreateHelpContent(MyMetroTabItem tab)
         {
-            tab.Header = Properties.Resources.Welcome;
+            tab.HeaderText = Properties.Resources.Welcome;
 
             tab.Tag = WELCOME_PAGE_TAG;
 
@@ -745,11 +745,11 @@ namespace SoundBoard
                 textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
                 textWriter.WriteEndElement();  // <GlobalSettings>
 
-                foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
+                foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
                 {
                     if (tab.Content is Grid grid)
                     {
-                        string name = tab.Header.ToString();
+                        string name = tab.HeaderText;
                         textWriter.WriteStartElement("tab");
                         textWriter.WriteAttributeString("focused", tab.IsSelectedItem().ToString());
                         textWriter.WriteAttributeString("rows", tab.GetRows().ToString());
@@ -876,7 +876,7 @@ namespace SoundBoard
 
         private void ClearAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            if (Tabs.SelectedItem is MyMetroTabItem metroTabItem)
             {
                 TabPageSoundsUndoState tabPageSoundsUndoState = (this as IUndoable<TabPageSoundsUndoState>).SaveState();
 
@@ -885,7 +885,7 @@ namespace SoundBoard
 
                 // Create and show a snackbar
                 string message = Properties.Resources.AllSoundsClearedFromTab;
-                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                string truncatedTabName = Utilities.Truncate(metroTabItem.HeaderText, SnackbarMessageFont, (int)Width - 50, message);
                 ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
                 foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
@@ -1066,7 +1066,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem();
+            MyMetroTabItem tab = new MyMetroTabItem();
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -1130,7 +1130,7 @@ namespace SoundBoard
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.NewPage};
+            MyMetroTabItem tab = new MyMetroTabItem {HeaderText = Properties.Resources.NewPage};
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -1143,14 +1143,14 @@ namespace SoundBoard
         {
             RemoveHandler(KeyDownEvent, KeyDownHandler);
 
-            if (Tabs.SelectedItem is MetroTabItem tab)
+            if (Tabs.SelectedItem is MyMetroTabItem tab)
             {
                 string result = await this.ShowInputAsync(Properties.Resources.Rename, Properties.Resources.WhatDoYouWantToCallIt,
-                    new MetroDialogSettings {DefaultText = tab.Header.ToString()});
+                    new MetroDialogSettings {DefaultText = tab.HeaderText});
 
                 if (string.IsNullOrEmpty(result) == false)
                 {
-                    tab.Header = result;
+                    tab.HeaderText = result;
                 }
             }
 
@@ -1159,7 +1159,7 @@ namespace SoundBoard
 
         private void removePage_Click(object sender, RoutedEventArgs e)
         {
-            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            if (Tabs.SelectedItem is MyMetroTabItem metroTabItem)
             {
                 TabPageUndoState tabPageUndoState = SaveState();
 
@@ -1168,7 +1168,7 @@ namespace SoundBoard
 
                 // Create and show a snackbar
                 string message = Properties.Resources.TabWasRemoved;
-                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                string truncatedTabName = Utilities.Truncate(metroTabItem.HeaderText, SnackbarMessageFont, (int)Width - 50, message);
                 ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
                 // Stop all sounds on this page
@@ -1684,6 +1684,30 @@ namespace SoundBoard
             SnackbarMessage.Text = message;
             Snackbar.AutoCloseInterval = timeout;
             Snackbar.IsOpen = true;
+        }
+
+        /// <summary>
+        /// Invoked when any sound starts
+        /// </summary>
+        internal void OnAnySoundStarted(SoundButton soundButton)
+        {
+            soundButton.ParentTab.IndicateSoundPlaying();
+        }
+
+        /// <summary>
+        /// Invoked when any sound stop
+        /// </summary>
+        internal void OnAnySoundStopped(SoundButton soundButton)
+        {
+            if (!IsAnySoundPlayingOnTab(soundButton.ParentTab))
+            {
+                soundButton.ParentTab.RemoveSoundPlaying();
+            }
+        }
+
+        internal bool IsAnySoundPlayingOnTab(MyMetroTabItem myMetroTabItem)
+        {
+            return GetSoundButtons(myMetroTabItem).Any(sb => sb.IsPlaying);
         }
 
         #endregion

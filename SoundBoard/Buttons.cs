@@ -640,7 +640,7 @@ namespace SoundBoard
         /// Constructor
         /// </summary>
         public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal, 
-                           MetroTabItem parentTab = null, 
+                           MyMetroTabItem parentTab = null, 
                            (MetroTabItem SourceTab, SoundButton SourceButton) sourceTabAndButton = default)
         {
             Mode = soundButtonMode;
@@ -679,7 +679,7 @@ namespace SoundBoard
                 }
             }
 
-            _loopMenuItem.IsEnabled = _players.All(p => p.PlaybackState != PlaybackState.Playing);
+            _loopMenuItem.IsEnabled = !IsPlaying;
 
             if (ContextMenu?.Items.Contains(_stopAllSoundsMenuItem) == true)
             {
@@ -739,7 +739,7 @@ namespace SoundBoard
 
                 // Create and show a snackbar
                 string message = Properties.Resources.MultipleSoundsClearedFromTab;
-                string truncatedTabName = Utilities.Truncate(ParentTab.Header.ToString(), MainWindow.Instance.SnackbarMessageFont, (int)Width - 50, message);
+                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50, message);
                 MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
                 MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
@@ -1319,6 +1319,8 @@ namespace SoundBoard
 
                 // Aaaaand play
                 Parallel.ForEach(_players, p => p.Play());
+
+                MainWindow.Instance.OnAnySoundStarted(this);
 
                 // Begin updating progress bar
                 _progressBarCancellationToken?.Cancel();
@@ -1958,6 +1960,8 @@ namespace SoundBoard
                 _textMarginStoryboard.Children.Add(animation);
                 _textMarginStoryboard.Begin();
             }
+
+            MainWindow.Instance.OnAnySoundStopped(this);
         }
 
         private void SetContent(string text)
@@ -2256,7 +2260,7 @@ namespace SoundBoard
         /// <summary>
         /// Specifies the <see cref="MetroTabItem"/> on which this sound lives. Will be null when in <see cref="SoundButtonMode.Search"/>.
         /// </summary>
-        public MetroTabItem ParentTab { get; }
+        public MyMetroTabItem ParentTab { get; }
 
         public bool IsSelected
         {
@@ -2278,6 +2282,8 @@ namespace SoundBoard
             }
         }
         private bool _isSelected;
+
+        public bool IsPlaying => !_players.All(p => p.PlaybackState != PlaybackState.Playing); // Do not let ReSharper refactor this as !All is different than Any
 
         #endregion
 

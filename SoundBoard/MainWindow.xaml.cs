@@ -396,6 +396,12 @@ namespace SoundBoard
                                         soundButtonUndoState.StopAllSounds = stopAllSounds;
                                     }
 
+                                    if (node["button" + i]?.Attributes["nextSound"]?.Value is string nextSound &&
+                                        string.IsNullOrEmpty(nextSound) == false)
+                                    {
+                                        soundButtonUndoState.NextSound = nextSound;
+                                    }
+
                                     if (node["button" + i]?.Attributes["id"]?.Value is string id &&
                                         string.IsNullOrEmpty(id) == false)
                                     {
@@ -778,6 +784,7 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
                                 textWriter.WriteAttributeString("stopAllSounds", button.StopAllSounds.ToString());
+                                textWriter.WriteAttributeString("nextSound", button.NextSound);
                                 textWriter.WriteAttributeString("id", button.Id);
                                 textWriter.WriteAttributeString("localHotkey", button.LocalHotkey?.ToString() ?? string.Empty);
                                 textWriter.WriteAttributeString("globalHotkey", button.GlobalHotkey?.ToString() ?? string.Empty);

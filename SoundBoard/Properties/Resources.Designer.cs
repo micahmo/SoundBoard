@@ -460,6 +460,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Next sound.
+        /// </summary>
+        internal static string NextSound {
+            get {
+                return ResourceManager.GetString("NextSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
         internal static string No {

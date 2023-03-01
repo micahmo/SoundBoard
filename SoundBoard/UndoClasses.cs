@@ -63,6 +63,11 @@
         public bool StopAllSounds { get; set; }
 
         /// <summary>
+        /// NextSound
+        /// </summary>
+        public string NextSound { get; set; }
+
+        /// <summary>
         /// Id
         /// </summary>
         public string Id { get; set; }

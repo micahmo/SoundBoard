@@ -23,6 +23,7 @@ using ControlPaint = System.Windows.Forms.ControlPaint;
 using BondTech.HotKeyManagement.WPF._4;
 using System.Media;
 using System.Windows.Media.Animation;
+using Humanizer;
 
 #endregion
 
@@ -694,6 +695,17 @@ namespace SoundBoard
                 }
             }
 
+            // Verify that NextSound is valid
+            if (!MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
+            {
+                NextSound = default;
+            }
+
+            if (ContextMenu?.Items.Contains(_nextSoundMenuItem) == true)
+            {
+                _nextSoundMenuItem.Icon = string.IsNullOrEmpty(NextSound) ? null : ImageHelper.GetImage(ImageHelper.CheckIconPath);
+            }
+
             // Make everything visible
             ContextMenu?.Items.OfType<Control>().ToList().ForEach(i => i.Visibility = Visibility.Visible);
 
@@ -705,6 +717,7 @@ namespace SoundBoard
                 _renameMenuItem.Visibility = Visibility.Collapsed;
                 _viewSourceMenuItem.Visibility = Visibility.Collapsed;
                 _hotkeysMenuItem.Visibility = Visibility.Collapsed;
+                _nextSoundMenuItem.Visibility = Visibility.Collapsed;
 
                 ContextMenu?.Items.OfType<Separator>().ToList().ForEach(s => s.Visibility = Visibility.Collapsed);
             }
@@ -904,6 +917,72 @@ namespace SoundBoard
                 };
 
                 _adjustVolumeMenuItem.Items.Add(volumeAdjustmentMenuItem);
+            }
+        }
+
+        private void NextSoundMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            _nextSoundMenuItem.Items.Clear();
+
+            List<MyMetroTabItem> tabs = MainWindow.Instance.Tabs.Items.OfType<MyMetroTabItem>().ToList();
+            foreach (MyMetroTabItem metroTabItem in tabs)
+            {
+                MenuItem tabMenuItem = new MenuItem { Header = metroTabItem.HeaderText.Truncate(50), IsEnabled = false };
+
+                IEnumerable<SoundButton> soundButtons = MainWindow.Instance.GetSoundButtons(metroTabItem).Where(sb => sb.HasValidSound).ToList();
+                if (soundButtons.Any())
+                {
+                    _nextSoundMenuItem.Items.Add(tabMenuItem);
+
+                    foreach (SoundButton soundButton in soundButtons)
+                    {
+                        MenuItem soundButtonMenuItem = new MenuItem
+                        {
+                            Header = soundButton.SoundName.Truncate(50),
+                            ToolTip = soundButton.SoundName,
+                            StaysOpenOnClick = true,
+                            Tag = soundButton.Id,
+                            Icon = NextSound == soundButton.Id ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            IsEnabled = soundButton != this
+                        };
+
+                        soundButtonMenuItem.Click += NextSoundItem_Clicked;
+
+                        _nextSoundMenuItem.Items.Add(soundButtonMenuItem);
+
+                        if (soundButton == soundButtons.Last())
+                        {
+                            _nextSoundMenuItem.Items.Add(new Separator());
+                        }
+                    }
+                }
+            }
+
+            if (_nextSoundMenuItem.Items.OfType<object>().LastOrDefault() is Separator separator)
+            {
+                _nextSoundMenuItem.Items.Remove(separator);
+            }
+        }
+
+        private void NextSoundItem_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && Guid.TryParse(menuItem.Tag?.ToString(), out Guid guid))
+            {
+                string id = guid.ToString();
+                NextSound = NextSound == id ? default : id;
+
+                // Recalculate everything
+                foreach (MenuItem otherMenuItem in _nextSoundMenuItem.Items.OfType<MenuItem>())
+                {
+                    if (Guid.TryParse(otherMenuItem.Tag?.ToString(), out Guid otherGuid))
+                    {
+                        string otherId = otherGuid.ToString();
+                        otherMenuItem.Icon = NextSound == otherId ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                    }
+                }
+
+                // Recalculate the main menu item
+                _nextSoundMenuItem.Icon = string.IsNullOrEmpty(NextSound) ? null : ImageHelper.GetImage(ImageHelper.CheckIconPath);
             }
         }
 
@@ -1621,6 +1700,7 @@ namespace SoundBoard
             StopAllSounds = false;
             LocalHotkey = null;
             GlobalHotkey = null;
+            NextSound = default;
 
             // Clear any hotkeys
             UnregisterLocalHotkey();
@@ -1749,8 +1829,15 @@ namespace SoundBoard
             if (_hotkeysMenuItem is null)
             {
                 _hotkeysMenuItem = new MenuItem { Header = Properties.Resources.SetHotkeys };
-                _hotkeysMenuItem.SetSeparator(true);
                 _hotkeysMenuItem.Click += HotkeysMenuItemClick;
+            }
+
+            if (_nextSoundMenuItem is null)
+            {
+                _nextSoundMenuItem = new MenuItem { Header = Properties.Resources.NextSound };
+                _nextSoundMenuItem.Items.Add(new MenuItem()); // Placeholder for submenu
+                _nextSoundMenuItem.SetSeparator(true);
+                _nextSoundMenuItem.SubmenuOpened += NextSoundMenuItem_SubmenuOpened;
             }
 
             // If the "Source" menu item is null, create it and hook up its handler
@@ -1816,6 +1903,11 @@ namespace SoundBoard
                     {
                         ContextMenu.Items.Add(_hotkeysMenuItem);
                     }
+
+                    if (ContextMenu.Items.Contains(_nextSoundMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_nextSoundMenuItem);
+                    }
                 }
             }
             else if (Mode == SoundButtonMode.Search)
@@ -1877,6 +1969,11 @@ namespace SoundBoard
                 if (ContextMenu.Items.Contains(_hotkeysMenuItem))
                 {
                     ContextMenu.Items.Remove(_hotkeysMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_nextSoundMenuItem))
+                {
+                    ContextMenu.Items.Remove(_nextSoundMenuItem);
                 }
             }
 
@@ -1963,11 +2060,13 @@ namespace SoundBoard
         {
             _progressBarCancellationToken?.Cancel();
 
+            // Indicates that the sound finished playing on its own
+            bool finished = false;
+
             if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
             {
-                {
-                    audioFileReader.Position = 0;
-                }
+                finished = audioFileReader.Position == audioFileReader.Length;
+                audioFileReader.Position = 0;
             }
 
             // Hide the additional buttons
@@ -1981,6 +2080,18 @@ namespace SoundBoard
             CalculateTextMargin();
 
             MainWindow.Instance.OnAnySoundStopped(this);
+
+            if (finished && !string.IsNullOrEmpty(NextSound) 
+                         && MainWindow.Instance.GetSoundButtons().Where(sb => sb.HasValidSound).FirstOrDefault(sb => sb.Id == NextSound) is SoundButton nextSoundButton)
+            {
+                // If the next sound isn't on the current tab, focus that tab.
+                if (nextSoundButton.ParentTab != ParentTab)
+                {
+                    nextSoundButton.ParentTab.Focus();
+                }
+                
+                nextSoundButton.StartSound();
+            }
         }
 
         private void SetContent(string text)
@@ -2306,6 +2417,8 @@ namespace SoundBoard
 
         public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
 
+        public string NextSound { get; set; }
+
         #endregion
 
         #region Public static properties
@@ -2336,6 +2449,7 @@ namespace SoundBoard
         private MenuItem _loopMenuItem;
         private MenuItem _stopAllSoundsMenuItem;
         private MenuItem _hotkeysMenuItem;
+        private MenuItem _nextSoundMenuItem;
 
         private Point? _mouseDownPosition;
 
@@ -2370,6 +2484,7 @@ namespace SoundBoard
                 VolumeOffset = VolumeOffset,
                 Loop = Loop,
                 StopAllSounds = StopAllSounds,
+                NextSound = NextSound,
                 Id = Id,
                 LocalHotkey = LocalHotkey,
                 GlobalHotkey = GlobalHotkey
@@ -2386,6 +2501,7 @@ namespace SoundBoard
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;
                 StopAllSounds = undoState.StopAllSounds;
+                NextSound = undoState.NextSound;
 
                 if (!string.IsNullOrEmpty(undoState.Id))
                 {

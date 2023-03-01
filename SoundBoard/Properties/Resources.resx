@@ -359,4 +359,7 @@ Global Hotkey: {1}</value>
   <data name="ConfigLoadError" xml:space="preserve">
     <value>There was an error loading the SoundBoard configuration. A backup has been made at '{0}'</value>
   </data>
+  <data name="NextSound" xml:space="preserve">
+    <value>Next sound</value>
+  </data>
 </root>

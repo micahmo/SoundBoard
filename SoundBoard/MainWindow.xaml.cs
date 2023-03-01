@@ -31,6 +31,7 @@ using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
 using BondTech.HotKeyManagement.WPF._4;
+using System.Windows.Media;
 
 #endregion
 
@@ -152,6 +153,17 @@ namespace SoundBoard
                 {
                     GetSoundButtons().ToList().ForEach(sb => sb.CalculateTextMargin());
                 });
+
+            // We want to show our warning if the current process is elevated and UAC is enabled on the machine.
+            // If we're elevated but UAC is not enabled, then drag-n-drop will probably work fine.
+            if (UACHelper.UACHelper.IsElevated && UACHelper.UACHelper.IsUACEnable)
+            {
+                AdminBorder.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                AdminBorder.Visibility = Visibility.Collapsed;
+            }
         }
 
         #endregion
@@ -227,6 +239,24 @@ namespace SoundBoard
             {
                 GetSoundButtons().ToList().ForEach(sb => sb.IsSelected = false);
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+
+            AdminBorder.BorderBrush = new SolidColorBrush(Colors.LightBlue);
+            AdminText.Foreground = new SolidColorBrush(Colors.LightBlue);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnDeactivated(EventArgs e)
+        {
+            base.OnDeactivated(e);
+
+            AdminBorder.BorderBrush = new SolidColorBrush(Colors.LightGray);
+            AdminText.Foreground = new SolidColorBrush(Colors.LightGray);
         }
 
         #endregion

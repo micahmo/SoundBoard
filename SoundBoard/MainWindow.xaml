@@ -86,6 +86,10 @@
             <Button Content="help" Click="help_Click" Name="Help"/>
             <Button Content="about" Click="about_Click"/>
             <Button Content="•••" Click="overflow_Click" Name="Overflow"/>
+            <Border Name="AdminBorder" BorderThickness="1" BorderBrush="LightBlue" Margin="5" Padding="5,0,5,0"
+                    ToolTip="SoundBoard is running as an administrator. Dragging and dropping sounds may not work.">
+                <TextBlock Name="AdminText" Text="ADMIN" VerticalAlignment="Center" Foreground="LightBlue" />
+            </Border>
         </Controls:WindowCommands>
     </Controls:MetroWindow.RightWindowCommands>
 

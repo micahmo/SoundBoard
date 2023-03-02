@@ -272,6 +272,14 @@
     <Resource Include="Images\keyboard.png" />
     <Resource Include="Images\keyboard_light.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\x.png" />
+    <Resource Include="Images\x_light.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\right.png" />
+    <Resource Include="Images\right_light.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.5.1.1\build\Fody.targets" Condition="Exists('..\packages\Fody.5.1.1\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

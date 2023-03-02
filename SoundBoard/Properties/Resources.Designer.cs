@@ -469,6 +469,24 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Next sound: {0}.
+        /// </summary>
+        internal static string NextSoundName {
+            get {
+                return ResourceManager.GetString("NextSoundName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next sound: {0} - {1}.
+        /// </summary>
+        internal static string NextSoundTab {
+            get {
+                return ResourceManager.GetString("NextSoundTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
         internal static string No {
@@ -645,6 +663,15 @@ namespace SoundBoard.Properties {
         internal static string StopAllSounds {
             get {
                 return ResourceManager.GetString("StopAllSounds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This sound will stop all other sounds.
+        /// </summary>
+        internal static string StopAllSoundsIcon {
+            get {
+                return ResourceManager.GetString("StopAllSoundsIcon", resourceCulture);
             }
         }
         

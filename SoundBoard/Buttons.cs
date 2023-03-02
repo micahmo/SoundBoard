@@ -602,6 +602,76 @@ namespace SoundBoard
 
     #endregion
 
+    #region StopAllSoundsIconButton class
+
+    internal sealed class StopAllSoundsIconButton : IconButtonBase
+    {
+        public StopAllSoundsIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 20);
+            ToolTip = Properties.Resources.StopAllSoundsIcon;
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.XIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            Visibility = ParentButton.StopAllSounds ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    #endregion
+
+    #region NextSoundIconButton class
+
+    internal sealed class NextSoundIconButton : IconButtonBase
+    {
+        public NextSoundIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 40);
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.RightIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            Visibility = Visibility.Collapsed;
+
+            if (!string.IsNullOrEmpty(ParentButton.NextSound))
+            {
+                SoundButton soundButton = MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb => sb.Id == ParentButton.NextSound);
+                if (soundButton?.HasValidSound == true)
+                {
+                    Visibility = Visibility.Visible;
+
+                    ToolTip = soundButton.ParentTab != ParentButton.ParentTab
+                        ? string.Format(Properties.Resources.NextSoundTab, soundButton.ParentTab.HeaderText, soundButton.SoundName)
+                        : string.Format(Properties.Resources.NextSoundName, soundButton.SoundName);
+                }
+            }
+        }
+    }
+
+    #endregion
+
     #region SoundProgressBar class
 
     /// <summary>
@@ -2230,7 +2300,7 @@ namespace SoundBoard
                 if (HasValidSound == false)
                 {
                     // Not a valid sound yet, use a "placeholder" color
-                    soundButtonStyle.ForegroundColor = Colors.Gray;
+                    soundButtonStyle.ForegroundColor = System.Windows.Media.Color.FromRgb(168, 168, 168);
                 }
                 else
                 {
@@ -2300,7 +2370,16 @@ namespace SoundBoard
         /// <summary>
         /// Defines the name of the sound file as displayed on the button
         /// </summary>
-        public string SoundName { get; private set; } = string.Empty;
+        public string SoundName
+        {
+            get => _soundName;
+            private set
+            {
+                _soundName = value;
+                MainWindow.Instance.OnAnySoundRenamed();
+            }
+        }
+        private string _soundName;
 
         /// <summary>
         /// Defines the background color of the button
@@ -2350,7 +2429,16 @@ namespace SoundBoard
 
         private bool _loop; // Backing field
 
-        public bool StopAllSounds { get; set; }
+        public bool StopAllSounds
+        {
+            get => _stopAllSounds;
+            set
+            {
+                _stopAllSounds = value;
+                ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private bool _stopAllSounds;
 
         public string Id { get; set; }
 
@@ -2417,7 +2505,16 @@ namespace SoundBoard
 
         public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
 
-        public string NextSound { get; set; }
+        public string NextSound
+        {
+            get => _nextSound;
+            set
+            {
+                _nextSound = value;
+                ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private string _nextSound;
 
         #endregion
 
@@ -2495,6 +2592,11 @@ namespace SoundBoard
         {
             if (string.IsNullOrEmpty(undoState.SoundPath) == false)
             {
+                if (!string.IsNullOrEmpty(undoState.Id))
+                {
+                    Id = undoState.Id;
+                }
+
                 SetFile(undoState.SoundPath);
                 SetContent(SoundName = undoState.SoundName);
                 Color = undoState.Color;
@@ -2502,11 +2604,6 @@ namespace SoundBoard
                 Loop = undoState.Loop;
                 StopAllSounds = undoState.StopAllSounds;
                 NextSound = undoState.NextSound;
-
-                if (!string.IsNullOrEmpty(undoState.Id))
-                {
-                    Id = undoState.Id;
-                }
 
                 LocalHotkey = undoState.LocalHotkey;
                 GlobalHotkey = undoState.GlobalHotkey;

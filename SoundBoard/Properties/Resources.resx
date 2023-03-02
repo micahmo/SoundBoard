@@ -362,4 +362,13 @@ Global Hotkey: {1}</value>
   <data name="NextSound" xml:space="preserve">
     <value>Next sound</value>
   </data>
+  <data name="StopAllSoundsIcon" xml:space="preserve">
+    <value>This sound will stop all other sounds</value>
+  </data>
+  <data name="NextSoundTab" xml:space="preserve">
+    <value>Next sound: {0} - {1}</value>
+  </data>
+  <data name="NextSoundName" xml:space="preserve">
+    <value>Next sound: {0}</value>
+  </data>
 </root>

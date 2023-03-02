@@ -654,6 +654,22 @@ namespace SoundBoard
                     parentGrid.Children.Add(hotkeyIndicatorButton);
                     soundButton.ChildButtons.Add(hotkeyIndicatorButton);
 
+                    // StopAllSounds icon
+                    StopAllSoundsIconButton stopAllSoundsIconButton = new StopAllSoundsIconButton(soundButton);
+
+                    Grid.SetColumn(stopAllSoundsIconButton, columnIndex);
+                    Grid.SetRow(stopAllSoundsIconButton, rowIndex);
+                    parentGrid.Children.Add(stopAllSoundsIconButton);
+                    soundButton.ChildButtons.Add(stopAllSoundsIconButton);
+
+                    // NextSound icon
+                    NextSoundIconButton nextSoundIconButton = new NextSoundIconButton(soundButton);
+
+                    Grid.SetColumn(nextSoundIconButton, columnIndex);
+                    Grid.SetRow(nextSoundIconButton, rowIndex);
+                    parentGrid.Children.Add(nextSoundIconButton);
+                    soundButton.ChildButtons.Add(nextSoundIconButton);
+
                     // Progress bar
                     SoundProgressBar progressBar = new SoundProgressBar();
 
@@ -666,6 +682,8 @@ namespace SoundBoard
             }
 
             tab.Content = parentGrid;
+
+            OnAnySoundRenamed();
         }
 
         private void CreateHelpContent(MyMetroTabItem tab)
@@ -1760,6 +1778,11 @@ namespace SoundBoard
         internal bool IsAnySoundPlayingOnTab(MyMetroTabItem myMetroTabItem)
         {
             return GetSoundButtons(myMetroTabItem).Any(sb => sb.IsPlaying);
+        }
+
+        internal void OnAnySoundRenamed()
+        {
+            GetSoundButtons().SelectMany(sb => sb.ChildButtons.OfType<NextSoundIconButton>()).ToList().ForEach(ns => ns.Update());
         }
 
         #endregion

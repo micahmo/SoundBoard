@@ -1298,6 +1298,13 @@ namespace SoundBoard
             e.Handled = true;
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            // For debugging
+            return $"{ParentTab?.HeaderText} - {SoundName}";
+        }
+
         #endregion
 
         #region Public methods
@@ -1682,16 +1689,19 @@ namespace SoundBoard
         /// </summary>
         public void ReregisterLocalHotkey()
         {
-            Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
-
-            // The mapping failed
-            if (mappedKey == default)
+            if (LocalHotkey != null)
             {
-                throw new Exception();
-            }
+                Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
 
-            LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
-            MainWindow.Instance.HotKeyManager.AddLocalHotKey(localHotKey);
+                // The mapping failed
+                if (mappedKey == default)
+                {
+                    throw new Exception();
+                }
+
+                LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
+                MainWindow.Instance.HotKeyManager?.AddLocalHotKey(localHotKey);
+            }
         }
 
         /// <summary>
@@ -1699,16 +1709,19 @@ namespace SoundBoard
         /// </summary>
         public void ReregisterGlobalHotkey()
         {
-            Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
-
-            // The mapping failed
-            if (mappedKey == default)
+            if (GlobalHotkey != null)
             {
-                throw new Exception();
-            }
+                Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
 
-            GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
-            MainWindow.Instance.HotKeyManager.AddGlobalHotKey(globalHotKey);
+                // The mapping failed
+                if (mappedKey == default)
+                {
+                    throw new Exception();
+                }
+
+                GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
+                MainWindow.Instance.HotKeyManager?.AddGlobalHotKey(globalHotKey);
+            }
         }
 
         public void CalculateTextMargin()

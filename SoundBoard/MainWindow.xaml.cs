@@ -180,20 +180,47 @@ namespace SoundBoard
             {
                 if (!IsHotkeyPickerOpen)
                 {
-                    GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name)?.StartSound();
+                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
+                    {
+                        soundButton.ParentTab.Focus();
+                        soundButton.StartSound();
+                    }
                 }
             };
             HotKeyManager.LocalHotKeyPressed += (_, args) =>
             {
                 if (!IsHotkeyPickerOpen)
                 {
-                    GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name)?.StartSound();
+                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
+                    {
+                        soundButton.ParentTab.Focus();
+                        soundButton.StartSound();
+                    }
                 }
             };
 
+            // There is a weird issue where after some changes to the executable (new version, new directory)
+            // the first global hotkey registration fails. This only happens during the first launch after the change,
+            // and even that time, all subsequent registrations work.
+            // Therefore, we will use a trick to register a hotkey we don't care about.
+            GlobalHotKey ignore = new GlobalHotKey(Utilities.SanitizeId(Guid.NewGuid().ToString()), ModifierKeys.None, Keys.HangulMode);
+
+            try
+            {
+                HotKeyManager.AddGlobalHotKey(ignore);
+            }
+            catch { }
+
+            // Unregister -- this will work for all but the bad scenario
+            try
+            {
+                HotKeyManager.RemoveGlobalHotKey(ignore);
+            }
+            catch { }
+
             // Load existing hotkeys
             List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
-            GetSoundButtons().ToList().ForEach(sb =>
+            foreach (SoundButton sb in GetSoundButtons().ToList())
             {
                 if (sb.LocalHotkey != null)
                 {
@@ -201,7 +228,7 @@ namespace SoundBoard
                     {
                         sb.ReregisterLocalHotkey();
                     }
-                    catch
+                    catch (Exception)
                     {
                         badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
                     }
@@ -213,12 +240,12 @@ namespace SoundBoard
                     {
                         sb.ReregisterGlobalHotkey();
                     }
-                    catch
+                    catch (Exception)
                     {
                         badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
                     }
                 }
-            });
+            }
 
             if (badHotkeys.Any())
             {

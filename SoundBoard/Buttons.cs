@@ -2150,7 +2150,7 @@ namespace SoundBoard
 
             if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
             {
-                finished = audioFileReader.Position == audioFileReader.Length;
+                finished = audioFileReader.Position >= audioFileReader.Length;
                 audioFileReader.Position = 0;
             }
 
@@ -2170,7 +2170,7 @@ namespace SoundBoard
                          && MainWindow.Instance.GetSoundButtons().Where(sb => sb.HasValidSound).FirstOrDefault(sb => sb.Id == NextSound) is SoundButton nextSoundButton)
             {
                 // If the next sound isn't on the current tab, focus that tab.
-                if (nextSoundButton.ParentTab != ParentTab)
+                if (nextSoundButton.ParentTab != MainWindow.Instance.SelectedTab)
                 {
                     nextSoundButton.ParentTab.Focus();
                 }

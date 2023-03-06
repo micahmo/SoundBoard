@@ -261,12 +261,14 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
+                MainWindow.Instance.OnAnySoundStopped(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
+                MainWindow.Instance.OnAnySoundStarted(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
         }

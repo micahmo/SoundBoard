@@ -371,4 +371,13 @@ Global Hotkey: {1}</value>
   <data name="NextSoundName" xml:space="preserve">
     <value>Next sound: {0}</value>
   </data>
+  <data name="NewPageDefaultGrid" xml:space="preserve">
+    <value>Default button grid</value>
+  </data>
+  <data name="NewPageDefaultGridToolTip" xml:space="preserve">
+    <value>Set the button grid that will be used for new pages</value>
+  </data>
+  <data name="ChangeDefaultButtonGrid" xml:space="preserve">
+    <value>Change Default Button Grid</value>
+  </data>
 </root>

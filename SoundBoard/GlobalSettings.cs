@@ -85,6 +85,16 @@ namespace SoundBoard
         /// </remarks>
         private static HashSet<Guid> InputDeviceGuids { get; } = new HashSet<Guid>();
 
+        /// <summary>
+        /// The number of button columns to use by default for new pages
+        /// </summary>
+        public static int NewPageDefaultColumns { get; set; } = 2;
+
+        /// <summary>
+        /// The number of button rows to use by default for new pages
+        /// </summary>
+        public static int NewPageDefaultRows { get; set; } = 5;
+
         #endregion
 
         /// <summary>

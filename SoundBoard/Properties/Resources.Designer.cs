@@ -124,6 +124,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Change Default Button Grid.
+        /// </summary>
+        internal static string ChangeDefaultButtonGrid {
+            get {
+                return ResourceManager.GetString("ChangeDefaultButtonGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Check for updates.
         /// </summary>
         internal static string CheckForUpdates {
@@ -456,6 +465,24 @@ namespace SoundBoard.Properties {
         internal static string NewPage {
             get {
                 return ResourceManager.GetString("NewPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default button grid.
+        /// </summary>
+        internal static string NewPageDefaultGrid {
+            get {
+                return ResourceManager.GetString("NewPageDefaultGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set the button grid that will be used for new pages.
+        /// </summary>
+        internal static string NewPageDefaultGridToolTip {
+            get {
+                return ResourceManager.GetString("NewPageDefaultGridToolTip", resourceCulture);
             }
         }
         

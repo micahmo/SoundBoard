@@ -378,6 +378,18 @@ namespace SoundBoard
                         {
                             GlobalSettings.AudioPassthroughLatency = audioPassthroughLatency;
                         }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultRows)] is XmlAttribute newPageDefaultRowsAttribute
+                            && int.TryParse(newPageDefaultRowsAttribute.Value, out int newPageDefaultRows))
+                        {
+                            GlobalSettings.NewPageDefaultRows = newPageDefaultRows;
+                        }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultColumns)] is XmlAttribute newPageDefaultColumnsAttribute
+                            && int.TryParse(newPageDefaultColumnsAttribute.Value, out int newPageDefaultColumns))
+                        {
+                            GlobalSettings.NewPageDefaultColumns = newPageDefaultColumns;
+                        }
                     }
 
                     // Get tabs
@@ -833,6 +845,8 @@ namespace SoundBoard
                 textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
                 textWriter.WriteAttributeString(GlobalSettings.InputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetInputDeviceGuids()));
                 textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
+                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultRows), GlobalSettings.NewPageDefaultRows.ToString());
+                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultColumns), GlobalSettings.NewPageDefaultColumns.ToString());
                 textWriter.WriteEndElement();  // <GlobalSettings>
 
                 foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
@@ -1195,6 +1209,14 @@ namespace SoundBoard
                 clearConfig.SetSeparator(true);
                 clearConfig.Click += ClearConfig_Click;
 
+                _newPageDefaultMenu = new MenuItem
+                {
+                    Header = Properties.Resources.NewPageDefaultGrid,
+                    ToolTip = Properties.Resources.NewPageDefaultGridToolTip
+                };
+                _newPageDefaultMenu.Click += NewPageDefault_Click;
+                _newPageDefaultMenu.SetSeparator(true);
+
                 _inputDeviceMenu = new MenuItem { Header = Properties.Resources.InputDevice };
                 _inputDeviceMenu.SubmenuOpened += InputDeviceMenuOpened;
 
@@ -1214,6 +1236,7 @@ namespace SoundBoard
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
+                overflowMenu.Items.Add(_newPageDefaultMenu);
                 overflowMenu.Items.Add(_inputDeviceMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
 
@@ -1385,6 +1408,18 @@ namespace SoundBoard
             {
                 await this.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
+
+        private async void NewPageDefault_Click(object sender, RoutedEventArgs e)
+        {
+            ButtonGridDialog buttonGridDialog = new ButtonGridDialog(GlobalSettings.NewPageDefaultRows, GlobalSettings.NewPageDefaultColumns, Properties.Resources.ChangeDefaultButtonGrid, validate: false);
+            await this.ShowChildWindowAsync(buttonGridDialog);
+
+            if (buttonGridDialog.DialogResult == System.Windows.Forms.DialogResult.OK)
+            {
+                GlobalSettings.NewPageDefaultColumns = buttonGridDialog.ColumnCount;
+                GlobalSettings.NewPageDefaultRows = buttonGridDialog.RowCount;
             }
         }
 
@@ -1821,6 +1856,7 @@ namespace SoundBoard
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
+        private MenuItem _newPageDefaultMenu;
         private MenuItem _inputDeviceMenu;
         private MenuItem _outputDeviceMenu;
 

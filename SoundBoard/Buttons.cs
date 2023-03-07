@@ -1732,7 +1732,7 @@ namespace SoundBoard
             {
                 if (AreTransportControlsVisible // We only shrink when playing
                     && _viewboxPanel.ActualHeight - _textBlock.ActualHeight < 50 // There's not enough room to comfortable display everything
-                    && _viewboxPanel.Margin.Bottom < 30) // We haven't done this yet
+                    && _targetViewboxMarginBottom < 30) // We haven't done this yet
                 {
                     _textMarginStoryboard.Stop();
                     _textMarginStoryboard.Children.Clear();
@@ -1744,13 +1744,15 @@ namespace SoundBoard
                         Duration = TimeSpan.FromSeconds(.1)
                     };
 
+                    _targetViewboxMarginBottom = 30;
+
                     Storyboard.SetTarget(animation, _viewboxPanel);
                     Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
                     _textMarginStoryboard.Children.Add(animation);
                     _textMarginStoryboard.Begin();
                 }
                 else if (!AreTransportControlsVisible // Always reset when not playing
-                         || (_viewboxPanel.Margin.Bottom > 0 && ((_viewboxPanel.ActualHeight + _viewboxPanel.Margin.Bottom) - _textBlock.ActualHeight) >= 50)) // The bottom margin is set, but the height that it would be without it set is sufficient
+                         || (_targetViewboxMarginBottom > 0 && ((_viewboxPanel.ActualHeight + _targetViewboxMarginBottom) - _textBlock.ActualHeight) >= 50)) // The bottom margin is set, but the height that it would be without it set is sufficient
                 {
                     _textMarginStoryboard.Stop();
                     _textMarginStoryboard.Children.Clear();
@@ -1761,6 +1763,8 @@ namespace SoundBoard
                         To = new Thickness(30, 0, 30, 0),
                         Duration = TimeSpan.FromSeconds(.1)
                     };
+
+                    _targetViewboxMarginBottom = 0;
 
                     Storyboard.SetTarget(animation, _viewboxPanel);
                     Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
@@ -2569,6 +2573,7 @@ namespace SoundBoard
 
         // Related to text resizing
         private ViewboxPanel _viewboxPanel;
+        private int _targetViewboxMarginBottom;
         private TextBlock _textBlock;
         private readonly Storyboard _textMarginStoryboard = new Storyboard();
 

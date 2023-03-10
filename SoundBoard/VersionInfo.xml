@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <AppUpdate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/AppUpdate.xsd">
-  <Version>1.9.0.2</Version>
-  <ReleaseDate>2022-01-08</ReleaseDate>
+  <Version>1.10.0.2</Version>
+  <ReleaseDate>2023-03-10</ReleaseDate>
   <!-- Default download -->
-  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.9/SoundBoard.exe</DownloadLink>
+  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.10.0/SoundBoard.exe</DownloadLink>
   <DownloadFileName>SoundBoard.exe</DownloadFileName>
   <!-- All download options -->
   <Downloads>
     <Download key="portable">
-      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.9/SoundBoard.exe</Link>
+      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.10.0/SoundBoard.exe</Link>
       <FileName>SoundBoard.exe</FileName>
       <FileHash></FileHash>
     </Download>
   </Downloads>
   <!-- Release notes -->
-  <VersionNotes> - Allow updates to be skipped
- - Handle long sound paths and names
- - Expand list of supported audio/video file types
- - Add missing/unsupported file warnings
- - Allow restoring broken file links
- - General error handling and bug fixes</VersionNotes>
+  <VersionNotes> - Audio recording device can be passed through to an audio playback device (#18)
+ - Hotkeys can be assigned to sounds
+ - Multiple sounds or a whole folder can be added at once
+ - Select sounds with Control- or Shift-Click to update or play multiple at once
+ - Sounds can be configured to stop all other sounds when played
+ - Sound names are more readable at different sizes (#17)
+ - Tabs with currently playing sounds will now be clearly indicated
+ - Sounds can trigger other sounds, allowing chaining
+ - The default grid layout for new pages can be configured
+ - General bug fixes and improvements</VersionNotes>
   <ReleaseNotes></ReleaseNotes>
 </AppUpdate>

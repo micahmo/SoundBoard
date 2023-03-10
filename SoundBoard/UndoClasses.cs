@@ -56,6 +56,31 @@
         /// Loop
         /// </summary>
         public bool Loop { get; set; }
+
+        /// <summary>
+        /// StopAllSounds
+        /// </summary>
+        public bool StopAllSounds { get; set; }
+
+        /// <summary>
+        /// NextSound
+        /// </summary>
+        public string NextSound { get; set; }
+
+        /// <summary>
+        /// Id
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// LocalHotkey
+        /// </summary>
+        public Hotkey LocalHotkey { get; set; }
+
+        /// <summary>
+        /// GlobalHotkey
+        /// </summary>
+        public Hotkey GlobalHotkey { get; set; }
     }
 
     /// <summary>

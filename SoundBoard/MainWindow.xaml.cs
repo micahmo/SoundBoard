@@ -12,12 +12,14 @@ using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reactive.Linq;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
+using System.Windows.Threading;
 using Bluegrams.Application;
 using Gma.System.MouseKeyHook;
 using MahApps.Metro.SimpleChildWindow;
@@ -28,6 +30,8 @@ using Timer = System.Timers.Timer;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
+using BondTech.HotKeyManagement.WPF._4;
+using System.Windows.Media;
 
 #endregion
 
@@ -134,6 +138,152 @@ namespace SoundBoard
                 Owner = this,
                 DownloadIdentifier = "portable"
             };
+
+            HandleInputOutputChange();
+
+            Tabs.SelectionChanged += (_, __) =>
+            {
+                GetSoundButtons().Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
+            };
+
+            Observable.FromEventPattern<SizeChangedEventHandler, SizeChangedEventArgs>(e => SizeChanged += e, e => SizeChanged -= e)
+                .Throttle(TimeSpan.FromSeconds(.5))
+                .ObserveOn(this)
+                .Subscribe(args =>
+                {
+                    GetSoundButtons().ToList().ForEach(sb => sb.CalculateTextMargin());
+                });
+
+            // We want to show our warning if the current process is elevated and UAC is enabled on the machine.
+            // If we're elevated but UAC is not enabled, then drag-n-drop will probably work fine.
+            if (UACHelper.UACHelper.IsElevated && UACHelper.UACHelper.IsUACEnable)
+            {
+                AdminBorder.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                AdminBorder.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc/>
+        protected override async void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            HotKeyManager = new HotKeyManager(this);
+            HotKeyManager.GlobalHotKeyPressed += (_, args) =>
+            {
+                if (!IsHotkeyPickerOpen)
+                {
+                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
+                    {
+                        soundButton.ParentTab.Focus();
+                        soundButton.StartSound();
+                    }
+                }
+            };
+            HotKeyManager.LocalHotKeyPressed += (_, args) =>
+            {
+                if (!IsHotkeyPickerOpen)
+                {
+                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
+                    {
+                        soundButton.ParentTab.Focus();
+                        soundButton.StartSound();
+                    }
+                }
+            };
+
+            // There is a weird issue where after some changes to the executable (new version, new directory)
+            // the first global hotkey registration fails. This only happens during the first launch after the change,
+            // and even that time, all subsequent registrations work.
+            // Therefore, we will use a trick to register a hotkey we don't care about.
+            GlobalHotKey ignore = new GlobalHotKey(Utilities.SanitizeId(Guid.NewGuid().ToString()), ModifierKeys.None, Keys.HangulMode);
+
+            try
+            {
+                HotKeyManager.AddGlobalHotKey(ignore);
+            }
+            catch { }
+
+            // Unregister -- this will work for all but the bad scenario
+            try
+            {
+                HotKeyManager.RemoveGlobalHotKey(ignore);
+            }
+            catch { }
+
+            // Load existing hotkeys
+            List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
+            foreach (SoundButton sb in GetSoundButtons().ToList())
+            {
+                if (sb.LocalHotkey != null)
+                {
+                    try
+                    {
+                        sb.ReregisterLocalHotkey();
+                    }
+                    catch (Exception)
+                    {
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
+                    }
+                }
+
+                if (sb.GlobalHotkey != null)
+                {
+                    try
+                    {
+                        sb.ReregisterGlobalHotkey();
+                    }
+                    catch (Exception)
+                    {
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
+                    }
+                }
+            }
+
+            if (badHotkeys.Any())
+            {
+                await this.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.HotkeyRegistrationFailedOnLoad, string.Join(Environment.NewLine, badHotkeys.Select(tup => $"{tup.Item2} ({tup.Item1})"))),
+                    MessageDialogStyle.Affirmative, new MetroDialogSettings
+                    {
+                        AffirmativeButtonText = Properties.Resources.OK
+                    });
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                GetSoundButtons().ToList().ForEach(sb => sb.IsSelected = false);
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+
+            AdminBorder.BorderBrush = new SolidColorBrush(Colors.LightBlue);
+            AdminText.Foreground = new SolidColorBrush(Colors.LightBlue);
+        }
+
+        /// <inheritdoc/>
+        protected override void OnDeactivated(EventArgs e)
+        {
+            base.OnDeactivated(e);
+
+            AdminBorder.BorderBrush = new SolidColorBrush(Colors.LightGray);
+            AdminText.Foreground = new SolidColorBrush(Colors.LightGray);
         }
 
         #endregion
@@ -175,6 +325,19 @@ namespace SoundBoard
         /// </summary>
         private void LoadSettings(string configFilePath)
         {
+            if (!File.Exists(configFilePath) && Tabs.Items.Count == 1)
+            {
+                // Populate content for "welcome"
+                CreateHelpContent((MyMetroTabItem)Tabs.Items[0]);
+                return;
+            }
+
+            // If we get here, we can remove the default tab.
+            if (Tabs.Items.Count == 1)
+            {
+                Tabs.Items.RemoveAt(0);
+            }
+
             try
             {
                 // try to load settings
@@ -198,6 +361,35 @@ namespace SoundBoard
                                 }
                             });
                         }
+
+                        if (globalSettings.Attributes?[GlobalSettings.InputDeviceGuidSettingName] is XmlAttribute inputDeviceGuidAttribute)
+                        {
+                            inputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
+                            {
+                                if (Guid.TryParse(guid, out var inputDeviceGuid))
+                                {
+                                    GlobalSettings.AddInputDeviceGuid(inputDeviceGuid);
+                                }
+                            });
+                        }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.AudioPassthroughLatency)] is XmlAttribute audioPassthroughLatencyAttribute
+                            && int.TryParse(audioPassthroughLatencyAttribute.Value, out int audioPassthroughLatency))
+                        {
+                            GlobalSettings.AudioPassthroughLatency = audioPassthroughLatency;
+                        }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultRows)] is XmlAttribute newPageDefaultRowsAttribute
+                            && int.TryParse(newPageDefaultRowsAttribute.Value, out int newPageDefaultRows))
+                        {
+                            GlobalSettings.NewPageDefaultRows = newPageDefaultRows;
+                        }
+
+                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultColumns)] is XmlAttribute newPageDefaultColumnsAttribute
+                            && int.TryParse(newPageDefaultColumnsAttribute.Value, out int newPageDefaultColumns))
+                        {
+                            GlobalSettings.NewPageDefaultColumns = newPageDefaultColumns;
+                        }
                     }
 
                     // Get tabs
@@ -214,7 +406,7 @@ namespace SoundBoard
                         {
                             string name = node["name"]?.InnerText;
 
-                            MetroTabItem tab = new MyMetroTabItem {Header = name};
+                            MyMetroTabItem tab = new MyMetroTabItem {HeaderText = name};
                             Tabs.Items.Add(tab);
 
                             if (node.Attributes?["focused"]?.Value is string focusedString &&
@@ -267,6 +459,36 @@ namespace SoundBoard
                                         soundButtonUndoState.Loop = loop;
                                     }
 
+                                    if (node["button" + i]?.Attributes["stopAllSounds"]?.Value is string stopAllSoundsString &&
+                                        string.IsNullOrEmpty(stopAllSoundsString) == false && bool.TryParse(stopAllSoundsString, out bool stopAllSounds))
+                                    {
+                                        soundButtonUndoState.StopAllSounds = stopAllSounds;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["nextSound"]?.Value is string nextSound &&
+                                        string.IsNullOrEmpty(nextSound) == false)
+                                    {
+                                        soundButtonUndoState.NextSound = nextSound;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["id"]?.Value is string id &&
+                                        string.IsNullOrEmpty(id) == false)
+                                    {
+                                        soundButtonUndoState.Id = id;
+                                    }
+
+                                    if (node["button" + i]?.Attributes["localHotkey"]?.Value is string localHotKeyStr
+                                        && !string.IsNullOrEmpty(localHotKeyStr))
+                                    {
+                                        soundButtonUndoState.LocalHotkey = Hotkey.FromString(localHotKeyStr);
+                                    }
+
+                                    if (node["button" + i]?.Attributes["globalHotkey"]?.Value is string globalHotKeyStr
+                                        && !string.IsNullOrEmpty(globalHotKeyStr))
+                                    {
+                                        soundButtonUndoState.GlobalHotkey = Hotkey.FromString(globalHotKeyStr);
+                                    }
+
                                     int buttonRow = rowIndex;
                                     if (node["button" + i]?.Attributes["row"]?.Value is string rowString &&
                                         string.IsNullOrEmpty(rowString) == false && int.TryParse(rowString, out int row))
@@ -297,11 +519,35 @@ namespace SoundBoard
                     }
                 }
             }
-            // If anything failed, add the startup page
-            catch
+            catch (Exception ex)
             {
-                // Populate content for "welcome"
-                CreateHelpContent((MetroTabItem)Tabs.Items[0]);
+                // Immediately back up the config
+                File.Copy(ConfigFilePath, TempConfigFilePath, overwrite: true);
+
+                // Do better error handling
+                Dispatcher.Invoke(async () =>
+                {
+                    var res = await this.ShowMessageAsync(Properties.Resources.Error,
+                        string.Join(Environment.NewLine, string.Format(Properties.Resources.ConfigLoadError, TempConfigFilePath), string.Empty, ex.Message),
+                        MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                        {
+                            AffirmativeButtonText = Properties.Resources.CopyDetails,
+                            NegativeButtonText = Properties.Resources.OK
+                        });
+
+                    if (res == MessageDialogResult.Affirmative)
+                    {
+                        Clipboard.SetText(string.Join(Environment.NewLine, TempConfigFilePath, string.Empty, ex.ToString()));
+                    }
+                });
+            }
+
+            // If there are no tabs after we load, show the help screen
+            if (Tabs.Items.Count == 0)
+            {
+                ButtonAutomationPeer peer = new ButtonAutomationPeer(Help);
+                IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                invokeProv?.Invoke();
             }
         }
 
@@ -356,7 +602,7 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
+        private void CreatePageContent(MyMetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
         {
             Grid parentGrid = new Grid();
 
@@ -375,9 +621,9 @@ namespace SoundBoard
             }
 
             // Add the buttons to the grid
-            for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
+            for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex) 
             {
-                for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex)
+                for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
                 {
                     // Sound button
                     SoundButton soundButton = new SoundButton(parentTab: tab);
@@ -439,6 +685,30 @@ namespace SoundBoard
                     parentGrid.Children.Add(soundWarningIconButton);
                     soundButton.ChildButtons.Add(soundWarningIconButton);
 
+                    // Hotkey indicator
+                    HotkeyIndicatorButton hotkeyIndicatorButton = new HotkeyIndicatorButton(soundButton);
+
+                    Grid.SetColumn(hotkeyIndicatorButton, columnIndex);
+                    Grid.SetRow(hotkeyIndicatorButton, rowIndex);
+                    parentGrid.Children.Add(hotkeyIndicatorButton);
+                    soundButton.ChildButtons.Add(hotkeyIndicatorButton);
+
+                    // StopAllSounds icon
+                    StopAllSoundsIconButton stopAllSoundsIconButton = new StopAllSoundsIconButton(soundButton);
+
+                    Grid.SetColumn(stopAllSoundsIconButton, columnIndex);
+                    Grid.SetRow(stopAllSoundsIconButton, rowIndex);
+                    parentGrid.Children.Add(stopAllSoundsIconButton);
+                    soundButton.ChildButtons.Add(stopAllSoundsIconButton);
+
+                    // NextSound icon
+                    NextSoundIconButton nextSoundIconButton = new NextSoundIconButton(soundButton);
+
+                    Grid.SetColumn(nextSoundIconButton, columnIndex);
+                    Grid.SetRow(nextSoundIconButton, rowIndex);
+                    parentGrid.Children.Add(nextSoundIconButton);
+                    soundButton.ChildButtons.Add(nextSoundIconButton);
+
                     // Progress bar
                     SoundProgressBar progressBar = new SoundProgressBar();
 
@@ -451,10 +721,14 @@ namespace SoundBoard
             }
 
             tab.Content = parentGrid;
+
+            OnAnySoundRenamed();
         }
 
-        private void CreateHelpContent(MetroTabItem tab)
+        private void CreateHelpContent(MyMetroTabItem tab)
         {
+            tab.HeaderText = Properties.Resources.Welcome;
+
             tab.Tag = WELCOME_PAGE_TAG;
 
             StackPanel stackPanel = new StackPanel();
@@ -569,13 +843,17 @@ namespace SoundBoard
                 // Save global settings
                 textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
                 textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
+                textWriter.WriteAttributeString(GlobalSettings.InputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetInputDeviceGuids()));
+                textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
+                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultRows), GlobalSettings.NewPageDefaultRows.ToString());
+                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultColumns), GlobalSettings.NewPageDefaultColumns.ToString());
                 textWriter.WriteEndElement();  // <GlobalSettings>
 
-                foreach (MetroTabItem tab in Tabs.Items.OfType<MetroTabItem>())
+                foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
                 {
                     if (tab.Content is Grid grid)
                     {
-                        string name = tab.Header.ToString();
+                        string name = tab.HeaderText;
                         textWriter.WriteStartElement("tab");
                         textWriter.WriteAttributeString("focused", tab.IsSelectedItem().ToString());
                         textWriter.WriteAttributeString("rows", tab.GetRows().ToString());
@@ -594,6 +872,11 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
+                                textWriter.WriteAttributeString("stopAllSounds", button.StopAllSounds.ToString());
+                                textWriter.WriteAttributeString("nextSound", button.NextSound);
+                                textWriter.WriteAttributeString("id", button.Id);
+                                textWriter.WriteAttributeString("localHotkey", button.LocalHotkey?.ToString() ?? string.Empty);
+                                textWriter.WriteAttributeString("globalHotkey", button.GlobalHotkey?.ToString() ?? string.Empty);
                                 textWriter.WriteAttributeString("row", button.GetRow().ToString());
                                 textWriter.WriteAttributeString("column", button.GetColumn().ToString());
                                 textWriter.WriteEndElement();
@@ -698,7 +981,7 @@ namespace SoundBoard
 
         private void ClearAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            if (Tabs.SelectedItem is MyMetroTabItem metroTabItem)
             {
                 TabPageSoundsUndoState tabPageSoundsUndoState = (this as IUndoable<TabPageSoundsUndoState>).SaveState();
 
@@ -707,7 +990,7 @@ namespace SoundBoard
 
                 // Create and show a snackbar
                 string message = Properties.Resources.AllSoundsClearedFromTab;
-                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                string truncatedTabName = Utilities.Truncate(metroTabItem.HeaderText, SnackbarMessageFont, (int)Width - 50, message);
                 ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
                 foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
@@ -734,31 +1017,41 @@ namespace SoundBoard
 
                 if (proceed)
                 {
-                    using (new WaitCursor())
-                    {
-                        // Stop all sounds
-                        foreach (SoundButton soundButton in GetSoundButtons())
-                        {
-                            soundButton.Stop();
-                        }
-
-                        ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
-
-                        // Set up our UndoAction
-                        SetUndoAction(() => { LoadState(configUndoState); });
-
-                        // Create and show a snackbar
-                        string message = Properties.Resources.ButtonLayoutWasChanged;
-                        string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
-                        ShowUndoSnackbar(truncatedMessage);
-
-                        // Do the change
-                        SelectedTab.SetRows(buttonGridDialog.RowCount);
-                        SelectedTab.SetColumns(buttonGridDialog.ColumnCount);
-                        SaveSettings();
-                        LoadSettings();
-                    }
+                    ChangeButtonGrid(buttonGridDialog.RowCount, buttonGridDialog.ColumnCount);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Change the button grid
+        /// </summary>
+        public void ChangeButtonGrid(int rowCount, int columnCount)
+        {
+            using (new WaitCursor())
+            {
+                // Stop all sounds
+                foreach (SoundButton soundButton in GetSoundButtons())
+                {
+                    soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
+                }
+
+                ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
+
+                // Set up our UndoAction
+                SetUndoAction(() => { LoadState(configUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.ButtonLayoutWasChanged;
+                string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
+                ShowUndoSnackbar(truncatedMessage);
+
+                // Do the change
+                SelectedTab.SetRows(rowCount);
+                SelectedTab.SetColumns(columnCount);
+                SaveSettings();
+                LoadSettings();
             }
         }
 
@@ -769,6 +1062,12 @@ namespace SoundBoard
                 if (args is KeyEventArgs e)
                 {
                     Mouse.Capture(null);
+
+                    if (e.Key == Key.A && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                    {
+                        GetSoundButtons(SelectedTab).Where(sb => sb.HasValidSound).ToList().ForEach(sb => sb.IsSelected = true);
+                        return;
+                    }
 
                     char c = GetCharFromKey(e.Key);
                     if (char.IsLetter(c) || char.IsPunctuation(c) || char.IsNumber(c))
@@ -790,6 +1089,11 @@ namespace SoundBoard
                         {
                             CloseSearch();
                         }
+                        // If there are any selected sounds, unselect them
+                        else if (GetSoundButtons().Any(sb => sb.IsSelected))
+                        {
+                            GetSoundButtons().ToList().ForEach(sb => sb.IsSelected = false);
+                        }
                         // Otherwise, stop any playing sounds
                         else
                         {
@@ -801,65 +1105,14 @@ namespace SoundBoard
                     }
                     else if (e.Key == Key.Down)
                     {
-                        bool foundFocused = false;
-                        
-                        // Loop through the buttons and focus the next one
-                        foreach (var child in ResultsPanel.Children)
+                        // If the texbox is focused, we want to focus the first button.
+                        // Then we'll let Windows handle the navigation and pressing
+
+                        if (Query.IsFocused)
                         {
-                            if (child is SoundButton soundButton)
-                            {
-                                if (foundFocused)
-                                {
-                                    // We found the last focused button, so focus this one
-                                    soundButton.Focus();
-                                    _focusedButton = soundButton;
-                                    break;
-                                }
-                                if (soundButton.IsFocused)
-                                {
-                                    // We found the focused button! focus the next one
-                                    foundFocused = true;
-                                }
-                            }
+                            ResultsPanel.Children.OfType<SoundButton>().FirstOrDefault()?.Focus();
                         }
-                        return;
-                    }
-                    else if (e.Key == Key.Up)
-                    {
-                        SoundButton previousButton = null;
-                        
-                        // Loop through the buttons and focus the previous one
-                        foreach (var child in ResultsPanel.Children)
-                        {
-                            if (child is SoundButton soundButton)
-                            {
-                                if (soundButton.IsFocused)
-                                {
-                                    // Focus the previous one!
-                                    if (previousButton != null)
-                                    {
-                                        previousButton.Focus();
-                                        _focusedButton = previousButton;
-                                        break;
-                                    }
-                                }
-                                previousButton = soundButton;
-                            }
-                        }
-                        return;
-                    }
-                    else if (e.Key == Key.Enter)
-                    {
-                        // Play the sound!
-                        foreach (var child in ResultsPanel.Children)
-                        {
-                            if (child is SoundButton soundButton && soundButton.IsFocused)
-                            {
-                                ButtonAutomationPeer peer = new ButtonAutomationPeer(soundButton);
-                                IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
-                                invokeProv?.Invoke();
-                            }
-                        }
+
                         return;
                     }
                     else
@@ -898,8 +1151,7 @@ namespace SoundBoard
                         // If we've added at least one button, focus the first one
                         if (ResultsPanel.Children.Count > 0)
                         {
-                            (ResultsPanel.Children[0] as SoundButton)?.Focus();
-                            _focusedButton = ResultsPanel.Children[0] as SoundButton;
+                            Dispatcher.BeginInvoke(new Action(() => ResultsPanel.Children.OfType<SoundButton>().FirstOrDefault()?.Focus()), DispatcherPriority.ApplicationIdle);
                         }
                     }
                 }
@@ -908,8 +1160,6 @@ namespace SoundBoard
 
         private void RoutedKeyUpHandler(object sender, RoutedEventArgs args)
         {
-            // If a focus gets messed up, re-focus it here
-            _focusedButton?.Focus();
         }
 
         private void FlyoutCloseHandler(object sender, RoutedEventArgs e)
@@ -927,7 +1177,7 @@ namespace SoundBoard
 
         private void help_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.Welcome};
+            MyMetroTabItem tab = new MyMetroTabItem();
             CreateHelpContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -959,6 +1209,17 @@ namespace SoundBoard
                 clearConfig.SetSeparator(true);
                 clearConfig.Click += ClearConfig_Click;
 
+                _newPageDefaultMenu = new MenuItem
+                {
+                    Header = Properties.Resources.NewPageDefaultGrid,
+                    ToolTip = Properties.Resources.NewPageDefaultGridToolTip
+                };
+                _newPageDefaultMenu.Click += NewPageDefault_Click;
+                _newPageDefaultMenu.SetSeparator(true);
+
+                _inputDeviceMenu = new MenuItem { Header = Properties.Resources.InputDevice };
+                _inputDeviceMenu.SubmenuOpened += InputDeviceMenuOpened;
+
                 _outputDeviceMenu = new MenuItem {Header = Properties.Resources.OutputDevice};
                 _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
 
@@ -967,9 +1228,16 @@ namespace SoundBoard
                 MenuItem placeholder = new MenuItem();
                 _outputDeviceMenu.Items.Add(placeholder);
 
+                // Add a placeholder menu item so that "Input device" will have a submenu
+                // even before we have evaluated the audio devices to add to the menu
+                placeholder = new MenuItem();
+                _inputDeviceMenu.Items.Add(placeholder);
+
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
+                overflowMenu.Items.Add(_newPageDefaultMenu);
+                overflowMenu.Items.Add(_inputDeviceMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
 
                 overflowMenu.AddSeparators();
@@ -982,7 +1250,7 @@ namespace SoundBoard
 
         private void addPage_Click(object sender, RoutedEventArgs e)
         {
-            MetroTabItem tab = new MyMetroTabItem {Header = Properties.Resources.NewPage};
+            MyMetroTabItem tab = new MyMetroTabItem {HeaderText = Properties.Resources.NewPage};
             CreatePageContent(tab);
             Tabs.Items.Add(tab);
             tab.Focus();
@@ -995,14 +1263,14 @@ namespace SoundBoard
         {
             RemoveHandler(KeyDownEvent, KeyDownHandler);
 
-            if (Tabs.SelectedItem is MetroTabItem tab)
+            if (Tabs.SelectedItem is MyMetroTabItem tab)
             {
                 string result = await this.ShowInputAsync(Properties.Resources.Rename, Properties.Resources.WhatDoYouWantToCallIt,
-                    new MetroDialogSettings {DefaultText = tab.Header.ToString()});
+                    new MetroDialogSettings {DefaultText = tab.HeaderText});
 
                 if (string.IsNullOrEmpty(result) == false)
                 {
-                    tab.Header = result;
+                    tab.HeaderText = result;
                 }
             }
 
@@ -1011,7 +1279,7 @@ namespace SoundBoard
 
         private void removePage_Click(object sender, RoutedEventArgs e)
         {
-            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            if (Tabs.SelectedItem is MyMetroTabItem metroTabItem)
             {
                 TabPageUndoState tabPageUndoState = SaveState();
 
@@ -1020,13 +1288,15 @@ namespace SoundBoard
 
                 // Create and show a snackbar
                 string message = Properties.Resources.TabWasRemoved;
-                string truncatedTabName = Utilities.Truncate(metroTabItem.Header.ToString(), SnackbarMessageFont, (int)Width - 50, message);
+                string truncatedTabName = Utilities.Truncate(metroTabItem.HeaderText, SnackbarMessageFont, (int)Width - 50, message);
                 ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
                 // Stop all sounds on this page
                 foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
                 {
                     soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
                 }
 
                 // Remove the page
@@ -1081,6 +1351,8 @@ namespace SoundBoard
                     foreach (SoundButton soundButton in GetSoundButtons())
                     {
                         soundButton.Stop();
+                        soundButton.UnregisterLocalHotkey();
+                        soundButton.UnregisterGlobalHotkey();
                     }
 
                     ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -1115,6 +1387,8 @@ namespace SoundBoard
                 foreach (SoundButton soundButton in GetSoundButtons())
                 {
                     soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
                 }
 
                 ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -1134,6 +1408,71 @@ namespace SoundBoard
             {
                 await this.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
+
+        private async void NewPageDefault_Click(object sender, RoutedEventArgs e)
+        {
+            ButtonGridDialog buttonGridDialog = new ButtonGridDialog(GlobalSettings.NewPageDefaultRows, GlobalSettings.NewPageDefaultColumns, Properties.Resources.ChangeDefaultButtonGrid, validate: false);
+            await this.ShowChildWindowAsync(buttonGridDialog);
+
+            if (buttonGridDialog.DialogResult == System.Windows.Forms.DialogResult.OK)
+            {
+                GlobalSettings.NewPageDefaultColumns = buttonGridDialog.ColumnCount;
+                GlobalSettings.NewPageDefaultRows = buttonGridDialog.RowCount;
+            }
+        }
+
+        private void InputDeviceMenuOpened(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem inputDeviceMenu)
+            {
+                // Clear the current items, whether they are the placeholder
+                // or the previously evaluated audio devices.
+                // We're marking them for removal instead of removing them immediately so that the 
+                // menu doesn't resize and decide to close because our mouse is no longer over it.
+                // Instead we'll add all the new items, then remove the old ones at the very end.
+                // Use Control istead of MenuItem to capture the Separator.
+                List<Control> itemsToRemove = inputDeviceMenu.Items.OfType<Control>().ToList();
+
+                // Create a menu item for each output device
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    // Note: We're going in reverse order to preserve the separator and "Close" item at the bottom
+
+                    // Now add the rest
+                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).Reverse())
+                    {
+                        MenuItem menuItem = new MenuItem
+                        {
+                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
+                            Icon = GlobalSettings.GetInputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true
+                        };
+                        menuItem.PreviewMouseUp += (_, args) => HandleInputDeviceSelection(device.GetGuid());
+                        inputDeviceMenu.Items.Insert(0, menuItem);
+                    }
+
+                    MenuItem closeDeviceMenuMenuItem = new MenuItem
+                    {
+                        Header = Properties.Resources.Close
+                    };
+                    inputDeviceMenu.Items.Add(new Separator());
+                    inputDeviceMenu.Items.Add(closeDeviceMenuMenuItem);
+                }
+
+                // Finally, remove the items marked for removal
+                foreach (Control control in itemsToRemove)
+                {
+                    inputDeviceMenu.Items.Remove(control);
+                }
+
+                // We only have close and separator, which looks funny, so remove the separator
+                if (inputDeviceMenu.Items.Count == 2
+                    && inputDeviceMenu.Items.OfType<Separator>().FirstOrDefault() is Separator separator)
+                {
+                    inputDeviceMenu.Items.Remove(separator);
+                }
             }
         }
 
@@ -1164,7 +1503,7 @@ namespace SoundBoard
                             Icon = GlobalSettings.GetOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
                             StaysOpenOnClick = true
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(device.GetGuid(), args.ChangedButton);
                         outputDeviceMenuItem.Items.Insert(0, menuItem);
                     }
 
@@ -1176,7 +1515,7 @@ namespace SoundBoard
                         Icon = GlobalSettings.GetOutputDeviceGuids().Contains(Guid.Empty) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
                         StaysOpenOnClick = true
                     };
-                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleDeviceSelection(Guid.Empty, args.ChangedButton);
+                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(Guid.Empty, args.ChangedButton);
                     outputDeviceMenuItem.Items.Insert(0, defaultDeviceMenuItem);
 
                     MenuItem closeDeviceMenuMenuItem = new MenuItem
@@ -1198,10 +1537,129 @@ namespace SoundBoard
                 {
                     outputDeviceMenuItem.Items.Remove(control);
                 }
+
+                // We only have close and separator, which looks funny, so remove the separator
+                if (outputDeviceMenuItem.Items.Count == 2
+                    && outputDeviceMenuItem.Items.OfType<Separator>().FirstOrDefault() is Separator separator)
+                {
+                    outputDeviceMenuItem.Items.Remove(separator);
+                }
             }
         }
 
-        private void HandleDeviceSelection(Guid deviceGuid, MouseButton mouseButton)
+        // This behavior is different from the output devices in that we can only select one.
+        // However, all of the pieces are in place to allow multiple selection if needed.
+        private void HandleInputDeviceSelection(Guid deviceGuid)
+        {
+            if (GlobalSettings.GetInputDeviceGuids().Contains(deviceGuid))
+            {
+                // Toggle it off
+                GlobalSettings.RemoveInputDeviceGuid(deviceGuid);
+            }
+            else
+            {
+                // Toggle it on and remove others
+                GlobalSettings.RemoveAllInputDeviceGuids();
+                GlobalSettings.AddInputDeviceGuid(deviceGuid);
+            }
+
+            // Refresh the menu
+            InputDeviceMenuOpened(_inputDeviceMenu, new RoutedEventArgs());
+
+            HandleInputOutputChange();
+        }
+
+        private void HandleInputOutputChange()
+        {
+            // Clear any existing chaining
+            CleanUpAudioPassthrough();
+
+            if (GlobalSettings.GetInputDeviceGuids().Any())
+            {
+                foreach (var outputDeviceId in GlobalSettings.GetOutputDeviceGuids())
+                {
+                    // Create the input
+                    Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
+                    MMDevice inputDevice = Utilities.GetDevice(inputDeviceId, DataFlow.Capture);
+                    WasapiCapture inputCapture = new WasapiCapture(inputDevice);
+                    inputCapture.RecordingStopped += HandleRecordingStopped;
+                    _inputCaptures.Add(inputCapture);
+
+                    // Create the buffer
+                    BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(inputDevice.AudioClient.MixFormat)
+                    {
+                        DiscardOnBufferOverflow = true
+                    };
+                    _bufferedWaveProviders.Add(bufferedWaveProvider);
+
+                    inputCapture.DataAvailable += (_, args) =>
+                    {
+                        bufferedWaveProvider.AddSamples(args.Buffer, 0, args.BytesRecorded);
+                    };
+
+                    // Create the outputs
+                    WasapiOut output = new WasapiOut(Utilities.GetDevice(outputDeviceId, DataFlow.Render), AudioClientShareMode.Shared, true, GlobalSettings.AudioPassthroughLatency);
+                    _outputCaptures.Add(output);
+
+                    output.Init(bufferedWaveProvider);
+                    output.Play();
+
+                    inputCapture.StartRecording();
+                }
+            }
+        }
+
+        private void HandleRecordingStopped(object sender, StoppedEventArgs args)
+        {
+            // Handle the device being disabled/disconnected/etc.
+            GlobalSettings.RemoveAllInputDeviceGuids();
+            CleanUpAudioPassthrough();
+        }
+
+        private void CleanUpAudioPassthrough()
+        {
+            try
+            {
+                _inputCaptures.ForEach(ic =>
+                {
+                    ic.RecordingStopped -= HandleRecordingStopped;
+                    ic.StopRecording();
+                    ic.Dispose();
+                });
+            }
+            finally
+            {
+                _inputCaptures.Clear();
+            }
+
+            try
+            {
+                _outputCaptures.ForEach(oc =>
+                {
+                    oc.Stop();
+                    oc.Dispose();
+                });
+            }
+            finally
+            {
+                _outputCaptures.Clear();
+            }
+
+            try
+            {
+                _bufferedWaveProviders.ForEach(bwp => bwp.ClearBuffer());
+            }
+            finally
+            {
+                _bufferedWaveProviders.Clear();
+            }
+        }
+
+        private readonly List<WasapiCapture> _inputCaptures = new List<WasapiCapture>();
+        private readonly List<WasapiOut> _outputCaptures = new List<WasapiOut>();
+        private readonly List<BufferedWaveProvider> _bufferedWaveProviders = new List<BufferedWaveProvider>();
+
+        private void HandleOutputDeviceSelection(Guid deviceGuid, MouseButton mouseButton)
         {
             if (mouseButton == MouseButton.Right)
             {
@@ -1233,6 +1691,8 @@ namespace SoundBoard
 
             // Refresh the menu
             OutputDeviceMenuOpened(_outputDeviceMenu, new RoutedEventArgs());
+            
+            HandleInputOutputChange();
         }
 
         private void CloseSnackbarButton_Click(object sender, RoutedEventArgs e)
@@ -1274,6 +1734,8 @@ namespace SoundBoard
             _globalMouseEvents.MouseDown -= Global_MouseDown;
             _globalMouseEvents.Dispose();
 
+            CleanUpAudioPassthrough();
+
             base.OnClosed(e);
         }
 
@@ -1305,6 +1767,21 @@ namespace SoundBoard
         /// Returns the <see cref="Font"/> of the <see cref="SnackbarMessage"/>.
         /// </summary>
         public Font SnackbarMessageFont => new Font(SnackbarMessage.FontFamily.ToString(), (float) SnackbarMessage.FontSize);
+
+        /// <summary>
+        /// The hot key manager for the application
+        /// </summary>
+        public HotKeyManager HotKeyManager { get; private set; }
+
+        /// <summary>
+        /// Whether or not any instance of the hotkey picker dialog is open
+        /// </summary>
+        public bool IsHotkeyPickerOpen { get; set; }
+
+        /// <summary>
+        /// The currently selected tab
+        /// </summary>
+        public MetroTabItem SelectedTab => Tabs.SelectedItem as MetroTabItem;
 
         #endregion
 
@@ -1341,16 +1818,46 @@ namespace SoundBoard
             Snackbar.IsOpen = true;
         }
 
+        /// <summary>
+        /// Invoked when any sound starts
+        /// </summary>
+        internal void OnAnySoundStarted(SoundButton soundButton)
+        {
+            soundButton.ParentTab.IndicateSoundPlaying();
+        }
+
+        /// <summary>
+        /// Invoked when any sound stop
+        /// </summary>
+        internal void OnAnySoundStopped(SoundButton soundButton)
+        {
+            if (!IsAnySoundPlayingOnTab(soundButton.ParentTab))
+            {
+                soundButton.ParentTab.RemoveSoundPlaying();
+            }
+        }
+
+        internal bool IsAnySoundPlayingOnTab(MyMetroTabItem myMetroTabItem)
+        {
+            return GetSoundButtons(myMetroTabItem).Any(sb => sb.IsPlaying);
+        }
+
+        internal void OnAnySoundRenamed()
+        {
+            GetSoundButtons().SelectMany(sb => sb.ChildButtons.OfType<NextSoundIconButton>()).ToList().ForEach(ns => ns.Update());
+        }
+
         #endregion
 
         #region Private fields
 
         private readonly IKeyboardMouseEvents _globalMouseEvents;
         private string _searchString = string.Empty;
-        private SoundButton _focusedButton;
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
+        private MenuItem _newPageDefaultMenu;
+        private MenuItem _inputDeviceMenu;
         private MenuItem _outputDeviceMenu;
 
         #endregion
@@ -1364,8 +1871,6 @@ namespace SoundBoard
         private string LegacyConfigFilePath => @"soundboard.config";
 
         private string ApplicationName => @"SoundBoard";
-
-        private MetroTabItem SelectedTab => Tabs.SelectedItem as MetroTabItem;
 
         #endregion
 
@@ -1392,6 +1897,30 @@ namespace SoundBoard
         {
             Tabs.Items.Insert(undoState.Index, undoState.MetroTabItem);
             Tabs.SelectedIndex = undoState.Index;
+
+            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            {
+                foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
+                {
+                    try
+                    {
+                        soundButton.ReregisterLocalHotkey();
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
+                    try
+                    {
+                        soundButton.ReregisterGlobalHotkey();
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+                }
+            }
         }
 
 
@@ -1410,6 +1939,8 @@ namespace SoundBoard
             foreach (SoundButton soundButton in GetSoundButtons())
             {
                 soundButton.Stop();
+                soundButton.UnregisterLocalHotkey();
+                soundButton.UnregisterGlobalHotkey();
             }
 
             LoadSettings(undoState.SavedConfigStatePath);

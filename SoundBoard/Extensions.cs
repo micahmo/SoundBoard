@@ -143,7 +143,8 @@ namespace SoundBoard
             {
                 return result;
             }
-            else return GetDefaultRows(tabItem);
+
+            return GlobalSettings.NewPageDefaultRows;
         }
 
         /// <summary>
@@ -154,15 +155,6 @@ namespace SoundBoard
         public static void SetRows(this TabItem tabItem, int value)
         {
             _rows[tabItem] = value;
-        }
-
-        /// <summary>
-        /// Get the default value for the Rows property
-        /// </summary>
-        /// <param name="tabItem"></param>
-        public static int GetDefaultRows(this TabItem tabItem)
-        {
-            return 5;
         }
 
         private static readonly Dictionary<TabItem, int> _rows = new Dictionary<TabItem, int>();
@@ -182,7 +174,8 @@ namespace SoundBoard
             {
                 return result;
             }
-            else return GetDefaultColumns(tabItem);
+
+            return GlobalSettings.NewPageDefaultColumns;
         }
 
         /// <summary>
@@ -193,16 +186,6 @@ namespace SoundBoard
         public static void SetColumns(this TabItem tabItem, int value)
         {
             _columns[tabItem] = value;
-        }
-
-        /// <summary>
-        /// Get the default value for the Columns property
-        /// </summary>
-        /// <param name="tabItem"></param>
-        /// <returns></returns>
-        public static int GetDefaultColumns(this TabItem tabItem)
-        {
-            return 2;
         }
 
         private static readonly Dictionary<TabItem, int> _columns = new Dictionary<TabItem, int>();

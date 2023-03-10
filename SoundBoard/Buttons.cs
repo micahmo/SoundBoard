@@ -16,9 +16,14 @@ using MahApps.Metro.Controls;
 using Microsoft.Win32;
 using System.Windows.Input;
 using Dsafa.WpfColorPicker;
+using MahApps.Metro.SimpleChildWindow;
 using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
+using BondTech.HotKeyManagement.WPF._4;
+using System.Media;
+using System.Windows.Media.Animation;
+using Humanizer;
 
 #endregion
 
@@ -256,12 +261,14 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
+                MainWindow.Instance.OnAnySoundStopped(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
+                MainWindow.Instance.OnAnySoundStarted(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
         }
@@ -563,6 +570,108 @@ namespace SoundBoard
         #endregion
     }
 
+    internal sealed class HotkeyIndicatorButton : IconButtonBase
+    {
+        public HotkeyIndicatorButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.KeyboardIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            if (ParentButton.LocalHotkey != null || ParentButton.GlobalHotkey != null)
+            {
+                Visibility = Visibility.Visible;
+                ToolTip = string.Format(Properties.Resources.HotkeyIndicatorToolTip, ParentButton.LocalHotkey?.ToString() ?? Properties.Resources.None, ParentButton.GlobalHotkey?.ToString() ?? Properties.Resources.None);
+            }
+            else
+            {
+                Visibility = Visibility.Collapsed;
+                ToolTip = default;
+            }
+        }
+    }
+
+    #endregion
+
+    #region StopAllSoundsIconButton class
+
+    internal sealed class StopAllSoundsIconButton : IconButtonBase
+    {
+        public StopAllSoundsIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 20);
+            ToolTip = Properties.Resources.StopAllSoundsIcon;
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.XIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            Visibility = ParentButton.StopAllSounds ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    #endregion
+
+    #region NextSoundIconButton class
+
+    internal sealed class NextSoundIconButton : IconButtonBase
+    {
+        public NextSoundIconButton(SoundButton parentButton) : base(parentButton)
+        {
+            VerticalAlignment = VerticalAlignment.Bottom;
+            HorizontalAlignment = HorizontalAlignment.Left;
+            Padding = new Thickness(Padding.Left + 20, Padding.Top, Padding.Right, Padding.Bottom);
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 40);
+
+            SetUpStyle();
+        }
+
+        protected override void SetUpStyle()
+        {
+            Content = ImageHelper.GetImage(ImageHelper.RightIconPath, 16, 16, Mode == ColorMode.Dark);
+            Update();
+        }
+
+        public void Update()
+        {
+            Visibility = Visibility.Collapsed;
+
+            if (!string.IsNullOrEmpty(ParentButton.NextSound))
+            {
+                SoundButton soundButton = MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb => sb.Id == ParentButton.NextSound);
+                if (soundButton?.HasValidSound == true)
+                {
+                    Visibility = Visibility.Visible;
+
+                    ToolTip = soundButton.ParentTab != ParentButton.ParentTab
+                        ? string.Format(Properties.Resources.NextSoundTab, soundButton.ParentTab.HeaderText, soundButton.SoundName)
+                        : string.Format(Properties.Resources.NextSoundName, soundButton.SoundName);
+                }
+            }
+        }
+    }
+
     #endregion
 
     #region SoundProgressBar class
@@ -604,7 +713,7 @@ namespace SoundBoard
         /// Constructor
         /// </summary>
         public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal, 
-                           MetroTabItem parentTab = null, 
+                           MyMetroTabItem parentTab = null, 
                            (MetroTabItem SourceTab, SoundButton SourceButton) sourceTabAndButton = default)
         {
             Mode = soundButtonMode;
@@ -632,10 +741,58 @@ namespace SoundBoard
         {
             if (ContextMenu?.Items.Contains(_loopMenuItem) == true)
             {
-                _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                if (IsSelected)
+                {
+                    bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+                    _loopMenuItem.Icon = !anyNotLooped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+                else
+                {
+                    _loopMenuItem.Icon = Loop ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
             }
 
-            _loopMenuItem.IsEnabled = _players.All(p => p.PlaybackState != PlaybackState.Playing);
+            _loopMenuItem.IsEnabled = !IsPlaying;
+
+            if (ContextMenu?.Items.Contains(_stopAllSoundsMenuItem) == true)
+            {
+                if (IsSelected)
+                {
+                    bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+                    _stopAllSoundsMenuItem.Icon = !anyNotStopped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+                else
+                {
+                    _stopAllSoundsMenuItem.Icon = StopAllSounds ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                }
+            }
+
+            // Verify that NextSound is valid
+            if (!MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
+            {
+                NextSound = default;
+            }
+
+            if (ContextMenu?.Items.Contains(_nextSoundMenuItem) == true)
+            {
+                _nextSoundMenuItem.Icon = string.IsNullOrEmpty(NextSound) ? null : ImageHelper.GetImage(ImageHelper.CheckIconPath);
+            }
+
+            // Make everything visible
+            ContextMenu?.Items.OfType<Control>().ToList().ForEach(i => i.Visibility = Visibility.Visible);
+
+            // If there is a multi-selection in progress and this is one of the selected buttons,
+            // hide things that are not multi applicable.
+            if (IsSelected)
+            {
+                _chooseSoundMenuItem.Visibility = Visibility.Collapsed;
+                _renameMenuItem.Visibility = Visibility.Collapsed;
+                _viewSourceMenuItem.Visibility = Visibility.Collapsed;
+                _hotkeysMenuItem.Visibility = Visibility.Collapsed;
+                _nextSoundMenuItem.Visibility = Visibility.Collapsed;
+
+                ContextMenu?.Items.OfType<Separator>().ToList().ForEach(s => s.Visibility = Visibility.Collapsed);
+            }
         }
 
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
@@ -658,17 +815,34 @@ namespace SoundBoard
 
         private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SoundButtonUndoState soundButtonUndoState = SaveState();
+            if (IsSelected)
+            {
+                TabPageSoundsUndoState tabPageSoundsUndoState = (MainWindow.Instance as IUndoable<TabPageSoundsUndoState>).SaveState();
 
-            // Set up our UndoAction
-            MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+                // Set up our UndoAction
+                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(tabPageSoundsUndoState); });
 
-            // Create and show a snackbar
-            string message = Properties.Resources.SoundWasCleared;
-            string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
-            MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+                // Create and show a snackbar
+                string message = Properties.Resources.MultipleSoundsClearedFromTab;
+                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50, message);
+                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
-            ClearButton();
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
+            }
+            else
+            {
+                SoundButtonUndoState soundButtonUndoState = SaveState();
+
+                // Set up our UndoAction
+                MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.SoundWasCleared;
+                string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
+                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+
+                ClearButton();
+            }
         }
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -754,7 +928,14 @@ namespace SoundBoard
 
             if (colorPickerDialog.ShowDialog() == true)
             {
-                Color = colorPickerDialog.Color;
+                if (IsSelected)
+                {
+                    MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Color = colorPickerDialog.Color);
+                }
+                else
+                {
+                    Color = colorPickerDialog.Color;
+                }
             }
         }
 
@@ -762,13 +943,29 @@ namespace SoundBoard
         {
             _adjustVolumeMenuItem.Items.Clear();
 
+            // See if this is a multi-selection and if so, whether all selected sounds have the same volume
+            int? volume = null;
+            bool multiSelectSameVolume = true;
+            foreach (var sb in MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected))
+            {
+                if (volume == null)
+                {
+                    volume = sb.VolumeOffset;
+                }
+                else if (volume != sb.VolumeOffset)
+                {
+                    multiSelectSameVolume = false;
+                    break;
+                }
+            }
+
             for (int i = -5; i <= 5; ++i)
             {
                 string header = i.ToString(@"+#;-#;0");
 
                 MenuItem volumeAdjustmentMenuItem = new MenuItem {Header = header};
 
-                if (i == VolumeOffset)
+                if (i == VolumeOffset && multiSelectSameVolume)
                 {
                     volumeAdjustmentMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                 }
@@ -779,41 +976,205 @@ namespace SoundBoard
                 }
 
                 int offset = i; // Copy i so we're not accessing modified closure
-                volumeAdjustmentMenuItem.Click += (_, __) => { VolumeOffset = offset; };
+                volumeAdjustmentMenuItem.Click += (_, __) =>
+                {
+                    if (IsSelected)
+                    {
+                        MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.VolumeOffset = offset);
+                    }
+                    else
+                    {
+                        VolumeOffset = offset;
+                    }
+                };
 
                 _adjustVolumeMenuItem.Items.Add(volumeAdjustmentMenuItem);
             }
         }
 
+        private void NextSoundMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            _nextSoundMenuItem.Items.Clear();
+
+            List<MyMetroTabItem> tabs = MainWindow.Instance.Tabs.Items.OfType<MyMetroTabItem>().ToList();
+            foreach (MyMetroTabItem metroTabItem in tabs)
+            {
+                MenuItem tabMenuItem = new MenuItem { Header = metroTabItem.HeaderText.Truncate(50), IsEnabled = false };
+
+                IEnumerable<SoundButton> soundButtons = MainWindow.Instance.GetSoundButtons(metroTabItem).Where(sb => sb.HasValidSound).ToList();
+                if (soundButtons.Any())
+                {
+                    _nextSoundMenuItem.Items.Add(tabMenuItem);
+
+                    foreach (SoundButton soundButton in soundButtons)
+                    {
+                        MenuItem soundButtonMenuItem = new MenuItem
+                        {
+                            Header = soundButton.SoundName.Truncate(50),
+                            ToolTip = soundButton.SoundName,
+                            StaysOpenOnClick = true,
+                            Tag = soundButton.Id,
+                            Icon = NextSound == soundButton.Id ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            IsEnabled = soundButton != this
+                        };
+
+                        soundButtonMenuItem.Click += NextSoundItem_Clicked;
+
+                        _nextSoundMenuItem.Items.Add(soundButtonMenuItem);
+
+                        if (soundButton == soundButtons.Last())
+                        {
+                            _nextSoundMenuItem.Items.Add(new Separator());
+                        }
+                    }
+                }
+            }
+
+            if (_nextSoundMenuItem.Items.OfType<object>().LastOrDefault() is Separator separator)
+            {
+                _nextSoundMenuItem.Items.Remove(separator);
+            }
+        }
+
+        private void NextSoundItem_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && Guid.TryParse(menuItem.Tag?.ToString(), out Guid guid))
+            {
+                string id = guid.ToString();
+                NextSound = NextSound == id ? default : id;
+
+                // Recalculate everything
+                foreach (MenuItem otherMenuItem in _nextSoundMenuItem.Items.OfType<MenuItem>())
+                {
+                    if (Guid.TryParse(otherMenuItem.Tag?.ToString(), out Guid otherGuid))
+                    {
+                        string otherId = otherGuid.ToString();
+                        otherMenuItem.Icon = NextSound == otherId ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+                    }
+                }
+
+                // Recalculate the main menu item
+                _nextSoundMenuItem.Icon = string.IsNullOrEmpty(NextSound) ? null : ImageHelper.GetImage(ImageHelper.CheckIconPath);
+            }
+        }
+
         private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            Loop = !Loop;
+            if (IsSelected)
+            {
+                bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
+            }
+            else
+            {
+                Loop = !Loop;
+            }
+        }
+
+        private void StopAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsSelected)
+            {
+                bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StopAllSounds = anyNotStopped);
+            }
+            else
+            {
+                StopAllSounds = !StopAllSounds;
+            }
+        }
+
+        private async void HotkeysMenuItemClick(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance.IsHotkeyPickerOpen = true;
+            HotkeyDialog hotkeyDialog = new HotkeyDialog(this)
+            {
+                LocalHotkey = LocalHotkey,
+                GlobalHotkey = GlobalHotkey
+            };
+            await MainWindow.Instance.ShowChildWindowAsync(hotkeyDialog);
+            MainWindow.Instance.IsHotkeyPickerOpen = false;
         }
 
         #endregion
 
         #region Overrides
 
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+        {
+            if (Mode == SoundButtonMode.Normal && HasValidSound)
+            {
+                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                {
+                    IsSelected = !IsSelected;
+
+                    LastSelected = this;
+                }
+                else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+                {
+                    IsSelected = true;
+
+                    // We also want to select everything between any prior selected button and this one.
+
+                    // Make sure LastSelected is still in the collection
+                    if (LastSelected != null && LastSelected != this && LastSelected.IsSelected)
+                    {
+                        var buttons = MainWindow.Instance.GetSoundButtons(ParentTab).ToList();
+                        if (buttons.Contains(LastSelected))
+                        {
+                            int indexOfThis = buttons.IndexOf(this);
+                            int indexOfLastSelected = buttons.IndexOf(LastSelected);
+                            for (int i = Math.Min(indexOfThis, indexOfLastSelected); i < Math.Max(indexOfThis, indexOfLastSelected); ++i)
+                            {
+                                if (buttons[i].HasValidSound)
+                                {
+                                    buttons[i].IsSelected = true;
+                                }
+                            }
+                        }
+                    }
+
+                    LastSelected = this;
+                }
+            }
+        }
+
         /// <inheritdoc />
         protected override void OnClick()
         {
             base.OnClick();
 
-            if (string.IsNullOrEmpty(SoundPath))
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
             {
-                // If this button doesn't have a sound yet, browse for it now
-                BrowseForSound();
+                // Don't play the sound. This will be handled by OnPreviewMouseDown.
             }
             else
             {
-                if (Mode == SoundButtonMode.Normal)
+                if (string.IsNullOrEmpty(SoundPath))
                 {
-                    StartSound();
+                    // If this button doesn't have a sound yet, browse for it now
+                    BrowseForSound();
                 }
-                else if (Mode == SoundButtonMode.Search && 
-                         SourceTabAndButton.SourceButton is SoundButton sourceButton)
+                else
                 {
-                    sourceButton.StartSound();
+                    if (Mode == SoundButtonMode.Normal)
+                    {
+                        if (IsSelected)
+                        {
+                            MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StartSound());
+                        }
+                        else
+                        {
+                            StartSound();
+                        }
+                    }
+                    else if (Mode == SoundButtonMode.Search &&
+                             SourceTabAndButton.SourceButton is SoundButton sourceButton)
+                    {
+                        sourceButton.StartSound();
+                    }
                 }
             }
         }
@@ -849,6 +1210,8 @@ namespace SoundBoard
                 Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)) &&
                 Mode != SoundButtonMode.Search)
             {
+                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
+                
                 _mouseDownPosition = Mouse.GetPosition(this);
                 DragDrop.DoDragDrop(this, new SoundDragData(this), DragDropEffects.Link);
             }
@@ -910,18 +1273,7 @@ namespace SoundBoard
             {
                 // Get the dropped file(s)
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-                // Only care about the first file
-                string file = files?[0];
-
-                if (string.IsNullOrEmpty(file) == false)
-                {
-                    // Stop any current playback
-                    Stop();
-
-                    // Set it
-                    SetFile(file);
-                }
+                LoadFiles(files);
             }
             else
             {
@@ -946,6 +1298,13 @@ namespace SoundBoard
             }
 
             e.Handled = true;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            // For debugging
+            return $"{ParentTab?.HeaderText} - {SoundName}";
         }
 
         #endregion
@@ -1031,6 +1390,14 @@ namespace SoundBoard
 
                 _players.Clear();
 
+                if (StopAllSounds)
+                {
+                    foreach (IWavePlayer player in MainWindow.Instance.SoundPlayers)
+                    {
+                        player.Stop();
+                    }
+                }
+
                 // Reinitialize the player
                 bool addedDefaultDevice = false;
                 GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
@@ -1100,6 +1467,10 @@ namespace SoundBoard
                 // Aaaaand play
                 Parallel.ForEach(_players, p => p.Play());
 
+                CalculateTextMargin();
+
+                MainWindow.Instance.OnAnySoundStarted(this);
+
                 // Begin updating progress bar
                 _progressBarCancellationToken?.Cancel();
                 _progressBarCancellationToken?.Dispose();
@@ -1125,16 +1496,13 @@ namespace SoundBoard
             {
                 // Set file type filters
                 FileName = initialFileName,
-                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*"
+                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*",
+                Multiselect = true
             };
 
             if (dialog.ShowDialog() == true)
             {
-                // Stop any current playback
-                Stop();
-
-                SetFile(dialog.FileName);
-
+                LoadFiles(dialog.FileNames);
                 return true;
             }
 
@@ -1278,6 +1646,134 @@ namespace SoundBoard
             return Grid.GetColumn(this);
         }
 
+        public void UnregisterLocalHotkey()
+        {
+            foreach (var existingLocalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateLocalHotKeys.OfType<LocalHotKey>() ?? Enumerable.Empty<LocalHotKey>())
+            {
+                if (existingLocalHotKey.Name == Utilities.SanitizeId(Id))
+                {
+                    try
+                    {
+                        MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        public void UnregisterGlobalHotkey()
+        {
+            foreach (var existingGlobalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateGlobalHotKeys.OfType<GlobalHotKey>() ?? Enumerable.Empty<GlobalHotKey>())
+            {
+                if (existingGlobalHotKey.Name == Utilities.SanitizeId(Id))
+                {
+                    try
+                    {
+                        MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
+                    }
+                    catch
+                    {
+                        // Swallow
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Always wrap this in a try/catch
+        /// </summary>
+        public void ReregisterLocalHotkey()
+        {
+            if (LocalHotkey != null)
+            {
+                Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
+
+                // The mapping failed
+                if (mappedKey == default)
+                {
+                    throw new Exception();
+                }
+
+                LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
+                MainWindow.Instance.HotKeyManager?.AddLocalHotKey(localHotKey);
+            }
+        }
+
+        /// <summary>
+        /// Always wrap this in a try/catch
+        /// </summary>
+        public void ReregisterGlobalHotkey()
+        {
+            if (GlobalHotkey != null)
+            {
+                Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
+
+                // The mapping failed
+                if (mappedKey == default)
+                {
+                    throw new Exception();
+                }
+
+                GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
+                MainWindow.Instance.HotKeyManager?.AddGlobalHotKey(globalHotKey);
+            }
+        }
+
+        public void CalculateTextMargin()
+        {
+            if (_viewboxPanel != null && _textBlock != null)
+            {
+                if (AreTransportControlsVisible // We only shrink when playing
+                    && _viewboxPanel.ActualHeight - _textBlock.ActualHeight < 50 // There's not enough room to comfortable display everything
+                    && _targetViewboxMarginBottom < 30) // We haven't done this yet
+                {
+                    _textMarginStoryboard.Stop();
+                    _textMarginStoryboard.Children.Clear();
+
+                    ThicknessAnimation animation = new ThicknessAnimation
+                    {
+                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                        To = new Thickness(30, 0, 30, 30),
+                        Duration = TimeSpan.FromSeconds(.1)
+                    };
+
+                    _targetViewboxMarginBottom = 30;
+
+                    Storyboard.SetTarget(animation, _viewboxPanel);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                    _textMarginStoryboard.Children.Add(animation);
+                    _textMarginStoryboard.Begin();
+                }
+                else if (!AreTransportControlsVisible // Always reset when not playing
+                         || (_targetViewboxMarginBottom > 0 && ((_viewboxPanel.ActualHeight + _targetViewboxMarginBottom) - _textBlock.ActualHeight) >= 50)) // The bottom margin is set, but the height that it would be without it set is sufficient
+                {
+                    _textMarginStoryboard.Stop();
+                    _textMarginStoryboard.Children.Clear();
+
+                    ThicknessAnimation animation = new ThicknessAnimation
+                    {
+                        From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
+                        To = new Thickness(30, 0, 30, 0),
+                        Duration = TimeSpan.FromSeconds(.1)
+                    };
+
+                    _targetViewboxMarginBottom = 0;
+
+                    Storyboard.SetTarget(animation, _viewboxPanel);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
+                    _textMarginStoryboard.Children.Add(animation);
+                    _textMarginStoryboard.Begin();
+                }
+            }
+        }
+
         #endregion
 
         #region Private methods
@@ -1290,6 +1786,17 @@ namespace SoundBoard
             Color = null;
             VolumeOffset = 0;
             Loop = false;
+            StopAllSounds = false;
+            LocalHotkey = null;
+            GlobalHotkey = null;
+            NextSound = default;
+
+            // Clear any hotkeys
+            UnregisterLocalHotkey();
+            UnregisterGlobalHotkey();
+
+            Id = Guid.NewGuid().ToString();
+            IsSelected = false;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -1391,16 +1898,35 @@ namespace SoundBoard
                 _loopMenuItem.Click += LoopMenuItem_Click;
             }
 
+            if (_stopAllSoundsMenuItem is null)
+            {
+                _stopAllSoundsMenuItem = new MenuItem { Header = Properties.Resources.StopAllSounds, ToolTip = Properties.Resources.StopAllSoundsToolTip };
+                _stopAllSoundsMenuItem.Click += StopAllSoundsMenuItem_Click;
+            }
+
             if (_adjustVolumeMenuItem is null)
             {
                 _adjustVolumeMenuItem = new MenuItem {Header = Properties.Resources.AdjustVolume};
-                _adjustVolumeMenuItem.SetSeparator(true);
 
                 // Add a dummy item so that this item becomes a parent with a sub-menu
                 // The real items will be populated every time at run-time in the SubmenuOpened handler
                 _adjustVolumeMenuItem.Items.Add(new MenuItem());
 
                 _adjustVolumeMenuItem.SubmenuOpened += AdjustVolumeMenuItem_SubmenuOpened;
+            }
+
+            if (_hotkeysMenuItem is null)
+            {
+                _hotkeysMenuItem = new MenuItem { Header = Properties.Resources.SetHotkeys };
+                _hotkeysMenuItem.Click += HotkeysMenuItemClick;
+            }
+
+            if (_nextSoundMenuItem is null)
+            {
+                _nextSoundMenuItem = new MenuItem { Header = Properties.Resources.NextSound };
+                _nextSoundMenuItem.Items.Add(new MenuItem()); // Placeholder for submenu
+                _nextSoundMenuItem.SetSeparator(true);
+                _nextSoundMenuItem.SubmenuOpened += NextSoundMenuItem_SubmenuOpened;
             }
 
             // If the "Source" menu item is null, create it and hook up its handler
@@ -1452,9 +1978,24 @@ namespace SoundBoard
                         ContextMenu.Items.Add(_loopMenuItem);
                     }
 
+                    if (ContextMenu.Items.Contains(_stopAllSoundsMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_stopAllSoundsMenuItem);
+                    }
+
                     if (ContextMenu.Items.Contains(_adjustVolumeMenuItem) == false)
                     {
                         ContextMenu.Items.Add(_adjustVolumeMenuItem);
+                    }
+
+                    if (ContextMenu.Items.Contains(_hotkeysMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_hotkeysMenuItem);
+                    }
+
+                    if (ContextMenu.Items.Contains(_nextSoundMenuItem) == false)
+                    {
+                        ContextMenu.Items.Add(_nextSoundMenuItem);
                     }
                 }
             }
@@ -1499,6 +2040,11 @@ namespace SoundBoard
                     ContextMenu.Items.Remove(_loopMenuItem);
                 }
 
+                if (ContextMenu.Items.Contains(_stopAllSoundsMenuItem))
+                {
+                    ContextMenu.Items.Remove(_stopAllSoundsMenuItem);
+                }
+
                 if (ContextMenu.Items.Contains(_adjustVolumeMenuItem))
                 {
                     ContextMenu.Items.Remove(_adjustVolumeMenuItem);
@@ -1507,6 +2053,16 @@ namespace SoundBoard
                 if (ContextMenu.Items.Contains(_viewSourceMenuItem))
                 {
                     ContextMenu.Items.Remove(_viewSourceMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_hotkeysMenuItem))
+                {
+                    ContextMenu.Items.Remove(_hotkeysMenuItem);
+                }
+
+                if (ContextMenu.Items.Contains(_nextSoundMenuItem))
+                {
+                    ContextMenu.Items.Remove(_nextSoundMenuItem);
                 }
             }
 
@@ -1557,6 +2113,18 @@ namespace SoundBoard
                 style.Triggers.Add(trigger);
             }
 
+            // Add focused colors
+            if (Mode == SoundButtonMode.Search)
+            {
+                Trigger focusTrigger = new Trigger { Property = IsFocusedProperty, Value = true };
+                focusTrigger.Setters.Add(new Setter(BorderThicknessProperty, new Thickness(5)));
+                focusTrigger.Setters.Add(new Setter(BorderBrushProperty, new SolidColorBrush(Colors.SlateGray)));
+                style.Triggers.Add(focusTrigger);
+            }
+
+            // Don't show the ugly dotted line around focused elements
+            FocusVisualStyle = null;
+
             // Assign the style!
             Style = style;
 
@@ -1581,11 +2149,13 @@ namespace SoundBoard
         {
             _progressBarCancellationToken?.Cancel();
 
+            // Indicates that the sound finished playing on its own
+            bool finished = false;
+
             if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
             {
-                {
-                    audioFileReader.Position = 0;
-                }
+                finished = audioFileReader.Position >= audioFileReader.Length;
+                audioFileReader.Position = 0;
             }
 
             // Hide the additional buttons
@@ -1595,26 +2165,42 @@ namespace SoundBoard
             {
                 hideableButton.Hide();
             }
+
+            CalculateTextMargin();
+
+            MainWindow.Instance.OnAnySoundStopped(this);
+
+            if (finished && !string.IsNullOrEmpty(NextSound) 
+                         && MainWindow.Instance.GetSoundButtons().Where(sb => sb.HasValidSound).FirstOrDefault(sb => sb.Id == NextSound) is SoundButton nextSoundButton)
+            {
+                // If the next sound isn't on the current tab, focus that tab.
+                if (nextSoundButton.ParentTab != MainWindow.Instance.SelectedTab)
+                {
+                    nextSoundButton.ParentTab.Focus();
+                }
+                
+                nextSoundButton.StartSound();
+            }
         }
 
         private void SetContent(string text)
         {
             if (Mode == SoundButtonMode.Normal)
             {
-                TextBlock textBlock = new TextBlock
+                _textBlock = new TextBlock
                 {
                     Text = text,
                     TextAlignment = TextAlignment.Center,
                     TextWrapping = TextWrapping.Wrap
                 };
 
-                ViewboxPanel viewboxPanel = new ViewboxPanel
+                _viewboxPanel = new ViewboxPanel
                 {
-                    Margin = new Thickness(30)
+                    Margin = new Thickness(30, 0, 30, 0)
                 };
-                viewboxPanel.Children.Add(textBlock);
+                _viewboxPanel.Children.Add(_textBlock);
 
-                Content = viewboxPanel;
+                Content = _viewboxPanel;
             }
             else if (Mode == SoundButtonMode.Search)
             {
@@ -1635,11 +2221,93 @@ namespace SoundBoard
             }
         }
 
+        private void LoadFiles(params string[] files)
+        {
+            List<string> multiFileDrop = new List<string>();
+
+            if (files?.Length > 1)
+            {
+                multiFileDrop.AddRange(files);
+            }
+            else if (!string.IsNullOrEmpty(files?[0]) && Directory.Exists(files[0]))
+            {
+                multiFileDrop.AddRange(Directory.GetFiles(files[0]));
+            }
+
+            if (multiFileDrop.Any())
+            {
+                // This is a multi-file drop!
+
+                // Since this is a big operation, make it undoable
+                ConfigUndoState configUndoState = (MainWindow.Instance as IUndoable<ConfigUndoState>).SaveState();
+                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(configUndoState); });
+
+                // Set our grid size to exactly match the number
+                int rows = ParentTab.GetRows();
+                int columns = ParentTab.GetColumns();
+                bool? lastOperation = false; // False means added column, true means added first row, null means added second row
+                while (rows * columns < multiFileDrop.Count)
+                {
+                    if (lastOperation == false)
+                    {
+                        ++rows;
+                        lastOperation = true;
+                    }
+                    else if (lastOperation == true)
+                    {
+                        ++rows;
+                        lastOperation = null;
+                    }
+                    else if (lastOperation == null)
+                    {
+                        ++columns;
+                        lastOperation = false;
+                    }
+                }
+
+                // Get starting index before potentially changing grid, since that recreates all buttons
+                var startingIndex = MainWindow.Instance.GetSoundButtons(ParentTab).ToList().IndexOf(this);
+
+                if (rows != ParentTab.GetRows() || columns != ParentTab.GetColumns())
+                {
+                    MainWindow.Instance.ChangeButtonGrid(rows, columns);
+                }
+
+                // Start populating the buttons
+                var buttons = MainWindow.Instance.GetSoundButtons(MainWindow.Instance.SelectedTab).ToList();
+                buttons = buttons.GetRange(startingIndex, buttons.Count - startingIndex).Concat(buttons.GetRange(0, startingIndex)).ToList();
+                for (int i = 0; i < multiFileDrop.Count; ++i)
+                {
+                    buttons[i].Stop();
+                    buttons[i].SetFile(multiFileDrop[i]);
+                }
+
+                // Finally, make it undoable
+                string message = Properties.Resources.MultipleSoundsAdded;
+                string truncatedMessage = Utilities.Truncate(message, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50);
+                MainWindow.Instance.ShowUndoSnackbar(truncatedMessage);
+            }
+            else
+            {
+                // Only care about the first file
+                string file = files?[0];
+
+                if (string.IsNullOrEmpty(file) == false)
+                {
+                    // Stop any current playback
+                    Stop();
+
+                    // Set it
+                    SetFile(file);
+                }
+            }
+        }
+
         #endregion
 
         #region Private properties
 
-        private bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
+        internal bool HasValidSound => string.IsNullOrEmpty(SoundPath) == false;
 
         internal SoundButtonStyle SoundButtonStyle
         {
@@ -1651,7 +2319,7 @@ namespace SoundBoard
                 if (HasValidSound == false)
                 {
                     // Not a valid sound yet, use a "placeholder" color
-                    soundButtonStyle.ForegroundColor = Colors.Gray;
+                    soundButtonStyle.ForegroundColor = System.Windows.Media.Color.FromRgb(168, 168, 168);
                 }
                 else
                 {
@@ -1721,7 +2389,16 @@ namespace SoundBoard
         /// <summary>
         /// Defines the name of the sound file as displayed on the button
         /// </summary>
-        public string SoundName { get; private set; } = string.Empty;
+        public string SoundName
+        {
+            get => _soundName;
+            private set
+            {
+                _soundName = value;
+                MainWindow.Instance.OnAnySoundRenamed();
+            }
+        }
+        private string _soundName;
 
         /// <summary>
         /// Defines the background color of the button
@@ -1771,6 +2448,41 @@ namespace SoundBoard
 
         private bool _loop; // Backing field
 
+        public bool StopAllSounds
+        {
+            get => _stopAllSounds;
+            set
+            {
+                _stopAllSounds = value;
+                ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private bool _stopAllSounds;
+
+        public string Id { get; set; }
+
+        public Hotkey LocalHotkey
+        {
+            get => _localHotkey;
+            set
+            {
+                _localHotkey = value;
+                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private Hotkey _localHotkey;
+
+        public Hotkey GlobalHotkey
+        {
+            get => _globalHotkey;
+            set
+            {
+                _globalHotkey = value;
+                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private Hotkey _globalHotkey;
+
         /// <summary>
         /// Contains a list of child buttons
         /// </summary>
@@ -1785,7 +2497,49 @@ namespace SoundBoard
         /// <summary>
         /// Specifies the <see cref="MetroTabItem"/> on which this sound lives. Will be null when in <see cref="SoundButtonMode.Search"/>.
         /// </summary>
-        public MetroTabItem ParentTab { get; }
+        public MyMetroTabItem ParentTab { get; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                _isSelected = value;
+
+                if (_isSelected)
+                {
+                    BorderThickness = new Thickness(5);
+                    BorderBrush = new SolidColorBrush(Colors.SlateGray);
+                }
+                else
+                {
+                    BorderThickness = new Thickness(2);
+                    BorderBrush = new SolidColorBrush(Colors.Black);
+                }
+            }
+        }
+        private bool _isSelected;
+
+        public bool IsPlaying => !_players.All(p => p.PlaybackState != PlaybackState.Playing); // Do not let ReSharper refactor this as !All is different than Any
+
+        public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
+
+        public string NextSound
+        {
+            get => _nextSound;
+            set
+            {
+                _nextSound = value;
+                ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
+            }
+        }
+        private string _nextSound;
+
+        #endregion
+
+        #region Public static properties
+
+        public static SoundButton LastSelected { get; set; }
 
         #endregion
 
@@ -1809,10 +2563,19 @@ namespace SoundBoard
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
         private MenuItem _loopMenuItem;
+        private MenuItem _stopAllSoundsMenuItem;
+        private MenuItem _hotkeysMenuItem;
+        private MenuItem _nextSoundMenuItem;
 
         private Point? _mouseDownPosition;
 
         private CancellationTokenSource _progressBarCancellationToken;
+
+        // Related to text resizing
+        private ViewboxPanel _viewboxPanel;
+        private int _targetViewboxMarginBottom;
+        private TextBlock _textBlock;
+        private readonly Storyboard _textMarginStoryboard = new Storyboard();
 
         #endregion
 
@@ -1836,7 +2599,12 @@ namespace SoundBoard
                 SoundName = SoundName,
                 Color = Color,
                 VolumeOffset = VolumeOffset,
-                Loop = Loop
+                Loop = Loop,
+                StopAllSounds = StopAllSounds,
+                NextSound = NextSound,
+                Id = Id,
+                LocalHotkey = LocalHotkey,
+                GlobalHotkey = GlobalHotkey
             };
         }
 
@@ -1844,11 +2612,39 @@ namespace SoundBoard
         {
             if (string.IsNullOrEmpty(undoState.SoundPath) == false)
             {
+                if (!string.IsNullOrEmpty(undoState.Id))
+                {
+                    Id = undoState.Id;
+                }
+
                 SetFile(undoState.SoundPath);
                 SetContent(SoundName = undoState.SoundName);
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;
+                StopAllSounds = undoState.StopAllSounds;
+                NextSound = undoState.NextSound;
+
+                LocalHotkey = undoState.LocalHotkey;
+                GlobalHotkey = undoState.GlobalHotkey;
+
+                try
+                {
+                    ReregisterLocalHotkey();
+                }
+                catch
+                {
+                    // Swallow
+                }
+
+                try
+                {
+                    ReregisterGlobalHotkey();
+                }
+                catch
+                {
+                    // Swallow
+                }
             }
             else
             {

@@ -19,7 +19,7 @@ namespace SoundBoard.Properties {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
@@ -124,6 +124,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Change Default Button Grid.
+        /// </summary>
+        internal static string ChangeDefaultButtonGrid {
+            get {
+                return ResourceManager.GetString("ChangeDefaultButtonGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Check for updates.
         /// </summary>
         internal static string CheckForUpdates {
@@ -174,6 +183,15 @@ namespace SoundBoard.Properties {
         internal static string Close {
             get {
                 return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was an error loading the SoundBoard configuration. A backup has been made at &apos;{0}&apos;.
+        /// </summary>
+        internal static string ConfigLoadError {
+            get {
+                return ResourceManager.GetString("ConfigLoadError", resourceCulture);
             }
         }
         
@@ -304,11 +322,50 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Global hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;..
+        /// </summary>
+        internal static string GlobalHotkeyInuse {
+            get {
+                return ResourceManager.GetString("GlobalHotkeyInuse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Go to sound.
         /// </summary>
         internal static string GoToSound {
             get {
                 return ResourceManager.GetString("GoToSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local Hotkey: {0}
+        ///Global Hotkey: {1}.
+        /// </summary>
+        internal static string HotkeyIndicatorToolTip {
+            get {
+                return ResourceManager.GetString("HotkeyIndicatorToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The hotkey &apos;{0}&apos; could not be registered. It may be in use by another application or it may be reserved by Windows..
+        /// </summary>
+        internal static string HotkeyRegistrationFailed {
+            get {
+                return ResourceManager.GetString("HotkeyRegistrationFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The following hotkeys could not be registered. They may be in use by other applications.
+        ///
+        ///{0}.
+        /// </summary>
+        internal static string HotkeyRegistrationFailedOnLoad {
+            get {
+                return ResourceManager.GetString("HotkeyRegistrationFailedOnLoad", resourceCulture);
             }
         }
         
@@ -322,11 +379,29 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Local and global hotkey cannot be identical. .
+        /// </summary>
+        internal static string IdenticalHotkeyWarning {
+            get {
+                return ResourceManager.GetString("IdenticalHotkeyWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Import configuration.
         /// </summary>
         internal static string ImportConfiguration {
             get {
                 return ResourceManager.GetString("ImportConfiguration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Input device.
+        /// </summary>
+        internal static string InputDevice {
+            get {
+                return ResourceManager.GetString("InputDevice", resourceCulture);
             }
         }
         
@@ -340,11 +415,38 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Local hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;. .
+        /// </summary>
+        internal static string LocalHotkeyInUse {
+            get {
+                return ResourceManager.GetString("LocalHotkeyInUse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Loop.
         /// </summary>
         internal static string Loop {
             get {
                 return ResourceManager.GetString("Loop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Multiple sounds were added..
+        /// </summary>
+        internal static string MultipleSoundsAdded {
+            get {
+                return ResourceManager.GetString("MultipleSoundsAdded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected sound(s) were cleared from &apos;{0}&apos;..
+        /// </summary>
+        internal static string MultipleSoundsClearedFromTab {
+            get {
+                return ResourceManager.GetString("MultipleSoundsClearedFromTab", resourceCulture);
             }
         }
         
@@ -367,6 +469,51 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default button grid.
+        /// </summary>
+        internal static string NewPageDefaultGrid {
+            get {
+                return ResourceManager.GetString("NewPageDefaultGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set the button grid that will be used for new pages.
+        /// </summary>
+        internal static string NewPageDefaultGridToolTip {
+            get {
+                return ResourceManager.GetString("NewPageDefaultGridToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next sound.
+        /// </summary>
+        internal static string NextSound {
+            get {
+                return ResourceManager.GetString("NextSound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next sound: {0}.
+        /// </summary>
+        internal static string NextSoundName {
+            get {
+                return ResourceManager.GetString("NextSoundName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Next sound: {0} - {1}.
+        /// </summary>
+        internal static string NextSoundTab {
+            get {
+                return ResourceManager.GetString("NextSoundTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No.
         /// </summary>
         internal static string No {
@@ -381,6 +528,15 @@ namespace SoundBoard.Properties {
         internal static string NoAudioTrackWarning {
             get {
                 return ResourceManager.GetString("NoAudioTrackWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to none.
+        /// </summary>
+        internal static string None {
+            get {
+                return ResourceManager.GetString("None", resourceCulture);
             }
         }
         
@@ -426,6 +582,15 @@ namespace SoundBoard.Properties {
         internal static string SetColor {
             get {
                 return ResourceManager.GetString("SetColor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set Hotkeys.
+        /// </summary>
+        internal static string SetHotkeys {
+            get {
+                return ResourceManager.GetString("SetHotkeys", resourceCulture);
             }
         }
         
@@ -516,6 +681,33 @@ namespace SoundBoard.Properties {
         internal static string Source {
             get {
                 return ResourceManager.GetString("Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop other sounds.
+        /// </summary>
+        internal static string StopAllSounds {
+            get {
+                return ResourceManager.GetString("StopAllSounds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This sound will stop all other sounds.
+        /// </summary>
+        internal static string StopAllSoundsIcon {
+            get {
+                return ResourceManager.GetString("StopAllSoundsIcon", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When this sound is played, all others will be stopped..
+        /// </summary>
+        internal static string StopAllSoundsToolTip {
+            get {
+                return ResourceManager.GetString("StopAllSoundsToolTip", resourceCulture);
             }
         }
         

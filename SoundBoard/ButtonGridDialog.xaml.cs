@@ -34,6 +34,12 @@ namespace SoundBoard
             ColumnCount = _startingColumnCount = startingColumnCount;
         }
 
+        public ButtonGridDialog(int startingRowCount, int startingColumnCount, string title, bool validate) : this(startingRowCount, startingColumnCount)
+        {
+            Title = title;
+            _validate = validate;
+        }
+
         #endregion
 
         #region Public properties
@@ -119,13 +125,15 @@ namespace SoundBoard
 
         private void ShowHideWarningLabel()
         {
-            if (WarningLabel is null == false)
+            if (_validate && WarningLabel is null == false)
             {
                 WarningLabel.Visibility = RowUpDown.Value < _startingRowCount || ColumnUpDown.Value < _startingColumnCount
                         ? Visibility.Visible
                         : Visibility.Hidden;
             }
         }
+
+        private readonly bool _validate = true;
 
         #endregion
     }

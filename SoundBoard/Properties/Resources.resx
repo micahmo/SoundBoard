@@ -230,6 +230,10 @@
     <value>All sounds cleared from '{0}'.</value>
     <comment>{0} is the name of a tab page</comment>
   </data>
+  <data name="MultipleSoundsClearedFromTab" xml:space="preserve">
+    <value>Selected sound(s) were cleared from '{0}'.</value>
+    <comment>{0} is the name of a tab page</comment>
+  </data>
   <data name="SetColor" xml:space="preserve">
     <value>Set color</value>
   </data>
@@ -263,6 +267,9 @@
   </data>
   <data name="OK" xml:space="preserve">
     <value>OK</value>
+  </data>
+  <data name="InputDevice" xml:space="preserve">
+    <value>Input device</value>
   </data>
   <data name="OutputDevice" xml:space="preserve">
     <value>Output device</value>
@@ -312,5 +319,65 @@
   </data>
   <data name="FixLinksMessage" xml:space="preserve">
 	  <value>{0} additional missing sounds were found in the selected directory. Relink them?</value>
+  </data>
+  <data name="HotkeyIndicatorToolTip" xml:space="preserve">
+    <value>Local Hotkey: {0}
+Global Hotkey: {1}</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="SetHotkeys" xml:space="preserve">
+    <value>Set Hotkeys</value>
+  </data>
+  <data name="IdenticalHotkeyWarning" xml:space="preserve">
+    <value>Local and global hotkey cannot be identical. </value>
+  </data>
+  <data name="LocalHotkeyInUse" xml:space="preserve">
+    <value>Local hotkey '{0}' already in use by sound '{1}'. </value>
+  </data>
+  <data name="GlobalHotkeyInuse" xml:space="preserve">
+    <value>Global hotkey '{0}' already in use by sound '{1}'.</value>
+  </data>
+  <data name="HotkeyRegistrationFailed" xml:space="preserve">
+    <value>The hotkey '{0}' could not be registered. It may be in use by another application or it may be reserved by Windows.</value>
+  </data>
+  <data name="HotkeyRegistrationFailedOnLoad" xml:space="preserve">
+    <value>The following hotkeys could not be registered. They may be in use by other applications.
+
+{0}</value>
+  </data>
+  <data name="MultipleSoundsAdded" xml:space="preserve">
+    <value>Multiple sounds were added.</value>
+  </data>
+  <data name="StopAllSounds" xml:space="preserve">
+    <value>Stop other sounds</value>
+  </data>
+  <data name="StopAllSoundsToolTip" xml:space="preserve">
+    <value>When this sound is played, all others will be stopped.</value>
+  </data>
+  <data name="ConfigLoadError" xml:space="preserve">
+    <value>There was an error loading the SoundBoard configuration. A backup has been made at '{0}'</value>
+  </data>
+  <data name="NextSound" xml:space="preserve">
+    <value>Next sound</value>
+  </data>
+  <data name="StopAllSoundsIcon" xml:space="preserve">
+    <value>This sound will stop all other sounds</value>
+  </data>
+  <data name="NextSoundTab" xml:space="preserve">
+    <value>Next sound: {0} - {1}</value>
+  </data>
+  <data name="NextSoundName" xml:space="preserve">
+    <value>Next sound: {0}</value>
+  </data>
+  <data name="NewPageDefaultGrid" xml:space="preserve">
+    <value>Default button grid</value>
+  </data>
+  <data name="NewPageDefaultGridToolTip" xml:space="preserve">
+    <value>Set the button grid that will be used for new pages</value>
+  </data>
+  <data name="ChangeDefaultButtonGrid" xml:space="preserve">
+    <value>Change Default Button Grid</value>
   </data>
 </root>

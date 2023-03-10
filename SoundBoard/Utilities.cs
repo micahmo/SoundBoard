@@ -9,6 +9,8 @@ using MimeMapping;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using Point = System.Windows.Point;
+using WpfKey = System.Windows.Input.Key;
+using HotKey = BondTech.HotKeyManagement.WPF._4.Keys;
 
 #endregion
 
@@ -40,6 +42,8 @@ namespace SoundBoard
 
             return input + (truncated ? ELLIPSES : string.Empty);
         }
+
+        #region Audio utilities
 
         /// <summary>
         /// Unmute the system audio device(s), with optional parameters to specify the <see cref="DataFlow"/> and <see cref="DeviceState"/>.
@@ -98,6 +102,23 @@ namespace SoundBoard
                 return deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, role);
             }
         }
+
+        public static MMDevice GetDevice(Guid deviceId, DataFlow dataFlow, Role role = Role.Multimedia)
+        {
+            if (deviceId == Guid.Empty)
+            {
+                return (GetDefaultDevice(dataFlow, role));
+            }
+            else
+            {
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    return deviceEnumerator.EnumerateAudioEndPoints(dataFlow, DeviceState.Active).FirstOrDefault(d => d.GetGuid() == deviceId);
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Returns true if the distance (absolute value) between both <paramref name="firstPoint"/>.X and <paramref name="secondPoint"/>.X
@@ -190,6 +211,31 @@ namespace SoundBoard
         {
             public int X;
             public int Y;
+        }
+
+        #endregion
+
+        #region Hotkey stuff
+
+        /// <summary>
+        /// This method removes leading digits from GUIDs, which are invalid identifiers for the hotkey manager
+        /// </summary>
+        public static string SanitizeId(string id)
+        {
+            if (!string.IsNullOrEmpty(id))
+            {
+                return new string(id.SkipWhile(char.IsDigit).ToArray());
+            }
+
+            return id;
+        }
+
+        /// <summary>
+        /// Maps a key from the hotkey manager to the built-in key enum
+        /// </summary>
+        public static HotKey MapKey(WpfKey key)
+        {
+            return Enum.TryParse(Enum.GetName(typeof(WpfKey), key), true, out HotKey hotKey) ? hotKey : HotKey.None;
         }
 
         #endregion

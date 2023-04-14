@@ -380,4 +380,16 @@ Global Hotkey: {1}</value>
   <data name="ChangeDefaultButtonGrid" xml:space="preserve">
     <value>Change Default Button Grid</value>
   </data>
+  <data name="UNKNOWN" xml:space="preserve">
+    <value>UNKNOWN</value>
+  </data>
+  <data name="AudioPassthroughError" xml:space="preserve">
+    <value>There was an error opening the input ({0}) or output ({1}) audio device for audio passthrough.</value>
+  </data>
+  <data name="ComErrorCode" xml:space="preserve">
+    <value>Error code: 0x{0:X}</value>
+  </data>
+  <data name="AudioPassthroughOutputExclusiveError" xml:space="preserve">
+    <value>The output audio device is being used exclusively by another application.</value>
+  </data>
 </root>

@@ -88,6 +88,24 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to There was an error opening the input ({0}) or output ({1}) audio device for audio passthrough..
+        /// </summary>
+        internal static string AudioPassthroughError {
+            get {
+                return ResourceManager.GetString("AudioPassthroughError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The output audio device is being used exclusively by another application..
+        /// </summary>
+        internal static string AudioPassthroughOutputExclusiveError {
+            get {
+                return ResourceManager.GetString("AudioPassthroughOutputExclusiveError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Audio and Video Files.
         /// </summary>
         internal static string AudioVideoFiles {
@@ -183,6 +201,15 @@ namespace SoundBoard.Properties {
         internal static string Close {
             get {
                 return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error code: 0x{0:X}.
+        /// </summary>
+        internal static string ComErrorCode {
+            get {
+                return ResourceManager.GetString("ComErrorCode", resourceCulture);
             }
         }
         
@@ -753,6 +780,15 @@ namespace SoundBoard.Properties {
         internal static string UnexpectedError {
             get {
                 return ResourceManager.GetString("UnexpectedError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UNKNOWN.
+        /// </summary>
+        internal static string UNKNOWN {
+            get {
+                return ResourceManager.GetString("UNKNOWN", resourceCulture);
             }
         }
         

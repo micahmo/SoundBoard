@@ -1576,35 +1576,89 @@ namespace SoundBoard
 
             if (GlobalSettings.GetInputDeviceGuids().Any())
             {
+                Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
+
                 foreach (var outputDeviceId in GlobalSettings.GetOutputDeviceGuids())
                 {
-                    // Create the input
-                    Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
-                    MMDevice inputDevice = Utilities.GetDevice(inputDeviceId, DataFlow.Capture);
-                    WasapiCapture inputCapture = new WasapiCapture(inputDevice);
-                    inputCapture.RecordingStopped += HandleRecordingStopped;
-                    _inputCaptures.Add(inputCapture);
-
-                    // Create the buffer
-                    BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(inputDevice.AudioClient.MixFormat)
+                    try
                     {
-                        DiscardOnBufferOverflow = true
-                    };
-                    _bufferedWaveProviders.Add(bufferedWaveProvider);
+                        // Create the input
+                        MMDevice inputDevice = Utilities.GetDevice(inputDeviceId, DataFlow.Capture);
+                        WasapiCapture inputCapture = new WasapiCapture(inputDevice);
+                        inputCapture.RecordingStopped += HandleRecordingStopped;
+                        _inputCaptures.Add(inputCapture);
 
-                    inputCapture.DataAvailable += (_, args) =>
+                        // Create the buffer
+                        BufferedWaveProvider bufferedWaveProvider = new BufferedWaveProvider(inputDevice.AudioClient.MixFormat)
+                        {
+                            DiscardOnBufferOverflow = true
+                        };
+                        _bufferedWaveProviders.Add(bufferedWaveProvider);
+
+                        inputCapture.DataAvailable += (_, args) =>
+                        {
+                            bufferedWaveProvider.AddSamples(args.Buffer, 0, args.BytesRecorded);
+                        };
+
+                        // Create the outputs
+                        WasapiOut output = new WasapiOut(Utilities.GetDevice(outputDeviceId, DataFlow.Render), AudioClientShareMode.Shared, true, GlobalSettings.AudioPassthroughLatency);
+                        _outputCaptures.Add(output);
+
+                        output.Init(bufferedWaveProvider);
+                        output.Play();
+
+                        inputCapture.StartRecording();
+                    }
+                    catch (Exception ex)
                     {
-                        bufferedWaveProvider.AddSamples(args.Buffer, 0, args.BytesRecorded);
-                    };
+                        HandleRecordingStopped(this, new StoppedEventArgs());
 
-                    // Create the outputs
-                    WasapiOut output = new WasapiOut(Utilities.GetDevice(outputDeviceId, DataFlow.Render), AudioClientShareMode.Shared, true, GlobalSettings.AudioPassthroughLatency);
-                    _outputCaptures.Add(output);
+                        Dispatcher.Invoke(async () =>
+                        {
+                            // Try to get the friendly input/output device names.
+                            string inputDeviceName = Properties.Resources.UNKNOWN;
+                            string outputDeviceName = Properties.Resources.UNKNOWN;
+                            try
+                            {
+                                inputDeviceName = Utilities.GetDevice(inputDeviceId, DataFlow.Capture).FriendlyName;
+                            }
+                            catch {}
+                            try
+                            {
+                                outputDeviceName = Utilities.GetDevice(outputDeviceId, DataFlow.Render).FriendlyName;
+                            }
+                            catch {}
+                            
+                            string error = string.Format(Properties.Resources.AudioPassthroughError, inputDeviceName, outputDeviceName);
 
-                    output.Init(bufferedWaveProvider);
-                    output.Play();
+                            if (ex is COMException comException)
+                            {
+                                if (comException.ErrorCode == -2004287478)
+                                {
+                                    // This is a specific error we know about which means the output device is being held exclusively.
+                                    error += $"{Environment.NewLine}{Environment.NewLine}{Properties.Resources.AudioPassthroughOutputExclusiveError}";
+                                }
 
-                    inputCapture.StartRecording();
+                                error += $"{Environment.NewLine}{Environment.NewLine}{string.Format(Properties.Resources.ComErrorCode, comException.ErrorCode)}";
+                            }
+
+                            string fullError = $"{error}{Environment.NewLine}{Environment.NewLine}{ex}";
+
+                            var res = await this.ShowMessageAsync(Properties.Resources.Error, error,
+                                MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                                {
+                                    AffirmativeButtonText = Properties.Resources.CopyDetails,
+                                    NegativeButtonText = Properties.Resources.OK
+                                });
+
+                            if (res == MessageDialogResult.Affirmative)
+                            {
+                                Clipboard.SetText(fullError);
+                            }
+                        });
+
+                        return;
+                    }
                 }
             }
         }

@@ -97,6 +97,43 @@ namespace SoundBoard
 
         #endregion
 
+        #region Passthrough output device
+
+        /// <summary>
+        /// Add an output device to the current list
+        /// </summary>
+        public static void AddPassthroughOutputDeviceGuid(Guid guid) => PassthroughOutputDeviceGuids.Add(guid);
+
+        /// <summary>
+        /// Remove an output device from the current list
+        /// </summary>
+        public static void RemovePassthroughOutputDeviceGuid(Guid guid) => PassthroughOutputDeviceGuids.Remove(guid);
+
+        /// <summary>
+        /// Removes all current output devices
+        /// </summary>
+        public static void RemoveAllPassthroughOutputDeviceGuids() => PassthroughOutputDeviceGuids.Clear();
+
+        /// <summary>
+        /// Get the current list of output devices
+        /// </summary>
+        public static List<Guid> GetPassthroughOutputDeviceGuids() => (PassthroughOutputDeviceGuids.Any() ? PassthroughOutputDeviceGuids : Enumerable.Empty<Guid>()).ToList();
+
+        /// <summary>
+        /// The name of the OutputDeviceGuid setting name. 
+        /// </summary>
+        public static string PassthroughOutputDeviceGuidSettingName = "PassthroughOutputDeviceGuid";
+
+        /// <summary>
+        /// Defines the ID(s) of the audio output device(s) to use when playing sounds
+        /// </summary>
+        /// <remarks>
+        /// HashSet to prevent duplicate GUIDs.
+        /// </remarks>
+        private static HashSet<Guid> PassthroughOutputDeviceGuids { get; } = new HashSet<Guid>();
+
+        #endregion
+
         /// <summary>
         /// The latency to use when chaining input to outputs
         /// </summary>

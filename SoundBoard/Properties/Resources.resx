@@ -271,6 +271,12 @@
   <data name="InputDevice" xml:space="preserve">
     <value>Input device</value>
   </data>
+  <data name="AudioPassthrough" xml:space="preserve">
+    <value>Audio passthrough</value>
+  </data>
+  <data name="SoundOutputDevice" xml:space="preserve">
+  <value>Sound output device</value>
+</data>
   <data name="OutputDevice" xml:space="preserve">
     <value>Output device</value>
   </data>

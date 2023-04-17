@@ -88,6 +88,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Audio passthrough.
+        /// </summary>
+        internal static string AudioPassthrough {
+            get {
+                return ResourceManager.GetString("AudioPassthrough", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There was an error opening the input ({0}) or output ({1}) audio device for audio passthrough..
         /// </summary>
         internal static string AudioPassthroughError {
@@ -681,6 +690,15 @@ namespace SoundBoard.Properties {
         internal static string SoundBoardExplanation5 {
             get {
                 return ResourceManager.GetString("SoundBoardExplanation5", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sound output device.
+        /// </summary>
+        internal static string SoundOutputDevice {
+            get {
+                return ResourceManager.GetString("SoundOutputDevice", resourceCulture);
             }
         }
         

@@ -139,7 +139,7 @@ namespace SoundBoard
                 DownloadIdentifier = "portable"
             };
 
-            HandleInputOutputChange();
+            HandleAudioPassthroughChange();
 
             Tabs.SelectionChanged += (_, __) =>
             {
@@ -369,6 +369,17 @@ namespace SoundBoard
                                 if (Guid.TryParse(guid, out var inputDeviceGuid))
                                 {
                                     GlobalSettings.AddInputDeviceGuid(inputDeviceGuid);
+                                }
+                            });
+                        }
+
+                        if (globalSettings.Attributes?[GlobalSettings.PassthroughOutputDeviceGuidSettingName] is XmlAttribute passthroughOutputDeviceGuidAttribute)
+                        {
+                            passthroughOutputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
+                            {
+                                if (Guid.TryParse(guid, out var passthroughOutputDeviceGuid))
+                                {
+                                    GlobalSettings.AddPassthroughOutputDeviceGuid(passthroughOutputDeviceGuid);
                                 }
                             });
                         }
@@ -844,6 +855,7 @@ namespace SoundBoard
                 textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
                 textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
                 textWriter.WriteAttributeString(GlobalSettings.InputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetInputDeviceGuids()));
+                textWriter.WriteAttributeString(GlobalSettings.PassthroughOutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetPassthroughOutputDeviceGuids()));
                 textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
                 textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultRows), GlobalSettings.NewPageDefaultRows.ToString());
                 textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultColumns), GlobalSettings.NewPageDefaultColumns.ToString());
@@ -1217,10 +1229,10 @@ namespace SoundBoard
                 _newPageDefaultMenu.Click += NewPageDefault_Click;
                 _newPageDefaultMenu.SetSeparator(true);
 
-                _inputDeviceMenu = new MenuItem { Header = Properties.Resources.InputDevice };
-                _inputDeviceMenu.SubmenuOpened += InputDeviceMenuOpened;
+                _audioPassthroughMenu = new MenuItem { Header = Properties.Resources.AudioPassthrough };
+                _audioPassthroughMenu.SubmenuOpened += AudioPassthroughMenuOpened;
 
-                _outputDeviceMenu = new MenuItem {Header = Properties.Resources.OutputDevice};
+                _outputDeviceMenu = new MenuItem {Header = Properties.Resources.SoundOutputDevice};
                 _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
 
                 // Add a placeholder menu item so that "Output device" will have a submenu
@@ -1228,16 +1240,16 @@ namespace SoundBoard
                 MenuItem placeholder = new MenuItem();
                 _outputDeviceMenu.Items.Add(placeholder);
 
-                // Add a placeholder menu item so that "Input device" will have a submenu
+                // Add a placeholder menu item so that "Audio Passthrough" will have a submenu
                 // even before we have evaluated the audio devices to add to the menu
                 placeholder = new MenuItem();
-                _inputDeviceMenu.Items.Add(placeholder);
+                _audioPassthroughMenu.Items.Add(placeholder);
 
                 overflowMenu.Items.Add(importConfig);
                 overflowMenu.Items.Add(exportConfig);
                 overflowMenu.Items.Add(clearConfig);
                 overflowMenu.Items.Add(_newPageDefaultMenu);
-                overflowMenu.Items.Add(_inputDeviceMenu);
+                overflowMenu.Items.Add(_audioPassthroughMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
 
                 overflowMenu.AddSeparators();
@@ -1423,17 +1435,58 @@ namespace SoundBoard
             }
         }
 
-        private void InputDeviceMenuOpened(object sender, RoutedEventArgs e)
+        private void AudioPassthroughMenuOpened(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem inputDeviceMenu)
+            if (sender is MenuItem audioPassthroughMenu)
             {
                 // Clear the current items, whether they are the placeholder
                 // or the previously evaluated audio devices.
                 // We're marking them for removal instead of removing them immediately so that the 
                 // menu doesn't resize and decide to close because our mouse is no longer over it.
                 // Instead we'll add all the new items, then remove the old ones at the very end.
-                // Use Control istead of MenuItem to capture the Separator.
-                List<Control> itemsToRemove = inputDeviceMenu.Items.OfType<Control>().ToList();
+                // Use Control instead of MenuItem to capture the Separator.
+                List<Control> itemsToRemove = audioPassthroughMenu.Items.OfType<Control>().ToList();
+
+                #region Output
+
+                // Create a menu item for each output device
+                using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
+                {
+                    // Note: We're going in reverse order to preserve the separator and "Close" item at the bottom
+
+                    // Now add the rest
+                    foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Reverse())
+                    {
+                        MenuItem menuItem = new MenuItem
+                        {
+                            Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
+                            Icon = GlobalSettings.GetPassthroughOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true
+                        };
+                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        audioPassthroughMenu.Items.Insert(0, menuItem);
+                    }
+
+                    // First, add the default device
+                    var defaultDevice = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                    var defaultDeviceMenuItem = new MenuItem
+                    {
+                        Header = string.Format(Properties.Resources.DefaultDevice, defaultDevice.FriendlyName),
+                        Icon = GlobalSettings.GetPassthroughOutputDeviceGuids().Contains(Guid.Empty) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                        StaysOpenOnClick = true
+                    };
+                    defaultDeviceMenuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(Guid.Empty, args.ChangedButton);
+                    audioPassthroughMenu.Items.Insert(0, defaultDeviceMenuItem);
+                }
+
+                // Add an item for output heading
+                audioPassthroughMenu.Items.Insert(0, new MenuItem { Header = Properties.Resources.OutputDevice, IsEnabled = false });
+
+                audioPassthroughMenu.Items.Insert(0, new Separator());
+
+                #endregion
+
+                #region Input
 
                 // Create a menu item for each output device
                 using (MMDeviceEnumerator deviceEnumerator = new MMDeviceEnumerator())
@@ -1449,29 +1502,28 @@ namespace SoundBoard
                             Icon = GlobalSettings.GetInputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
                             StaysOpenOnClick = true
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandleInputDeviceSelection(device.GetGuid());
-                        inputDeviceMenu.Items.Insert(0, menuItem);
+                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughInputDeviceSelection(device.GetGuid());
+                        audioPassthroughMenu.Items.Insert(0, menuItem);
                     }
-
-                    MenuItem closeDeviceMenuMenuItem = new MenuItem
-                    {
-                        Header = Properties.Resources.Close
-                    };
-                    inputDeviceMenu.Items.Add(new Separator());
-                    inputDeviceMenu.Items.Add(closeDeviceMenuMenuItem);
                 }
+
+                // Add an item for input heading
+                audioPassthroughMenu.Items.Insert(0, new MenuItem { Header = Properties.Resources.InputDevice, IsEnabled = false });
+
+                #endregion
+
+                // Add close
+                MenuItem closeDeviceMenuMenuItem = new MenuItem
+                {
+                    Header = Properties.Resources.Close
+                };
+                audioPassthroughMenu.Items.Add(new Separator());
+                audioPassthroughMenu.Items.Add(closeDeviceMenuMenuItem);
 
                 // Finally, remove the items marked for removal
                 foreach (Control control in itemsToRemove)
                 {
-                    inputDeviceMenu.Items.Remove(control);
-                }
-
-                // We only have close and separator, which looks funny, so remove the separator
-                if (inputDeviceMenu.Items.Count == 2
-                    && inputDeviceMenu.Items.OfType<Separator>().FirstOrDefault() is Separator separator)
-                {
-                    inputDeviceMenu.Items.Remove(separator);
+                    audioPassthroughMenu.Items.Remove(control);
                 }
             }
         }
@@ -1549,7 +1601,7 @@ namespace SoundBoard
 
         // This behavior is different from the output devices in that we can only select one.
         // However, all of the pieces are in place to allow multiple selection if needed.
-        private void HandleInputDeviceSelection(Guid deviceGuid)
+        private void HandlePassthroughInputDeviceSelection(Guid deviceGuid)
         {
             if (GlobalSettings.GetInputDeviceGuids().Contains(deviceGuid))
             {
@@ -1564,12 +1616,58 @@ namespace SoundBoard
             }
 
             // Refresh the menu
-            InputDeviceMenuOpened(_inputDeviceMenu, new RoutedEventArgs());
+            AudioPassthroughMenuOpened(_audioPassthroughMenu, new RoutedEventArgs());
 
-            HandleInputOutputChange();
+            HandleAudioPassthroughChange();
         }
 
-        private void HandleInputOutputChange()
+        // This behavior is different from both in put selection (which only allows one) and output selection (which requires at least one)
+        private void HandlePassthroughOutputDeviceSelection(Guid guid, MouseButton mouseButton)
+        {
+            if (mouseButton == MouseButton.Right)
+            {
+                // This is a toggle. Do not clear the list, and add or removing depending on existence.
+                if (GlobalSettings.GetPassthroughOutputDeviceGuids().Contains(guid))
+                {
+                    if (GlobalSettings.GetPassthroughOutputDeviceGuids().All(g => g == guid))
+                    {
+                        // This is the only device in the list, so we can't really toggle it. Do nothing.
+                    }
+                    else
+                    {
+                        // This is in the list, and it's being toggled off, so remove it.
+                        GlobalSettings.RemovePassthroughOutputDeviceGuid(guid);
+                    }
+                }
+                else
+                {
+                    // This is not the list, and it's being togged on, so add it.
+                    GlobalSettings.AddPassthroughOutputDeviceGuid(guid);
+                }
+            }
+            else
+            {
+                // A single click will toggle this one
+                if (GlobalSettings.GetPassthroughOutputDeviceGuids().Any() && GlobalSettings.GetPassthroughOutputDeviceGuids().All(g => g == guid))
+                {
+                    // Toggle it off
+                    GlobalSettings.RemovePassthroughOutputDeviceGuid(guid);
+                }
+                else
+                {
+                    // Toggle it on and remove others
+                    GlobalSettings.RemoveAllPassthroughOutputDeviceGuids();
+                    GlobalSettings.AddPassthroughOutputDeviceGuid(guid);
+                }
+            }
+
+            // Refresh the menu
+            AudioPassthroughMenuOpened(_audioPassthroughMenu, new RoutedEventArgs());
+
+            HandleAudioPassthroughChange();
+        }
+
+        private void HandleAudioPassthroughChange()
         {
             // Clear any existing chaining
             CleanUpAudioPassthrough();
@@ -1578,14 +1676,14 @@ namespace SoundBoard
             {
                 Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
 
-                foreach (var outputDeviceId in GlobalSettings.GetOutputDeviceGuids())
+                foreach (var outputDeviceId in GlobalSettings.GetPassthroughOutputDeviceGuids())
                 {
                     try
                     {
                         // Create the input
                         MMDevice inputDevice = Utilities.GetDevice(inputDeviceId, DataFlow.Capture);
                         WasapiCapture inputCapture = new WasapiCapture(inputDevice);
-                        inputCapture.RecordingStopped += HandleRecordingStopped;
+                        inputCapture.RecordingStopped += HandlePassthroughRecordingStopped;
                         _inputCaptures.Add(inputCapture);
 
                         // Create the buffer
@@ -1602,6 +1700,7 @@ namespace SoundBoard
 
                         // Create the outputs
                         WasapiOut output = new WasapiOut(Utilities.GetDevice(outputDeviceId, DataFlow.Render), AudioClientShareMode.Shared, true, GlobalSettings.AudioPassthroughLatency);
+                        output.PlaybackStopped += HandlePassthroughPlaybackStopped;
                         _outputCaptures.Add(output);
 
                         output.Init(bufferedWaveProvider);
@@ -1611,7 +1710,8 @@ namespace SoundBoard
                     }
                     catch (Exception ex)
                     {
-                        HandleRecordingStopped(this, new StoppedEventArgs());
+                        HandlePassthroughRecordingStopped(this, new StoppedEventArgs());
+                        HandlePassthroughPlaybackStopped(this, new StoppedEventArgs());
 
                         Dispatcher.Invoke(async () =>
                         {
@@ -1663,11 +1763,22 @@ namespace SoundBoard
             }
         }
 
-        private void HandleRecordingStopped(object sender, StoppedEventArgs args)
+        private void HandlePassthroughRecordingStopped(object sender, StoppedEventArgs args)
         {
-            // Handle the device being disabled/disconnected/etc.
+            // Handle the input device being disabled/disconnected/etc.
             GlobalSettings.RemoveAllInputDeviceGuids();
             CleanUpAudioPassthrough();
+        }
+
+        private void HandlePassthroughPlaybackStopped(object sender, StoppedEventArgs args)
+        {
+            // This fires even for normal stoppages, so we only want to clean things up if there was an exception
+            if (args.Exception != null)
+            {
+                // Handle the output device being disabled/disconnected/etc.
+                GlobalSettings.RemoveAllPassthroughOutputDeviceGuids();
+                CleanUpAudioPassthrough();
+            }
         }
 
         private void CleanUpAudioPassthrough()
@@ -1676,7 +1787,7 @@ namespace SoundBoard
             {
                 _inputCaptures.ForEach(ic =>
                 {
-                    ic.RecordingStopped -= HandleRecordingStopped;
+                    ic.RecordingStopped -= HandlePassthroughRecordingStopped;
                     ic.StopRecording();
                     ic.Dispose();
                 });
@@ -1745,8 +1856,6 @@ namespace SoundBoard
 
             // Refresh the menu
             OutputDeviceMenuOpened(_outputDeviceMenu, new RoutedEventArgs());
-            
-            HandleInputOutputChange();
         }
 
         private void CloseSnackbarButton_Click(object sender, RoutedEventArgs e)
@@ -1911,7 +2020,7 @@ namespace SoundBoard
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
         private MenuItem _newPageDefaultMenu;
-        private MenuItem _inputDeviceMenu;
+        private MenuItem _audioPassthroughMenu;
         private MenuItem _outputDeviceMenu;
 
         #endregion

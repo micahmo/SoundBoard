@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <AppUpdate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/AppUpdate.xsd">
-  <Version>1.10.1.0</Version>
-  <ReleaseDate>2023-04-14</ReleaseDate>
+  <Version>1.10.2.0</Version>
+  <ReleaseDate>2023-04-17</ReleaseDate>
   <!-- Default download -->
-  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.10.1/SoundBoard.exe</DownloadLink>
+  <DownloadLink>https://github.com/micahmo/SoundBoard/releases/download/v1.10.2/SoundBoard.exe</DownloadLink>
   <DownloadFileName>SoundBoard.exe</DownloadFileName>
   <!-- All download options -->
   <Downloads>
     <Download key="portable">
-      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.10.1/SoundBoard.exe</Link>
+      <Link>https://github.com/micahmo/SoundBoard/releases/download/v1.10.2/SoundBoard.exe</Link>
       <FileName>SoundBoard.exe</FileName>
       <FileHash></FileHash>
     </Download>
   </Downloads>
   <!-- Release notes -->
-  <VersionNotes> - Improve color picker
- - Handle audio passthrough errors</VersionNotes>
+  <VersionNotes> - Add ability to choose sound output separately from audio passthrough output</VersionNotes>
   <ReleaseNotes></ReleaseNotes>
 </AppUpdate>

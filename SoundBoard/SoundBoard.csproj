@@ -162,6 +162,8 @@
     <Compile Include="TwoDimensionalList.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />
+    <Compile Include="Hotkeys\HotkeyInputState.cs" />
+    <Compile Include="Hotkeys\SoundHotkeyService.cs" />
     <Compile Include="ViewboxPanel.cs" />
     <Compile Include="WaitCursor.cs" />
     <Page Include="HotkeyDialog.xaml">

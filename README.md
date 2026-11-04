@@ -9,7 +9,8 @@ SoundBoard is an elegant, easy-to-use application to save and play your favorite
 * Create multiple tabs with sounds in any grid configuration
 * Customize the look of each sound by changing the background color
 * Set sounds to loop, adjust their volume, trigger other sounds, or stop all other sounds
-* Activate sounds via hotkey
+* Activate sounds via keyboard or side-mouse hotkeys, optionally holding to play
+* Read and edit shortcuts directly from large badges on sound tiles
 * Instantly search and playback sounds by typing their name
 
 ## Downloads
@@ -51,9 +52,13 @@ You may also select an input to pipe to your output(s). This is essentially an a
 
 You may assign local and global hotkeys to sounds. Pressing a local hotkey will play the corresponding sound when the application is active. Pressing a global hotkey will play the sound regardless of the active window.
 
-* Some shortcuts may be reserved by other apps or by Windows itself.
-* Using single letters/number/character hotkeys may conflict with the quick search feature.
-* Using standard Windows shortcuts may also produce unintended behavior (e.g., Tab or Win).
+* Capture keyboard shortcuts or Mouse4/Mouse5, with optional modifiers. The **Top row — no modifiers** selector supports bare 1–0 keys on keyboards without a numpad.
+* Enable **Hold to play (hotkeys)** to start on press and stop on release; **Loop** controls whether the clip repeats while held.
+* Large tile badges show the binding and HOLD status. Click a badge to edit without playing the sound.
+* Input is not suppressed: shortcuts also reach the foreground app/game. Avoid conflicting game actions or Windows shortcuts.
+* Run SoundBoard without administrator privileges to accept file drops from ordinary File Explorer.
+
+See the [hotkey guide](docs/hotkeys.md) for playback semantics, configuration compatibility and troubleshooting, and [development notes](docs/hotkey-development.md) for build/test instructions.
 
 ![image](https://user-images.githubusercontent.com/7417301/221188183-e1a320ff-9561-4722-887a-91e76560235a.png)
 

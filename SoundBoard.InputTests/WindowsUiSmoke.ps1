@@ -1,0 +1,34 @@
+# Run with Windows PowerShell -STA after building Release. Does not open the app or change its config.
+$ProgressPreference='SilentlyContinue';
+$ErrorActionPreference='Stop';
+Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase;
+$asm=[Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "..\SoundBoard\bin\Release\SoundBoard.exe"));
+[System.Windows.Application]::ResourceAssembly=$asm;
+$app=New-Object SoundBoard.App;
+$app.InitializeComponent();
+$editor=New-Object SoundBoard.HotkeyEditorControl;
+$digits=@($editor.Content.Children | Where-Object {$_ -is [System.Windows.Controls.Primitives.UniformGrid]})[0];
+$count=0;
+foreach($button in $digits.Children){$editor.Hotkey=New-Object SoundBoard.Hotkey([System.Windows.Input.Key]::D2,[System.Windows.Input.ModifierKeys]::Control);
+$button.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Button]::ClickEvent)));
+if($editor.Hotkey.DisplayText -ne $button.Content -or $editor.Hotkey.Modifiers -ne [System.Windows.Input.ModifierKeys]::None){throw 'Number picker failed'};
+$count++};
+Write-Output "PASS: $count actual WPF number buttons set bare top-row keys and clear Ctrl";
+$editor.Width=250;
+$surface=New-Object System.Windows.Controls.Border;
+$surface.Background=[System.Windows.Media.Brushes]::White;
+$surface.Padding=New-Object System.Windows.Thickness(8);
+$surface.Child=$editor;
+$surface.Measure((New-Object System.Windows.Size(266,1000)));
+$height=[int][Math]::Ceiling($surface.DesiredSize.Height);
+$surface.Arrange((New-Object System.Windows.Rect(0,0,266,$height)));
+$surface.UpdateLayout();
+$bmp=New-Object System.Windows.Media.Imaging.RenderTargetBitmap(266,$height,96,96,[System.Windows.Media.PixelFormats]::Pbgra32);
+$bmp.Render($surface);
+$encoder=New-Object System.Windows.Media.Imaging.PngBitmapEncoder;
+$encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bmp));
+$stream=[IO.File]::Create((Join-Path $PSScriptRoot "bin\Release\number-picker-proof.png"));
+$encoder.Save($stream);
+$stream.Dispose();
+Write-Output "Picker height=$($editor.ActualHeight)";
+$app.Shutdown()

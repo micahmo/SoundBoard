@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
-using BondTech.HotKeyManagement.WPF._4;
-using Keys = BondTech.HotKeyManagement.WPF._4.Keys;
 
 namespace SoundBoard
 {
@@ -33,6 +31,12 @@ namespace SoundBoard
         {
             get => GlobalHotkeyControl.Hotkey;
             set => GlobalHotkeyControl.Hotkey = value;
+        }
+
+        public bool HoldToPlay
+        {
+            get => HoldToPlayControl.IsChecked == true;
+            set => HoldToPlayControl.IsChecked = value;
         }
 
         private void OKButton_Click(object sender, RoutedEventArgs e)
@@ -84,54 +88,18 @@ namespace SoundBoard
                 return;
             }
 
-            // Try to register
-            try
+            var previous = _soundButton.SaveState();
+            _soundButton.Stop();
+            _soundButton.LocalHotkey = LocalHotkey;
+            _soundButton.GlobalHotkey = GlobalHotkey;
+            _soundButton.HoldToPlay = HoldToPlay;
+            MainWindow.Instance.SetUndoAction(() =>
             {
-                _soundButton.LocalHotkey = null;
-
-                // Start by clearing any registrations
-                _soundButton.UnregisterLocalHotkey();
-
-                if (LocalHotkey != null)
-                {
-                    // Assign and register
-                    _soundButton.LocalHotkey = LocalHotkey;
-                    _soundButton.ReregisterLocalHotkey();
-                }
-            }
-            catch
-            {
-                _soundButton.LocalHotkey = null;
-                WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, LocalHotkey);
-                WarningLabel.Visibility = Visibility.Visible;
-            }
-
-            try
-            {
-                _soundButton.GlobalHotkey = null;
-
-                // Start by clearing any registration
-                _soundButton.UnregisterGlobalHotkey();
-
-                if (GlobalHotkey != null)
-                {
-                    // Assign and register
-                    _soundButton.GlobalHotkey = GlobalHotkey;
-                    _soundButton.ReregisterGlobalHotkey();
-                }
-            }
-            catch
-            {
-                _soundButton.GlobalHotkey = null;
-                WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, GlobalHotkey);
-                WarningLabel.Visibility = Visibility.Visible;
-            }
-
-            if (WarningLabel.Visibility == Visibility.Visible)
-            {
-                return;
-            }
-
+                _soundButton.LoadState(previous);
+                MainWindow.Instance.SaveSettings();
+            });
+            MainWindow.Instance.ShowUndoSnackbar("Hotkeys and playback mode changed.");
+            MainWindow.Instance.SaveSettings();
             DialogResult = DialogResult.OK;
             Close();
         }

@@ -30,7 +30,6 @@ using Timer = System.Timers.Timer;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
-using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media;
 
 #endregion
@@ -174,86 +173,11 @@ namespace SoundBoard
         protected override async void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
-
-            HotKeyManager = new HotKeyManager(this);
-            HotKeyManager.GlobalHotKeyPressed += (_, args) =>
+            try { SoundHotkeys = new SoundHotkeyService(this); }
+            catch (Exception ex)
             {
-                if (!IsHotkeyPickerOpen)
-                {
-                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
-                    {
-                        soundButton.ParentTab.Focus();
-                        soundButton.StartSound();
-                    }
-                }
-            };
-            HotKeyManager.LocalHotKeyPressed += (_, args) =>
-            {
-                if (!IsHotkeyPickerOpen)
-                {
-                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
-                    {
-                        soundButton.ParentTab.Focus();
-                        soundButton.StartSound();
-                    }
-                }
-            };
-
-            // There is a weird issue where after some changes to the executable (new version, new directory)
-            // the first global hotkey registration fails. This only happens during the first launch after the change,
-            // and even that time, all subsequent registrations work.
-            // Therefore, we will use a trick to register a hotkey we don't care about.
-            GlobalHotKey ignore = new GlobalHotKey(Utilities.SanitizeId(Guid.NewGuid().ToString()), ModifierKeys.None, Keys.HangulMode);
-
-            try
-            {
-                HotKeyManager.AddGlobalHotKey(ignore);
-            }
-            catch { }
-
-            // Unregister -- this will work for all but the bad scenario
-            try
-            {
-                HotKeyManager.RemoveGlobalHotKey(ignore);
-            }
-            catch { }
-
-            // Load existing hotkeys
-            List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
-            foreach (SoundButton sb in GetSoundButtons().ToList())
-            {
-                if (sb.LocalHotkey != null)
-                {
-                    try
-                    {
-                        sb.ReregisterLocalHotkey();
-                    }
-                    catch (Exception)
-                    {
-                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
-                    }
-                }
-
-                if (sb.GlobalHotkey != null)
-                {
-                    try
-                    {
-                        sb.ReregisterGlobalHotkey();
-                    }
-                    catch (Exception)
-                    {
-                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
-                    }
-                }
-            }
-
-            if (badHotkeys.Any())
-            {
-                await this.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.HotkeyRegistrationFailedOnLoad, string.Join(Environment.NewLine, badHotkeys.Select(tup => $"{tup.Item2} ({tup.Item1})"))),
-                    MessageDialogStyle.Affirmative, new MetroDialogSettings
-                    {
-                        AffirmativeButtonText = Properties.Resources.OK
-                    });
+                await this.ShowMessageAsync(Properties.Resources.Error,
+                    "Global input monitoring could not start. Sound buttons still work. Restart SoundBoard to retry.\n\n" + ex.Message);
             }
         }
 
@@ -325,6 +249,8 @@ namespace SoundBoard
         /// </summary>
         private void LoadSettings(string configFilePath)
         {
+            // A reload can replace every button; no old async load or hold may outlive it.
+            StopAllPlayback();
             if (!File.Exists(configFilePath) && Tabs.Items.Count == 1)
             {
                 // Populate content for "welcome"
@@ -469,6 +395,9 @@ namespace SoundBoard
                                     {
                                         soundButtonUndoState.Loop = loop;
                                     }
+
+                                    if (bool.TryParse(node["button" + i]?.Attributes["holdToPlay"]?.Value, out bool holdToPlay))
+                                        soundButtonUndoState.HoldToPlay = holdToPlay;
 
                                     if (node["button" + i]?.Attributes["stopAllSounds"]?.Value is string stopAllSoundsString &&
                                         string.IsNullOrEmpty(stopAllSoundsString) == false && bool.TryParse(stopAllSoundsString, out bool stopAllSounds))
@@ -820,7 +749,7 @@ namespace SoundBoard
             tab.Content = stackPanel;
         }
 
-        private void SaveSettings()
+        internal void SaveSettings()
         {
             SaveSettings(ConfigFilePath);
         }
@@ -884,6 +813,7 @@ namespace SoundBoard
                                 textWriter.WriteAttributeString("color", button.Color.ToString());
                                 textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
                                 textWriter.WriteAttributeString("loop", button.Loop.ToString());
+                                textWriter.WriteAttributeString("holdToPlay", button.HoldToPlay.ToString());
                                 textWriter.WriteAttributeString("stopAllSounds", button.StopAllSounds.ToString());
                                 textWriter.WriteAttributeString("nextSound", button.NextSound);
                                 textWriter.WriteAttributeString("id", button.Id);
@@ -1073,6 +1003,7 @@ namespace SoundBoard
             { 
                 if (args is KeyEventArgs e)
                 {
+                    if (SoundHotkeys?.IsSoundKey(e) == true) return;
                     Mouse.Capture(null);
 
                     if (e.Key == Key.A && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -1179,12 +1110,16 @@ namespace SoundBoard
             _searchString = string.Empty;
         }
 
+        internal void StopAllPlayback(SoundButton except = null)
+        {
+            // Cancel queued starts as well as players, including sounds still preparing their file.
+            if (except == null) SoundHotkeys?.CancelHolds();
+            foreach (var sound in GetSoundButtons().Where(s => s != except).ToList()) sound.Stop();
+        }
+
         private void silence_Click(object sender, EventArgs e)
         {
-            foreach (IWavePlayer player in SoundPlayers)
-            {
-                player.Stop();
-            }
+            StopAllPlayback();
         }
 
         private void help_Click(object sender, RoutedEventArgs e)
@@ -1894,6 +1829,8 @@ namespace SoundBoard
         protected override void OnClosed(EventArgs e)
         {
             // Do cleanup
+            SoundHotkeys?.Dispose();
+            foreach (var sound in GetSoundButtons().ToList()) sound.DisposePlayback();
             _globalMouseEvents.MouseDown -= Global_MouseDown;
             _globalMouseEvents.Dispose();
 
@@ -1934,12 +1871,21 @@ namespace SoundBoard
         /// <summary>
         /// The hot key manager for the application
         /// </summary>
-        public HotKeyManager HotKeyManager { get; private set; }
+        internal SoundHotkeyService SoundHotkeys { get; private set; }
 
         /// <summary>
         /// Whether or not any instance of the hotkey picker dialog is open
         /// </summary>
-        public bool IsHotkeyPickerOpen { get; set; }
+        public bool IsHotkeyPickerOpen
+        {
+            get => _isHotkeyPickerOpen;
+            set
+            {
+                _isHotkeyPickerOpen = value;
+                if (value) SoundHotkeys?.CancelHolds();
+            }
+        }
+        private bool _isHotkeyPickerOpen;
 
         /// <summary>
         /// The currently selected tab

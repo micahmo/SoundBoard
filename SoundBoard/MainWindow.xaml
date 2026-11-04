@@ -6,7 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SoundBoard"
         mc:Ignorable="d"
-        Title="SoundBoard — Mouse Hold Custom" Height="736.011" Width="664.541"
+        Title="Sound Board" Height="736.011" Width="664.541"
         SaveWindowPosition="True"
     
         BorderThickness="1" 

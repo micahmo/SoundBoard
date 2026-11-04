@@ -132,7 +132,11 @@ namespace SoundBoard
             _globalMouseEvents = Hook.AppEvents();
             _globalMouseEvents.MouseDown += Global_MouseDown;
 
-            // Custom fork: never fetch/install upstream binaries over mouse/hold support.
+            _updateChecker = new MyUpdateChecker("https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/VersionInfo.xml")
+            {
+                Owner = this,
+                DownloadIdentifier = "portable"
+            };
 
             HandleAudioPassthroughChange();
 
@@ -863,13 +867,16 @@ namespace SoundBoard
             Assembly assembly = Assembly.GetExecutingAssembly();
             string version = AssemblyName.GetAssemblyName(assembly.Location).Version.ToString();
 
-            await this.ShowMessageAsync(Properties.Resources.AboutSoundBoard,
+            var res = await this.ShowMessageAsync(Properties.Resources.AboutSoundBoard,
                 Properties.Resources.CreatedByMicahMorrison + Environment.NewLine +
-                string.Format(Properties.Resources.VersionNumber, version) + Environment.NewLine +
-                "Mouse Hold Custom (1.10.2-mouse-hold.1)" + Environment.NewLine +
-                "Upstream updates disabled to preserve this custom build.",
-                MessageDialogStyle.Affirmative,
-                new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.OK });
+                string.Format(Properties.Resources.VersionNumber, version),
+                MessageDialogStyle.AffirmativeAndNegative,
+                new MetroDialogSettings { AffirmativeButtonText = Properties.Resources.CheckForUpdates, NegativeButtonText = Properties.Resources.OK });
+
+            if (res == MessageDialogResult.Affirmative)
+            {
+                _updateChecker.CheckForUpdates(UpdateNotifyMode.Always);
+            }
         }
 
         private string GetDateTimeString() => DateTime.Now.ToString(@"s").Replace(@":", @".");
@@ -895,7 +902,7 @@ namespace SoundBoard
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Upstream automatic updates intentionally disabled in this custom build.
+            _updateChecker.CheckForUpdates(UpdateNotifyMode.Auto);
         }
 
         private void RenameMenuItem_Click(object sender, EventArgs e)
@@ -1957,7 +1964,7 @@ namespace SoundBoard
         private string _searchString = string.Empty;
         private Action _undoAction;
         private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
-
+        private readonly WpfUpdateChecker _updateChecker;
         private MenuItem _newPageDefaultMenu;
         private MenuItem _audioPassthroughMenu;
         private MenuItem _outputDeviceMenu;

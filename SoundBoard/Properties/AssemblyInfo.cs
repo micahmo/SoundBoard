@@ -7,9 +7,8 @@ using System.Windows;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SoundBoard - Mouse Hold Custom")]
-[assembly: AssemblyDescription("Local mouse side-button and hold-to-play build; upstream auto-update disabled")]
-[assembly: AssemblyInformationalVersion("1.10.2-mouse-hold.3")]
+[assembly: AssemblyTitle("SoundBoard")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("SoundBoard")]

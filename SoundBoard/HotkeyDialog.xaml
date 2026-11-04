@@ -30,7 +30,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="25"/>
-                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="250"/>
                 </Grid.ColumnDefinitions>
 
                 <Grid.RowDefinitions>
@@ -47,12 +47,19 @@
                 <Label Grid.Column="0" Grid.Row="2" Content="Global Hotkey" ToolTip="This shortcut will work from anywhere on the system. Press Escape to clear."/>
                 <soundboard:HotkeyEditorControl x:Name="GlobalHotkeyControl" Grid.Column="2" Grid.Row="2"  ToolTip="This shortcut will work from anywhere on the system. Press Escape to clear."/>
 
-                <TextBlock Grid.Row="4" Grid.ColumnSpan="3" x:Name="WarningLabel" 
+                <StackPanel Grid.Row="4" Grid.ColumnSpan="3">
+                    <CheckBox x:Name="HoldToPlayControl" Content="Hold to play (hotkeys)"
+                              AutomationProperties.AutomationId="HoldToPlay" Margin="0,0,0,10"
+                              ToolTip="Press starts from the beginning once. Release stops. Loop repeats while held. Clicking a sound still plays normally." />
+                    <TextBlock Text="Mouse4 = XButton1; Mouse5 = XButton2. No input is blocked."
+                               TextWrapping="Wrap" MaxWidth="400" Margin="0,0,0,10" />
+                <TextBlock x:Name="WarningLabel"
                        MaxWidth="300"
                        Foreground="Red" 
                        FontWeight="Medium"
                        Visibility="Hidden"
                        TextWrapping="Wrap"/>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="1" Margin="20,0,20,20">

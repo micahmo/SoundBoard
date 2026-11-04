@@ -20,7 +20,6 @@ using MahApps.Metro.SimpleChildWindow;
 using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
-using BondTech.HotKeyManagement.WPF._4;
 using System.Media;
 using System.Windows.Media.Animation;
 using Humanizer;
@@ -753,6 +752,9 @@ namespace SoundBoard
             }
 
             _loopMenuItem.IsEnabled = !IsPlaying;
+            _holdToPlayMenuItem.IsChecked = IsSelected
+                ? MainWindow.Instance.GetSoundButtons(ParentTab).Where(s => s.IsSelected).All(s => s.HoldToPlay)
+                : HoldToPlay;
 
             if (ContextMenu?.Items.Contains(_stopAllSoundsMenuItem) == true)
             {
@@ -848,14 +850,6 @@ namespace SoundBoard
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
             BrowseForSound();
-        }
-
-        private void SoundStoppedHandler(object sender, StoppedEventArgs e)
-        {
-            if (sender is IWavePlayer player)
-            {
-                HandleSoundStopped(player);
-            }
         }
 
         private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1073,6 +1067,23 @@ namespace SoundBoard
             }
         }
 
+        private void HoldToPlayMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var sounds = IsSelected
+                ? MainWindow.Instance.GetSoundButtons(ParentTab).Where(s => s.IsSelected).ToList()
+                : new List<SoundButton> { this };
+            var previous = sounds.ToDictionary(s => s, s => s.SaveState());
+            bool enabled = sounds.Any(s => !s.HoldToPlay);
+            sounds.ForEach(s => s.HoldToPlay = enabled);
+            MainWindow.Instance.SetUndoAction(() =>
+            {
+                foreach (var item in previous) item.Key.LoadState(item.Value);
+                MainWindow.Instance.SaveSettings();
+            });
+            MainWindow.Instance.ShowUndoSnackbar("Hold-to-play mode changed.");
+            MainWindow.Instance.SaveSettings();
+        }
+
         private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (IsSelected)
@@ -1107,10 +1118,11 @@ namespace SoundBoard
             HotkeyDialog hotkeyDialog = new HotkeyDialog(this)
             {
                 LocalHotkey = LocalHotkey,
-                GlobalHotkey = GlobalHotkey
+                GlobalHotkey = GlobalHotkey,
+                HoldToPlay = HoldToPlay
             };
-            await MainWindow.Instance.ShowChildWindowAsync(hotkeyDialog);
-            MainWindow.Instance.IsHotkeyPickerOpen = false;
+            try { await MainWindow.Instance.ShowChildWindowAsync(hotkeyDialog); }
+            finally { MainWindow.Instance.IsHotkeyPickerOpen = false; }
         }
 
         #endregion
@@ -1119,6 +1131,7 @@ namespace SoundBoard
 
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
+            if (e.ChangedButton == MouseButton.XButton1 || e.ChangedButton == MouseButton.XButton2) return;
             if (Mode == SoundButtonMode.Normal && HasValidSound)
             {
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -1329,13 +1342,23 @@ namespace SoundBoard
         /// <summary>
         /// Start playing the sound associated with this button
         /// </summary>
-        public async void StartSound()
+        public async void StartSound(Func<bool> canStart = null, bool fromHold = false)
         {
+            if (canStart != null && !canStart()) return;
+            // Cancel the previous load before beginning a new request. Do not cancel this input lease.
+            CancelPendingPlayback();
+            long request = _playbackGate.Begin();
+            Func<bool> current = () => _playbackGate.IsCurrent(request) && (canStart == null || canStart());
+            var preparation = new CancellationTokenSource();
+            _prepareCancellation = preparation;
+            var preparedReaders = new List<AudioFileReader>();
+
             // Every time the sound is started, update the warning status
             ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
 
             try
             {
+                DisposePlaybackResources();
                 if (!File.Exists(SoundPath))
                 {
                     var res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.FileDoesNotExist, SoundPath),
@@ -1345,6 +1368,7 @@ namespace SoundBoard
                             NegativeButtonText = Properties.Resources.OK
                         });
 
+                    if (!current()) return;
                     if (res == MessageDialogResult.Affirmative)
                     {
                         string originalSoundFileName = Path.GetFileName(SoundPath);
@@ -1396,45 +1420,36 @@ namespace SoundBoard
                     return;
                 }
 
-                // Stop any previous sounds
-                _players.ForEach(p => p.PlaybackStopped -= SoundStoppedHandler);
-                _players.ForEach(HandleSoundStopped);
-                Stop();
-                _players.ForEach(p => p.Dispose());
-                MainWindow.Instance.SoundPlayers.RemoveAll(p => _players.Contains(p));
+                if (StopAllSounds) MainWindow.Instance.StopAllPlayback(this);
 
-                _players.Clear();
-
-                if (StopAllSounds)
+                // Resolve devices without changing the user's selected Wave Link/output settings.
+                var devices = new List<Guid>();
+                bool defaultAdded = false;
+                foreach (var device in GlobalSettings.GetOutputDeviceGuids())
                 {
-                    foreach (IWavePlayer player in MainWindow.Instance.SoundPlayers)
-                    {
-                        player.Stop();
-                    }
+                    if (Utilities.DoesOutAudioDeviceExist(device)) devices.Add(device);
+                    else if (!defaultAdded) { devices.Add(Guid.Empty); defaultAdded = true; }
                 }
-
-                // Reinitialize the player
-                bool addedDefaultDevice = false;
-                GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
+                string path = SoundPath;
+                // File/codec preparation may be slow. Never block the input hook on it.
+                await Task.Run(() =>
                 {
-                    if (Utilities.DoesOutAudioDeviceExist(d))
+                    foreach (var device in devices)
                     {
-                        _players.Add(new DirectSoundOut(d));
-                    }
-                    else if (!addedDefaultDevice)
-                    {
-                        _players.Add(new DirectSoundOut(Guid.Empty));
-                        addedDefaultDevice = true;
+                        preparation.Token.ThrowIfCancellationRequested();
+                        preparedReaders.Add(new AudioFileReader(path));
                     }
                 });
+                if (!current()) return;
 
-                _waveProviders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
-                _waveProviders.Clear();
-
-                _audioFileReaders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
-
-                _audioFileReaders.Clear();
-                _players.ForEach(p => _audioFileReaders[p] = new AudioFileReader(SoundPath));
+                // Reinitialize the player
+                for (int i = 0; i < devices.Count; ++i)
+                {
+                    var player = new DirectSoundOut(devices[i]);
+                    _players.Add(player);
+                    _audioFileReaders[player] = preparedReaders[0];
+                    preparedReaders.RemoveAt(0); // ownership transferred to this playback
+                }
 
                 // Unmute the selected device(s)
                 GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
@@ -1442,8 +1457,16 @@ namespace SoundBoard
                     Utilities.UnmuteDeviceAudio(d, unmuteDefaultIfGivenNotFound: true);
                 });
 
-                // Handle stop
-                _players.ForEach(p => p.PlaybackStopped += SoundStoppedHandler);
+                // A callback queued by an old/stopped player must never start NextSound.
+                bool completionHandled = false;
+                _playbackStoppedHandler = (sender, args) => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!_playbackGate.IsCurrent(request) || completionHandled || !_players.Contains(sender as IWavePlayer) ||
+                        _players.Any(p => p.PlaybackState != PlaybackState.Stopped)) return;
+                    completionHandled = true;
+                    HandleSoundStopped(!fromHold && args.Exception == null);
+                }));
+                _players.ForEach(p => p.PlaybackStopped += _playbackStoppedHandler);
 
                 _stopWatch = Stopwatch.StartNew();
 
@@ -1479,8 +1502,15 @@ namespace SoundBoard
                     _players.ForEach(p => p.Init(new VolumeSampleProvider(_waveProviders[p].ToSampleProvider()) {Volume = volume}));
                 }
 
-                // Aaaaand play
-                Parallel.ForEach(_players, p => p.Play());
+                // A final yield lets queued releases/stop-all win before any audio starts.
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                if (!current())
+                {
+                    // A newer request may already own the shared players.
+                    if (_playbackGate.IsCurrent(request)) DisposePlaybackResources();
+                    return;
+                }
+                _players.ForEach(p => p.Play());
 
                 CalculateTextMargin();
 
@@ -1492,10 +1522,23 @@ namespace SoundBoard
                 _progressBarCancellationToken = new CancellationTokenSource();
                 UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), _progressBarCancellationToken.Token);
             }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
-                    Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                if (current())
+                {
+                    DisposePlaybackResources();
+                    await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
+                        Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+                }
+            }
+            finally
+            {
+                // Unadopted resources belong exclusively to this request, even after a newer start.
+                foreach (var reader in preparedReaders)
+                    try { reader.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex); }
+                if (ReferenceEquals(_prepareCancellation, preparation)) _prepareCancellation = null;
+                preparation.Dispose();
             }
         }
 
@@ -1547,6 +1590,7 @@ namespace SoundBoard
                 return;
             }
 
+            Stop();
             SoundPath = soundPath;
 
             SoundName = string.IsNullOrEmpty(soundName)
@@ -1582,7 +1626,50 @@ namespace SoundBoard
         /// </summary>
         public void Stop()
         {
-            Parallel.ForEach(_players.Where(p => p.PlaybackState != PlaybackState.Stopped), p => p.Stop());
+            MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
+            CancelPendingPlayback();
+            DisposePlaybackResources();
+        }
+
+        internal long CancelPendingPlayback()
+        {
+            _prepareCancellation?.Cancel();
+            return _playbackGate.Cancel();
+        }
+
+        internal void StopCanceledPlayback(long version)
+        {
+            if (_playbackGate.IsCurrent(version)) DisposePlaybackResources();
+        }
+
+        internal void DisposePlayback() { Stop(); }
+
+        private void DisposePlaybackResources()
+        {
+            _progressBarCancellationToken?.Cancel();
+            foreach (var player in _players)
+            {
+                if (_playbackStoppedHandler != null) player.PlaybackStopped -= _playbackStoppedHandler;
+                try { player.Stop(); } catch (Exception ex) { Debug.WriteLine(ex); }
+                try { player.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex); }
+            }
+            MainWindow.Instance?.SoundPlayers.RemoveAll(p => _players.Contains(p));
+            _players.Clear();
+            // LoopStream does not own/dispose its source. Dispose each distinct stream once.
+            foreach (var stream in _waveProviders.Values.Concat(_audioFileReaders.Values).Distinct())
+                try { stream.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex); }
+            _waveProviders.Clear();
+            _audioFileReaders.Clear();
+            ResetPlaybackDisplay();
+        }
+
+        private void ResetPlaybackDisplay()
+        {
+            _stopWatch?.Stop();
+            foreach (var button in ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically)) button.Hide();
+            if (SoundProgressBar != null) SoundProgressBar.Visibility = Visibility.Hidden;
+            CalculateTextMargin();
+            if (ParentTab != null) MainWindow.Instance?.OnAnySoundStopped(this);
         }
 
         /// <summary>
@@ -1661,84 +1748,18 @@ namespace SoundBoard
             return Grid.GetColumn(this);
         }
 
-        public void UnregisterLocalHotkey()
+        public void UnregisterLocalHotkey() { MainWindow.Instance?.SoundHotkeys?.CancelSound(this); }
+        public void UnregisterGlobalHotkey() { MainWindow.Instance?.SoundHotkeys?.CancelSound(this); }
+
+        // Bindings are read live by the shared, non-suppressing input monitor. No RegisterHotKey
+        // reservation is required, so games and other applications still receive the same input.
+        public void ReregisterLocalHotkey() { ValidateHotkey(LocalHotkey); }
+        public void ReregisterGlobalHotkey() { ValidateHotkey(GlobalHotkey); }
+
+        private static void ValidateHotkey(Hotkey hotkey)
         {
-            foreach (var existingLocalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateLocalHotKeys.OfType<LocalHotKey>() ?? Enumerable.Empty<LocalHotKey>())
-            {
-                if (existingLocalHotKey.Name == Utilities.SanitizeId(Id))
-                {
-                    try
-                    {
-                        MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
-                    }
-                    catch
-                    {
-                        // Swallow
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        public void UnregisterGlobalHotkey()
-        {
-            foreach (var existingGlobalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateGlobalHotKeys.OfType<GlobalHotKey>() ?? Enumerable.Empty<GlobalHotKey>())
-            {
-                if (existingGlobalHotKey.Name == Utilities.SanitizeId(Id))
-                {
-                    try
-                    {
-                        MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
-                    }
-                    catch
-                    {
-                        // Swallow
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Always wrap this in a try/catch
-        /// </summary>
-        public void ReregisterLocalHotkey()
-        {
-            if (LocalHotkey != null)
-            {
-                Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
-
-                // The mapping failed
-                if (mappedKey == default)
-                {
-                    throw new Exception();
-                }
-
-                LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
-                MainWindow.Instance.HotKeyManager?.AddLocalHotKey(localHotKey);
-            }
-        }
-
-        /// <summary>
-        /// Always wrap this in a try/catch
-        /// </summary>
-        public void ReregisterGlobalHotkey()
-        {
-            if (GlobalHotkey != null)
-            {
-                Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
-
-                // The mapping failed
-                if (mappedKey == default)
-                {
-                    throw new Exception();
-                }
-
-                GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
-                MainWindow.Instance.HotKeyManager?.AddGlobalHotKey(globalHotKey);
-            }
+            if (hotkey != null && hotkey.VirtualKey == 0)
+                throw new ArgumentException("The hotkey has no usable input.");
         }
 
         public void CalculateTextMargin()
@@ -1801,6 +1822,7 @@ namespace SoundBoard
             Color = null;
             VolumeOffset = 0;
             Loop = false;
+            HoldToPlay = false;
             StopAllSounds = false;
             LocalHotkey = null;
             GlobalHotkey = null;
@@ -1856,7 +1878,7 @@ namespace SoundBoard
         {
             bool result = false;
 
-            while (token.IsCancellationRequested == false || result == false)
+            while (!token.IsCancellationRequested && !result)
             {
                 result = action();
                 await Task.Delay(interval);
@@ -1912,6 +1934,17 @@ namespace SoundBoard
                 _loopMenuItem = new MenuItem {Header = Properties.Resources.Loop};
                 _loopMenuItem.Click += LoopMenuItem_Click;
             }
+
+            if (_holdToPlayMenuItem is null)
+            {
+                _holdToPlayMenuItem = new MenuItem
+                {
+                    Header = "Hold to play (hotkeys)",
+                    ToolTip = "Press starts once from the beginning; release stops. Loop repeats while held. Click playback is unchanged."
+                };
+                _holdToPlayMenuItem.Click += HoldToPlayMenuItem_Click;
+            }
+            _holdToPlayMenuItem.IsChecked = HoldToPlay;
 
             if (_stopAllSoundsMenuItem is null)
             {
@@ -1993,6 +2026,8 @@ namespace SoundBoard
                         ContextMenu.Items.Add(_loopMenuItem);
                     }
 
+                    if (!ContextMenu.Items.Contains(_holdToPlayMenuItem)) ContextMenu.Items.Add(_holdToPlayMenuItem);
+
                     if (ContextMenu.Items.Contains(_stopAllSoundsMenuItem) == false)
                     {
                         ContextMenu.Items.Add(_stopAllSoundsMenuItem);
@@ -2034,6 +2069,7 @@ namespace SoundBoard
             }
             else
             {
+                ContextMenu.Items.Remove(_holdToPlayMenuItem);
                 // Remove some menu items that should not be in the menu if we no longer have a valid sound
                 if (ContextMenu.Items.Contains(_renameMenuItem))
                 {
@@ -2160,40 +2196,16 @@ namespace SoundBoard
             }
         }
 
-        private void HandleSoundStopped(IWavePlayer player)
+        private void HandleSoundStopped(bool allowNext)
         {
             _progressBarCancellationToken?.Cancel();
-
-            // Indicates that the sound finished playing on its own
-            bool finished = false;
-
-            if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
+            bool finished = _audioFileReaders.Values.Any(r => r.Position >= r.Length);
+            ResetPlaybackDisplay();
+            if (allowNext && finished && !string.IsNullOrEmpty(NextSound) &&
+                MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb => sb.HasValidSound && sb.Id == NextSound) is SoundButton nextSoundButton)
             {
-                finished = audioFileReader.Position >= audioFileReader.Length;
-                audioFileReader.Position = 0;
-            }
-
-            // Hide the additional buttons
-            foreach (HideableMenuButtonBase hideableButton in ChildButtons
-                .OfType<HideableMenuButtonBase>()
-                .Where(hideableButton => hideableButton.ShowHideAutomatically))
-            {
-                hideableButton.Hide();
-            }
-
-            CalculateTextMargin();
-
-            MainWindow.Instance.OnAnySoundStopped(this);
-
-            if (finished && !string.IsNullOrEmpty(NextSound) 
-                         && MainWindow.Instance.GetSoundButtons().Where(sb => sb.HasValidSound).FirstOrDefault(sb => sb.Id == NextSound) is SoundButton nextSoundButton)
-            {
-                // If the next sound isn't on the current tab, focus that tab.
-                if (nextSoundButton.ParentTab != MainWindow.Instance.SelectedTab)
-                {
+                if (MainWindow.Instance.IsActive && nextSoundButton.ParentTab != MainWindow.Instance.SelectedTab)
                     nextSoundButton.ParentTab.Focus();
-                }
-                
                 nextSoundButton.StartSound();
             }
         }
@@ -2463,6 +2475,19 @@ namespace SoundBoard
 
         private bool _loop; // Backing field
 
+        public bool HoldToPlay
+        {
+            get => _holdToPlay;
+            set
+            {
+                if (_holdToPlay == value) return;
+                Stop();
+                _holdToPlay = value;
+                if (_holdToPlayMenuItem != null) _holdToPlayMenuItem.IsChecked = value;
+            }
+        }
+        private bool _holdToPlay;
+
         public bool StopAllSounds
         {
             get => _stopAllSounds;
@@ -2481,6 +2506,7 @@ namespace SoundBoard
             get => _localHotkey;
             set
             {
+                MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
                 _localHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             }
@@ -2492,6 +2518,7 @@ namespace SoundBoard
             get => _globalHotkey;
             set
             {
+                MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
                 _globalHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             }
@@ -2562,6 +2589,9 @@ namespace SoundBoard
 
         #region Players
 
+        private readonly PlaybackGate _playbackGate = new PlaybackGate();
+        private CancellationTokenSource _prepareCancellation;
+        private EventHandler<StoppedEventArgs> _playbackStoppedHandler;
         private readonly List<IWavePlayer> _players = new List<IWavePlayer>();
         private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
         private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
@@ -2578,6 +2608,7 @@ namespace SoundBoard
         private MenuItem _setColorMenuItem;
         private MenuItem _adjustVolumeMenuItem;
         private MenuItem _loopMenuItem;
+        private MenuItem _holdToPlayMenuItem;
         private MenuItem _stopAllSoundsMenuItem;
         private MenuItem _hotkeysMenuItem;
         private MenuItem _nextSoundMenuItem;
@@ -2615,6 +2646,7 @@ namespace SoundBoard
                 Color = Color,
                 VolumeOffset = VolumeOffset,
                 Loop = Loop,
+                HoldToPlay = HoldToPlay,
                 StopAllSounds = StopAllSounds,
                 NextSound = NextSound,
                 Id = Id,
@@ -2625,6 +2657,7 @@ namespace SoundBoard
 
         public void LoadState(SoundButtonUndoState undoState)
         {
+            Stop();
             if (string.IsNullOrEmpty(undoState.SoundPath) == false)
             {
                 if (!string.IsNullOrEmpty(undoState.Id))
@@ -2637,6 +2670,7 @@ namespace SoundBoard
                 Color = undoState.Color;
                 VolumeOffset = undoState.VolumeOffset;
                 Loop = undoState.Loop;
+                HoldToPlay = undoState.HoldToPlay;
                 StopAllSounds = undoState.StopAllSounds;
                 NextSound = undoState.NextSound;
 

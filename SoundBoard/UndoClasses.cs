@@ -57,6 +57,9 @@
         /// </summary>
         public bool Loop { get; set; }
 
+        /// <summary>Hotkey press starts once; release stops. Absent in legacy configs means false.</summary>
+        public bool HoldToPlay { get; set; }
+
         /// <summary>
         /// StopAllSounds
         /// </summary>

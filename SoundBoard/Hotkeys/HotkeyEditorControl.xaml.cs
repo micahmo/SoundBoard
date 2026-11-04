@@ -19,7 +19,8 @@ namespace SoundBoard
                 typeof(HotkeyEditorControl),
                 new FrameworkPropertyMetadata(
                     default(Hotkey),
-                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault
+                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                    (d, e) => ((HotkeyEditorControl)d).UpdateModifiers()
                 )
             );
 
@@ -38,6 +39,42 @@ namespace SoundBoard
         public HotkeyEditorControl()
         {
             InitializeComponent();
+        }
+
+        private void UpdateModifiers()
+        {
+            if (CtrlModifier == null) return;
+            var modifiers = Hotkey?.Modifiers ?? ModifierKeys.None;
+            CtrlModifier.IsChecked = modifiers.HasFlag(ModifierKeys.Control);
+            ShiftModifier.IsChecked = modifiers.HasFlag(ModifierKeys.Shift);
+            AltModifier.IsChecked = modifiers.HasFlag(ModifierKeys.Alt);
+            WinModifier.IsChecked = modifiers.HasFlag(ModifierKeys.Windows);
+        }
+
+        private ModifierKeys SelectedModifiers =>
+            (CtrlModifier.IsChecked == true ? ModifierKeys.Control : ModifierKeys.None) |
+            (ShiftModifier.IsChecked == true ? ModifierKeys.Shift : ModifierKeys.None) |
+            (AltModifier.IsChecked == true ? ModifierKeys.Alt : ModifierKeys.None) |
+            (WinModifier.IsChecked == true ? ModifierKeys.Windows : ModifierKeys.None);
+
+        private void Mouse4_Click(object sender, RoutedEventArgs e) { Hotkey = new Hotkey(MouseButton.XButton1, SelectedModifiers); }
+        private void Mouse5_Click(object sender, RoutedEventArgs e) { Hotkey = new Hotkey(MouseButton.XButton2, SelectedModifiers); }
+        private void Clear_Click(object sender, RoutedEventArgs e) { Hotkey = null; }
+        private void Modifier_Click(object sender, RoutedEventArgs e)
+        {
+            if (Hotkey == null) return;
+            Hotkey = Hotkey.MouseButton.HasValue
+                ? new Hotkey(Hotkey.MouseButton.Value, SelectedModifiers)
+                : new Hotkey(Hotkey.Key, SelectedModifiers);
+        }
+
+        private void HotkeyTextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.XButton1 && e.ChangedButton != MouseButton.XButton2) return;
+            HotkeyTextBox.Focus();
+            Hotkey = new Hotkey(e.ChangedButton, Keyboard.Modifiers);
+            // Routed handling is local to the picker; global hook input is never suppressed.
+            e.Handled = true;
         }
 
         private void HotkeyTextBox_PreviewKeyDown(object sender, KeyEventArgs e)

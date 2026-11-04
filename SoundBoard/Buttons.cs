@@ -527,6 +527,13 @@ namespace SoundBoard
 
         #region Public methods
 
+        // Playback already prepares a reader in the background; do not probe the codec twice.
+        internal void SetPlaybackWarning(string message)
+        {
+            ToolTip = message;
+            Visibility = message == null ? Visibility.Collapsed : Visibility.Visible;
+        }
+
         /// <summary>
         /// Updates the warning depending on whether or not an audio track is detected in the current file
         /// </summary>
@@ -1348,7 +1355,9 @@ namespace SoundBoard
         public async void StartSound(Func<bool> canStart = null, bool fromHold = false)
         {
             if (canStart != null && !canStart()) return;
-            // Cancel the previous load before beginning a new request. Do not cancel this input lease.
+            // A direct tile/chain start takes ownership away from any older held input.
+            // Do not invalidate canStart for a start dispatched by the hotkey service itself.
+            if (canStart == null) MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
             CancelPendingPlayback();
             long request = _playbackGate.Begin();
             Func<bool> current = () => _playbackGate.IsCurrent(request) && (canStart == null || canStart());
@@ -1356,14 +1365,19 @@ namespace SoundBoard
             _prepareCancellation = preparation;
             var preparedReaders = new List<AudioFileReader>();
 
-            // Every time the sound is started, update the warning status
-            ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
+            string path = SoundPath;
+            bool readersPrepared = false;
+            var warning = ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault();
 
             try
             {
                 DisposePlaybackResources();
-                if (!File.Exists(SoundPath))
+                // Even an existence check can block on network media. Keep it off the hook/UI thread.
+                bool exists = await Task.Run(() => File.Exists(path));
+                if (!current()) return;
+                if (!exists)
                 {
+                    warning?.SetPlaybackWarning(string.Format(Properties.Resources.FileNotFoundWarning, path));
                     var res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.FileDoesNotExist, SoundPath),
                         MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
                         {
@@ -1433,7 +1447,6 @@ namespace SoundBoard
                     if (Utilities.DoesOutAudioDeviceExist(device)) devices.Add(device);
                     else if (!defaultAdded) { devices.Add(Guid.Empty); defaultAdded = true; }
                 }
-                string path = SoundPath;
                 // File/codec preparation may be slow. Never block the input hook on it.
                 await Task.Run(() =>
                 {
@@ -1444,6 +1457,8 @@ namespace SoundBoard
                     }
                 });
                 if (!current()) return;
+                readersPrepared = true;
+                warning?.SetPlaybackWarning(null);
 
                 // Reinitialize the player
                 for (int i = 0; i < devices.Count; ++i)
@@ -1530,6 +1545,8 @@ namespace SoundBoard
             {
                 if (current())
                 {
+                    if (!readersPrepared)
+                        warning?.SetPlaybackWarning(string.Format(Properties.Resources.NoAudioTrackWarning, Path.GetFileName(path)));
                     DisposePlaybackResources();
                     await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
                         Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
@@ -1859,8 +1876,9 @@ namespace SoundBoard
                 SoundProgressBar.Maximum = maxSeconds;
                 SoundProgressBar.Value = curSeconds;
 
-                // Hide the progress bar if the sound is done or has been stopped
-                if (curSeconds > maxSeconds || audioFileReader.Position == 0)
+                // Position may still be zero before the audio worker reads its first sample.
+                // Explicit stop/completion already cancels progress; zero alone is not completion.
+                if (curSeconds > maxSeconds)
                 {
                     if (Loop && _players.All(p => p.PlaybackState != PlaybackState.Stopped))
                     {

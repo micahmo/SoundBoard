@@ -15,6 +15,10 @@
 
 No new runtime packages or .NET version migration are required. The app remains a classic .NET Framework 4.8 WPF project.
 
+## Pre-submission review fixes
+
+The PR branch additionally fixes three code-review findings: a normal tile/chain start now detaches the old hold activation before taking playback ownership; playback-time warning updates reuse background reader preparation instead of synchronously opening another codec; and progress no longer treats a reader position of zero as completion before the first sample is read. File-existence checking also runs off the UI thread. The input regression suite covers old-hold/new-playback ownership. These fixes are in the PR branch; the existing installed custom binary was not silently replaced.
+
 ## Input and playback design
 
 `HotkeyInputState<T>` is independent of WPF and audio. It tracks physical primary-key edges and captures the selected target at press time. Modifier changes do not rearm a held input; release is matched to the original primary key, not the modifiers at release. Stop/editor cancellation invalidates activations while retaining physical-down entries to prevent repeat retriggers. Overlapping bindings for one held target share ownership.
@@ -37,7 +41,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\SoundBoard.InputTests\
 
 This discovers MSBuild through `vswhere`, restores/builds the Release application, builds/runs the standalone console tests, then starts the WPF smoke test in a separate STA process. The execution-policy argument affects only that process; it does not change machine policy.
 
-The console project links the production input-state and hotkey model files, with no test-framework packages. Its initial Windows run covers 22 test cases: side buttons, key repeats, modifier-first release, focus changes, editor suppression, duplicate ownership, overlapping holds, local/global normal semantics, cancellation generations, top-row versus numpad keys and config-string round trips.
+The console project links the production input-state and hotkey model files, with no test-framework packages. Its initial Windows run covers 23 test cases: side buttons, key repeats, modifier-first release, focus changes, editor suppression, duplicate ownership, overlapping holds, local/global normal semantics, cancellation generations, top-row versus numpad keys and config-string round trips.
 
 `WindowsUiSmoke.ps1` loads the actual built EXE, sets `Application.ResourceAssembly`, initializes resources without calling `Application.Run`, and exercises all ten real number-selector buttons with routed clicks. It checks that each selects its matching top-row key and clears modifiers, then renders the real picker to `SoundBoard.InputTests/bin/Release/number-picker-proof.png`. It does not instantiate the main window, install input hooks, read/write the user's sound configuration, or send keyboard/mouse events to other applications.
 
@@ -50,7 +54,7 @@ mono SoundBoard.InputTests.exe
 
 ## Verification performed
 
-- Full Release build and 22 console tests passed on Windows with .NET Framework 4.8 and Visual Studio MSBuild.
+- Full Release build and 23 console tests passed on Windows with .NET Framework 4.8 and Visual Studio MSBuild.
 - All ten actual WPF number-picker buttons selected modifier-free top-row keys; the picker was rendered and inspected for clipping.
 - In the installed local feature build, clicking a large badge opened Set Hotkeys; Cancel returned to the main grid. Both picker sections, Hold and confirmation controls fit in the existing window.
 - Main-grid screenshots showed readable key labels and long sound names. Volume offsets were moved into the badge footer after identifying overlap with the old icons.

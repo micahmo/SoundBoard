@@ -152,6 +152,18 @@ internal static class Program
                 var s = new HotkeyInputState<string>(); Up(s, 6, null); Up(s, 6, null);
                 Check(!s.PressedInputs.Any(), "Unmatched state leaked");
             });
+            Test("Manual playback takeover detaches old hold and rejects its queued stop", () =>
+            {
+                var state = new HotkeyInputState<string>(); var gate = new PlaybackGate();
+                var hold = Down(state, new[] { Binding() }); state.Dispatched(hold);
+                gate.Begin();
+                Check(state.Cancel("sound").Single() == "sound", "Expected hold cancellation");
+                long oldStop = gate.Cancel();
+                long clickPlayback = gate.Begin();
+                Up(state, 6, null);
+                Check(!hold.IsValid && !gate.IsCurrent(oldStop), "Old hold still owns playback");
+                Check(gate.IsCurrent(clickPlayback), "Release canceled the newer click playback");
+            });
             Test("Asynchronous load and stale completion cannot restart after stop", () =>
             {
                 var gate = new PlaybackGate(); long oldLoad = gate.Begin();

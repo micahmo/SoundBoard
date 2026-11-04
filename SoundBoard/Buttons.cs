@@ -478,7 +478,7 @@ namespace SoundBoard
         /// </summary>
         public void Update()
         {
-            if (ParentButton.VolumeOffset == 0)
+            if (ParentButton.VolumeOffset == 0 || ParentButton.GlobalHotkey != null || ParentButton.LocalHotkey != null)
             {
                 Hide();
             }
@@ -1132,6 +1132,9 @@ namespace SoundBoard
         protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.XButton1 || e.ChangedButton == MouseButton.XButton2) return;
+            // Editing a badge must not select/drag/play its containing sound tile.
+            if (_tileHotkeyBadge != null && e.OriginalSource is DependencyObject source &&
+                (source == _tileHotkeyBadge || _tileHotkeyBadge.IsAncestorOf(source))) return;
             if (Mode == SoundButtonMode.Normal && HasValidSound)
             {
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -2227,7 +2230,51 @@ namespace SoundBoard
                 };
                 _viewboxPanel.Children.Add(_textBlock);
 
-                Content = _viewboxPanel;
+                // Reserve independent space for the binding, so long names never cover it.
+                var layout = new Grid { ClipToBounds = true };
+                _viewboxPanel.IsHitTestVisible = false;
+                layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                layout.Children.Add(_viewboxPanel);
+                _tileHotkeyText = new TextBlock
+                {
+                    FontSize = 32, FontWeight = FontWeights.Bold,
+                    TextAlignment = TextAlignment.Center
+                };
+                _tileHotkeyDetail = new TextBlock
+                {
+                    FontSize = 11, TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 3, 0, 0)
+                };
+                var keyStack = new StackPanel();
+                keyStack.Children.Add(_tileHotkeyText);
+                keyStack.Children.Add(_tileHotkeyDetail);
+                var badgeBorder = new FrameworkElementFactory(typeof(Border));
+                badgeBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+                badgeBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(BackgroundProperty));
+                badgeBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(PaddingProperty));
+                badgeBorder.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));
+                _tileHotkeyBadge = new Button
+                {
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(225, 20, 23, 29)),
+                    Padding = new Thickness(8, 5, 8, 5), Cursor = Cursors.Hand,
+                    Margin = new Thickness(12, 4, 12, 44),
+                    Template = new ControlTemplate(typeof(Button)) { VisualTree = badgeBorder },
+                    Content = new Viewbox { StretchDirection = StretchDirection.DownOnly, Child = keyStack }
+                };
+                _tileHotkeyBadge.Click += (sender, args) =>
+                {
+                    args.Handled = true;
+                    if (MainWindow.Instance?.IsHotkeyPickerOpen == false) HotkeysMenuItemClick(sender, args);
+                };
+                _tileHotkeyText.Foreground = Brushes.White;
+                _tileHotkeyDetail.Foreground = Brushes.White;
+                Grid.SetRow(_tileHotkeyBadge, 1);
+                layout.Children.Add(_tileHotkeyBadge);
+                HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                VerticalContentAlignment = VerticalAlignment.Stretch;
+                Content = layout;
+                UpdateTileHotkey();
             }
             else if (Mode == SoundButtonMode.Search)
             {
@@ -2247,6 +2294,27 @@ namespace SoundBoard
                 Content = viewbox;
             }
         }
+
+        private void UpdateTileHotkey()
+        {
+            if (_tileHotkeyBadge == null) return;
+            var primary = GlobalHotkey ?? LocalHotkey;
+            _tileHotkeyBadge.Visibility = primary == null ? Visibility.Collapsed : Visibility.Visible;
+            _tileHotkeyText.Text = primary?.DisplayText ?? string.Empty;
+            string scope = GlobalHotkey != null ? "GLOBAL" : "LOCAL";
+            _tileHotkeyDetail.Text = (HoldToPlay ? "HOLD · " : "") + scope;
+            if (GlobalHotkey != null && LocalHotkey != null)
+                _tileHotkeyDetail.Text += " · Local: " + LocalHotkey.DisplayText;
+            if (VolumeOffset != 0)
+                _tileHotkeyDetail.Text += " · VOL " + VolumeOffset.ToString(@"+#;-#;0");
+            ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+            _tileHotkeyBadge.ToolTip = "Click to edit hotkey — " + _tileHotkeyText.Text;
+            System.Windows.Automation.AutomationProperties.SetName(_tileHotkeyBadge,
+                "Edit hotkey: " + _tileHotkeyText.Text);
+        }
+
+        private Button _tileHotkeyBadge;
+        private TextBlock _tileHotkeyText, _tileHotkeyDetail;
 
         private void LoadFiles(params string[] files)
         {
@@ -2450,6 +2518,7 @@ namespace SoundBoard
                 _volumeOffset = value;
 
                 ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+                UpdateTileHotkey();
             }
         }
 
@@ -2484,6 +2553,7 @@ namespace SoundBoard
                 Stop();
                 _holdToPlay = value;
                 if (_holdToPlayMenuItem != null) _holdToPlayMenuItem.IsChecked = value;
+                UpdateTileHotkey();
             }
         }
         private bool _holdToPlay;
@@ -2509,6 +2579,7 @@ namespace SoundBoard
                 MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
                 _localHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+                UpdateTileHotkey();
             }
         }
         private Hotkey _localHotkey;
@@ -2521,6 +2592,7 @@ namespace SoundBoard
                 MainWindow.Instance?.SoundHotkeys?.CancelSound(this);
                 _globalHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+                UpdateTileHotkey();
             }
         }
         private Hotkey _globalHotkey;

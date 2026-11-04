@@ -1,8 +1,11 @@
 # Mouse Hold Custom build
 
-Local modification of micahmo/SoundBoard 1.10.2 (.NET Framework 4.8/WPF). The window title and About box identify **Mouse Hold Custom**, with informational version `1.10.2-mouse-hold.1`. Automatic and manual upstream update checks are disabled so an official binary cannot silently replace this feature build. The assembly/config directory names remain unchanged for compatibility.
+Local modification of micahmo/SoundBoard 1.10.2 (.NET Framework 4.8/WPF). The window title and About box identify **Mouse Hold Custom**, with informational version `1.10.2-mouse-hold.3`. Automatic and manual upstream update checks are disabled so an official binary cannot silently replace this feature build. The assembly/config directory names remain unchanged for compatibility.
 
 ## Controls and behavior
+
+- Main-grid tiles show a large high-contrast hotkey badge plus GLOBAL/LOCAL and HOLD status. Top-row digits read `1`–`0` (not `D1`); numpad keys read `Num 1` etc. Volume offsets share the badge footer to avoid overlap. Labels refresh when bindings/mode are changed or restored. Click the large badge to open Set Hotkeys; its click is handled separately from sound playback.
+- The picker includes a **Top row — no modifiers** 1–0 button row. Click a digit to select the ordinary number-row key alone, clearing modifiers, or focus the capture field and press the key. Existing bindings are not changed automatically. Keys still reach the foreground game/app.
 
 - Right-click a sound → **Set Hotkeys**. Focus a picker and press a keyboard key or side mouse button, or select the explicit **Mouse4** / **Mouse5** buttons. Modifier checkboxes permit mouse selection without generating a side-button press. Mouse4 is XButton1; Mouse5 is XButton2.
 - No bindings are assigned automatically. In particular, existing Mouse4/PTT mappings are not changed.

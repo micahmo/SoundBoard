@@ -10,9 +10,22 @@
                  PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
                  PreviewMouseDown="HotkeyTextBox_PreviewMouseDown"
                  ToolTip="Focus here and press a key or Mouse4/Mouse5. Escape, Delete or Backspace clears."
-                 Text="{Binding Hotkey, ElementName=UserControl, Mode=OneWay, TargetNullValue=&lt; not set &gt;}">
+                 Text="{Binding Hotkey.DisplayText, ElementName=UserControl, Mode=OneWay, TargetNullValue=&lt; not set &gt;}">
             <TextBox.ContextMenu><ContextMenu Visibility="Collapsed" /></TextBox.ContextMenu>
         </TextBox>
+        <TextBlock Text="Top row — no modifiers" FontSize="11" Margin="0,5,0,2" />
+        <UniformGrid Rows="1" Columns="10">
+            <Button Content="1" Tag="1" Click="Number_Click" Padding="0,3" ToolTip="Top-row 1 alone (no Ctrl or numpad)" />
+            <Button Content="2" Tag="2" Click="Number_Click" Padding="0,3" ToolTip="Top-row 2 alone (no Ctrl or numpad)" />
+            <Button Content="3" Tag="3" Click="Number_Click" Padding="0,3" ToolTip="Top-row 3 alone (no Ctrl or numpad)" />
+            <Button Content="4" Tag="4" Click="Number_Click" Padding="0,3" ToolTip="Top-row 4 alone (no Ctrl or numpad)" />
+            <Button Content="5" Tag="5" Click="Number_Click" Padding="0,3" ToolTip="Top-row 5 alone (no Ctrl or numpad)" />
+            <Button Content="6" Tag="6" Click="Number_Click" Padding="0,3" ToolTip="Top-row 6 alone (no Ctrl or numpad)" />
+            <Button Content="7" Tag="7" Click="Number_Click" Padding="0,3" ToolTip="Top-row 7 alone (no Ctrl or numpad)" />
+            <Button Content="8" Tag="8" Click="Number_Click" Padding="0,3" ToolTip="Top-row 8 alone (no Ctrl or numpad)" />
+            <Button Content="9" Tag="9" Click="Number_Click" Padding="0,3" ToolTip="Top-row 9 alone (no Ctrl or numpad)" />
+            <Button Content="0" Tag="0" Click="Number_Click" Padding="0,3" ToolTip="Top-row 0 alone (no Ctrl or numpad)" />
+        </UniformGrid>
         <WrapPanel Margin="0,5,0,0" HorizontalAlignment="Center">
             <Button Content="Mouse4" AutomationProperties.AutomationId="SelectMouse4" Click="Mouse4_Click" Padding="6,3" ToolTip="XButton1 (no mouse-button press sent)" />
             <Button Content="Mouse5" AutomationProperties.AutomationId="SelectMouse5" Click="Mouse5_Click" Padding="6,3" Margin="4,0" ToolTip="XButton2 (no mouse-button press sent)" />

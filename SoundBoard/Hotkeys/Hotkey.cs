@@ -66,6 +66,21 @@ namespace SoundBoard
             return str.ToString();
         }
 
+        /// <summary>Readable labels; persistence continues to use canonical WPF key names.</summary>
+        public string DisplayText
+        {
+            get
+            {
+                string canonical = ToString();
+                string name = MouseButton.HasValue ? null : Key.ToString();
+                if (name != null && name.Length == 2 && name[0] == 'D' && char.IsDigit(name[1]))
+                    return canonical.Substring(0, canonical.Length - name.Length) + name[1];
+                if (name != null && name.StartsWith("NumPad"))
+                    return canonical.Substring(0, canonical.Length - name.Length) + "Num " + name.Substring(6);
+                return canonical.Replace("Mouse4", "Mouse 4").Replace("Mouse5", "Mouse 5");
+            }
+        }
+
         /// <summary>
         /// "Deserializes" a string to a HotKey
         /// </summary>

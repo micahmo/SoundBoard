@@ -169,6 +169,29 @@ internal static class Program
                 Check(!(start.IsValid && gate.IsCurrent(load)), "Canceled load may play");
             });
 #if WINDOWS
+            Test("All ten bare top-row digits remain distinct from numpad and round-trip", () =>
+            {
+                for (int digit = 0; digit < 10; digit++)
+                {
+                    var key = new Hotkey((Key)((int)Key.D0 + digit), ModifierKeys.None);
+                    var num = new Hotkey((Key)((int)Key.NumPad0 + digit), ModifierKeys.None);
+                    Check(key.DisplayText == digit.ToString(), "Top-row label");
+                    Check(num.DisplayText == "Num " + digit, "Numpad label");
+                    Check(key.VirtualKey == 0x30 + digit && key.VirtualKey != num.VirtualKey, "Wrong physical key");
+                    Check(Hotkey.FromString(key.ToString()).VirtualKey == key.VirtualKey, "Persistence");
+                    var state = new HotkeyInputState<string>();
+                    var bindings = new[] { Binding(input: key.VirtualKey) };
+                    Check(Down(state, bindings, input: num.VirtualKey) == null, "Numpad fired top-row binding");
+                    Check(Down(state, bindings, input: key.VirtualKey) != null, "Bare digit did not fire");
+                    Up(state, key.VirtualKey, "sound");
+                }
+            });
+            Test("Readable labels preserve modifiers and canonical storage", () =>
+            {
+                var key = new Hotkey(Key.D2, ModifierKeys.Control);
+                Check(key.DisplayText == "Ctrl + 2" && key.ToString() == "Ctrl + D2", "Modifier display/storage");
+                Check(new Hotkey(MouseButton.XButton1, ModifierKeys.None).DisplayText == "Mouse 4", "Mouse label");
+            });
             Test("Keyboard and mouse config strings round-trip with all modifier combinations", () =>
             {
                 foreach (int mask in Enumerable.Range(0, 16))

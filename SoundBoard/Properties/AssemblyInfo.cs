@@ -9,7 +9,7 @@ using System.Windows;
 // associated with an assembly.
 [assembly: AssemblyTitle("SoundBoard - Mouse Hold Custom")]
 [assembly: AssemblyDescription("Local mouse side-button and hold-to-play build; upstream auto-update disabled")]
-[assembly: AssemblyInformationalVersion("1.10.2-mouse-hold.1")]
+[assembly: AssemblyInformationalVersion("1.10.2-mouse-hold.3")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("SoundBoard")]

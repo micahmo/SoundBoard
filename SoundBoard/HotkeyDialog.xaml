@@ -51,7 +51,7 @@
                     <CheckBox x:Name="HoldToPlayControl" Content="Hold to play (hotkeys)"
                               AutomationProperties.AutomationId="HoldToPlay" Margin="0,0,0,10"
                               ToolTip="Press starts from the beginning once. Release stops. Loop repeats while held. Clicking a sound still plays normally." />
-                    <TextBlock Text="Mouse4 = XButton1; Mouse5 = XButton2. No input is blocked."
+                    <TextBlock Text="Top-row 1–0 work alone; no numpad needed. Mouse4 = XButton1; Mouse5 = XButton2. Keys also reach the game."
                                TextWrapping="Wrap" MaxWidth="400" Margin="0,0,0,10" />
                 <TextBlock x:Name="WarningLabel"
                        MaxWidth="300"

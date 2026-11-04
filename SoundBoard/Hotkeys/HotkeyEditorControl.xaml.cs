@@ -57,6 +57,12 @@ namespace SoundBoard
             (AltModifier.IsChecked == true ? ModifierKeys.Alt : ModifierKeys.None) |
             (WinModifier.IsChecked == true ? ModifierKeys.Windows : ModifierKeys.None);
 
+        private void Number_Click(object sender, RoutedEventArgs e)
+        {
+            var digit = int.Parse((string)((System.Windows.Controls.Button)sender).Tag);
+            Hotkey = new Hotkey((Key)((int)Key.D0 + digit), ModifierKeys.None);
+        }
+
         private void Mouse4_Click(object sender, RoutedEventArgs e) { Hotkey = new Hotkey(MouseButton.XButton1, SelectedModifiers); }
         private void Mouse5_Click(object sender, RoutedEventArgs e) { Hotkey = new Hotkey(MouseButton.XButton2, SelectedModifiers); }
         private void Clear_Click(object sender, RoutedEventArgs e) { Hotkey = null; }
